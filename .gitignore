@@ -1,0 +1,4 @@
+.cache/
+.theos/
+packages/
+.DS_Store
