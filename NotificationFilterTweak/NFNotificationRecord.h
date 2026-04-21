@@ -10,6 +10,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy, nullable) NSString *body;
 @property (nonatomic, copy, nullable) NSString *header;
 @property (nonatomic, copy, nullable) NSString *message;
+@property (nonatomic, copy) NSString *messageText;
 @property (nonatomic, copy) NSString *joinedText;
 @property (nonatomic, strong) NSDate *timestamp;
 

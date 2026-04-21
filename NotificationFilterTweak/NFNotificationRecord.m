@@ -75,6 +75,10 @@ static NSString *NFJoinedText(NSArray<NSString *> *values) {
     record.header = NFValueForSelectorName(content, request, @"header");
     record.body = NFValueForSelectorName(content, request, @"body");
     record.message = NFValueForSelectorName(content, request, @"message");
+    record.messageText = NFJoinedText(@[
+        record.body ?: @"",
+        record.message ?: @""
+    ]);
     record.joinedText = NFJoinedText(@[
         record.title ?: @"",
         record.subtitle ?: @"",
@@ -94,6 +98,10 @@ static NSString *NFJoinedText(NSArray<NSString *> *values) {
     record.header = NFValueForSelectorName(bulletin, nil, @"header");
     record.body = NFValueForSelectorName(bulletin, nil, @"body");
     record.message = NFValueForSelectorName(bulletin, nil, @"message");
+    record.messageText = NFJoinedText(@[
+        record.body ?: @"",
+        record.message ?: @""
+    ]);
     record.joinedText = NFJoinedText(@[
         record.title ?: @"",
         record.subtitle ?: @"",

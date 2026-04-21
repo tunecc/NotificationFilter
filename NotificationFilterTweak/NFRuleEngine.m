@@ -50,7 +50,8 @@
     }
 
     NSString *joinedText = record.joinedText ?: @"";
-    if (joinedText.length == 0) {
+    NSString *messageText = record.messageText ?: @"";
+    if (joinedText.length == 0 && messageText.length == 0) {
         return [self _allowResult];
     }
 
@@ -89,7 +90,7 @@
 
     for (NSDictionary *scope in scopes) {
         NSDictionary *rules = scope[@"rules"];
-        NSString *matchedContainsRule = [self _firstMatchingContainsRuleInRules:rules[NFRulesContainsKey] text:joinedText];
+        NSString *matchedContainsRule = [self _firstMatchingContainsRuleInRules:rules[NFRulesContainsKey] text:messageText];
         if (matchedContainsRule.length > 0) {
             NFMatchResult *result = [[NFMatchResult alloc] init];
             result.shouldBlock = YES;

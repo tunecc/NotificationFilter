@@ -14,6 +14,27 @@
 
 @implementation NFPLogsListController
 
+static NSString *NFPLogPreviewText(NSDictionary *entry) {
+    NSString *joinedText = entry[NFLogJoinedTextKey];
+    if (![joinedText isKindOfClass:[NSString class]] || joinedText.length == 0) {
+        NSString *matchedPattern = entry[NFLogMatchedPatternKey];
+        if ([matchedPattern isKindOfClass:[NSString class]] && matchedPattern.length > 0) {
+            return matchedPattern;
+        }
+        return @"无可预览内容";
+    }
+
+    NSMutableString *preview = [[joinedText stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] mutableCopy];
+    [preview replaceOccurrencesOfString:@"\n"
+                             withString:@"  "
+                                options:0
+                                  range:NSMakeRange(0, preview.length)];
+    if (preview.length > 90) {
+        return [[preview substringToIndex:90] stringByAppendingString:@"…"];
+    }
+    return preview;
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.title = @"已过滤通知";
@@ -60,6 +81,7 @@
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"log"];
         cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+        cell.detailTextLabel.numberOfLines = 2;
     }
 
     NSDictionary *entry = self.filteredEntries[indexPath.row];
@@ -71,11 +93,10 @@
     formatter.dateStyle = NSDateFormatterShortStyle;
     formatter.timeStyle = NSDateFormatterShortStyle;
 
-    cell.textLabel.text = displayName;
-    cell.detailTextLabel.text = [NSString stringWithFormat:@"%@ · %@ · %@",
-                                 bundleIdentifier ?: @"未知",
-                                 entry[NFLogMatchedModeKey] ?: @"未知",
-                                 [formatter stringFromDate:date]];
+    cell.textLabel.text = [NSString stringWithFormat:@"%@ · %@",
+                           displayName,
+                           [formatter stringFromDate:date]];
+    cell.detailTextLabel.text = NFPLogPreviewText(entry);
     cell.imageView.image = [[NFPAppInfoProvider sharedProvider] iconForBundleIdentifier:bundleIdentifier];
     [cell setNeedsLayout];
     return cell;

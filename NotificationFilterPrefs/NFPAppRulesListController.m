@@ -10,11 +10,22 @@ static NSString * const NFPAppRulesDisplayNameKey = @"displayName";
 
 @property (nonatomic, copy) NSArray<NSDictionary *> *applications;
 @property (nonatomic, copy) NSArray<NSDictionary *> *filteredApplications;
+@property (nonatomic, copy) NSDictionary<NSString *, NSNumber *> *ruleCountsByBundleIdentifier;
 @property (nonatomic, strong) UISearchController *searchController;
 
 @end
 
 @implementation NFPAppRulesListController
+
+static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
+    if (![rules isKindOfClass:[NSDictionary class]]) {
+        return 0;
+    }
+
+    return [rules[NFRulesContainsKey] count] +
+           [rules[NFRulesExcludeKey] count] +
+           [rules[NFRulesRegexKey] count];
+}
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -38,6 +49,7 @@ static NSString * const NFPAppRulesDisplayNameKey = @"displayName";
     NSDictionary *preferences = [NFPreferences loadPreferences];
     NSDictionary *appRules = preferences[NFAppRulesKey];
     NSMutableSet<NSString *> *configuredBundleIdentifiers = [NSMutableSet set];
+    NSMutableDictionary<NSString *, NSNumber *> *ruleCountsByBundleIdentifier = [NSMutableDictionary dictionary];
 
     [appRules enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
         if (![key isKindOfClass:[NSString class]]) {
@@ -46,9 +58,11 @@ static NSString * const NFPAppRulesDisplayNameKey = @"displayName";
 
         if ([NFPreferences rulesDictionaryHasConfiguredValues:obj]) {
             [configuredBundleIdentifiers addObject:key];
+            ruleCountsByBundleIdentifier[key] = @(NFPRuleCountForRulesDictionary(obj));
         }
     }];
 
+    self.ruleCountsByBundleIdentifier = ruleCountsByBundleIdentifier;
     self.applications = [[NFPAppInfoProvider sharedProvider] sortedApplicationsWithConfiguredBundleIdentifiers:configuredBundleIdentifiers];
     [self applySearchText:self.searchController.searchBar.text];
     [self.tableView reloadData];
@@ -62,7 +76,6 @@ static NSString * const NFPAppRulesDisplayNameKey = @"displayName";
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"app"];
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"app"];
-        cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     }
 
     NSDictionary *application = self.filteredApplications[indexPath.row];
@@ -70,6 +83,7 @@ static NSString * const NFPAppRulesDisplayNameKey = @"displayName";
     cell.textLabel.text = application[NFPAppRulesDisplayNameKey];
     cell.detailTextLabel.text = bundleIdentifier;
     cell.imageView.image = [[NFPAppInfoProvider sharedProvider] iconForBundleIdentifier:bundleIdentifier];
+    cell.accessoryView = [self accessoryViewForBundleIdentifier:bundleIdentifier];
     [cell setNeedsLayout];
     return cell;
 }
@@ -105,6 +119,20 @@ static NSString * const NFPAppRulesDisplayNameKey = @"displayName";
         return [displayName containsString:normalizedSearchText] || [bundleIdentifier containsString:normalizedSearchText];
     }];
     self.filteredApplications = [self.applications filteredArrayUsingPredicate:predicate];
+}
+
+- (UIView *)accessoryViewForBundleIdentifier:(NSString *)bundleIdentifier {
+    NSUInteger ruleCount = [self.ruleCountsByBundleIdentifier[bundleIdentifier] unsignedIntegerValue];
+    if (ruleCount == 0) {
+        return nil;
+    }
+
+    UILabel *countLabel = [[UILabel alloc] init];
+    countLabel.font = [UIFont systemFontOfSize:14.0 weight:UIFontWeightMedium];
+    countLabel.textColor = [UIColor secondaryLabelColor];
+    countLabel.text = [NSString stringWithFormat:@"%lu条", (unsigned long)ruleCount];
+    [countLabel sizeToFit];
+    return countLabel;
 }
 
 @end
