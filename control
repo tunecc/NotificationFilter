@@ -2,7 +2,7 @@ Package: com.tune.shortcutstimeoutblocker
 Name: Shortcuts Timeout Blocker
 Depends: mobilesubstrate
 Architecture: iphoneos-arm64
-Description: Blocks the specific Shortcuts timeout failure notification.
+Description: Blocks Shortcuts Automation failed notifications.
 Maintainer: tune
 Author: tune
 Section: Tweaks

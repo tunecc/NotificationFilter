@@ -2,3 +2,5 @@
 .theos/
 packages/
 .DS_Store
+outputs
+docs
