@@ -8,6 +8,12 @@
 @property (nonatomic, assign) NFPRuleEditorKind editorKind;
 @property (nonatomic, copy) void (^saveHandler)(NSArray *rules);
 @property (nonatomic, strong) NSMutableArray<NSDictionary *> *rules;
+@property (nonatomic, assign) BOOL editingRules;
+@property (nonatomic, strong) NSMutableSet<NSString *> *selectedRuleIdentifiers;
+@property (nonatomic, strong) UIBarButtonItem *editRulesButton;
+@property (nonatomic, strong) UIBarButtonItem *pasteButton;
+@property (nonatomic, strong) UIBarButtonItem *addButton;
+@property (nonatomic, strong) UIBarButtonItem *deleteButton;
 
 @end
 
@@ -23,6 +29,7 @@
         _editorKind = editorKind;
         _rules = [[NFPreferences normalizedRuleEntriesFromArray:rules] mutableCopy];
         _saveHandler = [saveHandler copy];
+        _selectedRuleIdentifiers = [NSMutableSet set];
     }
     return self;
 }
@@ -34,12 +41,26 @@
     self.tableView.backgroundColor = [UIColor systemGroupedBackgroundColor];
     self.tableView.estimatedRowHeight = 88.0;
     self.tableView.rowHeight = UITableViewAutomaticDimension;
-    self.tableView.allowsSelectionDuringEditing = YES;
+    self.navigationItem.leftItemsSupplementBackButton = YES;
 
-    self.navigationItem.leftBarButtonItem = self.editButtonItem;
-    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd
-                                                                                            target:self
-                                                                                            action:@selector(addTapped:)];
+    self.editRulesButton = [[UIBarButtonItem alloc] initWithTitle:@"编辑"
+                                                            style:UIBarButtonItemStylePlain
+                                                           target:self
+                                                           action:@selector(toggleEditingRules)];
+    self.navigationItem.leftBarButtonItem = self.editRulesButton;
+
+    self.pasteButton = [[UIBarButtonItem alloc] initWithTitle:@"粘贴"
+                                                        style:UIBarButtonItemStylePlain
+                                                       target:self
+                                                       action:@selector(importFromPasteboardButtonTapped:)];
+    self.addButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd
+                                                                    target:self
+                                                                    action:@selector(addButtonTapped:)];
+    self.deleteButton = [[UIBarButtonItem alloc] initWithTitle:@"删除"
+                                                         style:UIBarButtonItemStylePlain
+                                                        target:self
+                                                        action:@selector(deleteSelectedRules)];
+    [self updateNavigationItems];
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -53,11 +74,11 @@
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     switch (self.editorKind) {
         case NFPRuleEditorKindContains:
-            return @"成熟的软件通常把规则作为单独条目维护，而不是让用户在一个大文本框里手工排版。这里支持逐条编辑和从剪贴板批量导入。";
+            return @"命中消息时过滤";
         case NFPRuleEditorKindExclude:
-            return @"排除规则建议尽量精确，避免误放行。支持逐条维护和批量导入。";
+            return @"命中时优先放行";
         default:
-            return @"正则适合复杂匹配；保存前会校验语法。需要大量导入时可直接从剪贴板批量导入。";
+            return @"保存前会校验正则语法。";
     }
 }
 
@@ -71,7 +92,7 @@
             cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
         }
         cell.textLabel.text = @"暂无规则";
-        cell.detailTextLabel.text = @"点右上角 + 新增，或从剪贴板批量导入。";
+        cell.detailTextLabel.text = @"右上角可直接新增一条，或从剪贴板导入。";
         cell.accessoryType = UITableViewCellAccessoryNone;
         return cell;
     }
@@ -86,8 +107,12 @@
     [cell configureWithRuleEntry:ruleEntry
                       editorKind:self.editorKind
                  validationState:[self validationStateForRuleEntry:ruleEntry]
-                   toggleHandler:^(BOOL enabled) {
+                    editingMode:self.editingRules
+                       selected:[self.selectedRuleIdentifiers containsObject:ruleEntry[NFRuleEntryIdentifierKey]]
+                  toggleHandler:^(BOOL enabled) {
         [weakSelf setEnabled:enabled forRuleAtIndex:indexPath.row];
+    } selectionHandler:^{
+        [weakSelf toggleSelectionForRuleAtIndex:indexPath.row];
     }];
     return cell;
 }
@@ -98,31 +123,17 @@
         return;
     }
 
+    if (self.editingRules) {
+        [self toggleSelectionForRuleAtIndex:indexPath.row];
+        return;
+    }
+
     NSDictionary *ruleEntry = self.rules[indexPath.row];
     [self pushEditorForRuleEntry:ruleEntry atIndex:indexPath.row];
 }
 
 - (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
-    return self.rules.count > 0;
-}
-
-- (UITableViewCellEditingStyle)tableView:(UITableView *)tableView editingStyleForRowAtIndexPath:(NSIndexPath *)indexPath {
-    return UITableViewCellEditingStyleNone;
-}
-
-- (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath {
-    return self.rules.count > 0;
-}
-
-- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)sourceIndexPath toIndexPath:(NSIndexPath *)destinationIndexPath {
-    if (sourceIndexPath.row == destinationIndexPath.row || self.rules.count == 0) {
-        return;
-    }
-
-    NSDictionary *ruleEntry = self.rules[sourceIndexPath.row];
-    [self.rules removeObjectAtIndex:sourceIndexPath.row];
-    [self.rules insertObject:ruleEntry atIndex:destinationIndexPath.row];
-    [self persistRules];
+    return self.rules.count > 0 && !self.editingRules;
 }
 
 - (UISwipeActionsConfiguration *)tableView:(UITableView *)tableView trailingSwipeActionsConfigurationForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -143,34 +154,16 @@
     return [UISwipeActionsConfiguration configurationWithActions:@[deleteAction]];
 }
 
-- (void)addTapped:(UIBarButtonItem *)sender {
-    UIAlertController *sheet = [UIAlertController alertControllerWithTitle:nil
-                                                                   message:nil
-                                                            preferredStyle:UIAlertControllerStyleActionSheet];
+- (void)addButtonTapped:(UIBarButtonItem *)sender {
+    [self pushEditorForRuleEntry:nil atIndex:NSNotFound];
+}
 
-    [sheet addAction:[UIAlertAction actionWithTitle:@"新增一条"
-                                              style:UIAlertActionStyleDefault
-                                            handler:^(UIAlertAction *action) {
-        [self pushEditorForRuleEntry:nil atIndex:NSNotFound];
-    }]];
-
-    [sheet addAction:[UIAlertAction actionWithTitle:@"从剪贴板批量导入"
-                                              style:UIAlertActionStyleDefault
-                                            handler:^(UIAlertAction *action) {
-        [self importRulesFromPasteboard];
-    }]];
-
-    [sheet addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
-
-    UIPopoverPresentationController *popover = sheet.popoverPresentationController;
-    popover.barButtonItem = sender;
-    [self presentViewController:sheet animated:YES completion:nil];
+- (void)importFromPasteboardButtonTapped:(UIBarButtonItem *)sender {
+    [self importRulesFromPasteboard];
 }
 
 - (void)setEditing:(BOOL)editing animated:(BOOL)animated {
     [super setEditing:editing animated:animated];
-    [self.tableView setEditing:editing animated:animated];
-    [self.tableView reloadData];
 }
 
 - (void)pushEditorForRuleEntry:(NSDictionary *)ruleEntry atIndex:(NSUInteger)index {
@@ -279,6 +272,83 @@
                                                  enabled:enabled
                                                identifier:ruleEntry[NFRuleEntryIdentifierKey]];
     [self persistRules];
+}
+
+- (void)toggleEditingRules {
+    self.editingRules = !self.editingRules;
+    if (!self.editingRules) {
+        [self.selectedRuleIdentifiers removeAllObjects];
+    }
+    [self updateNavigationItems];
+    [self.tableView reloadData];
+}
+
+- (void)toggleSelectionForRuleAtIndex:(NSUInteger)index {
+    if (index >= self.rules.count) {
+        return;
+    }
+
+    NSString *identifier = self.rules[index][NFRuleEntryIdentifierKey];
+    if (identifier.length == 0) {
+        return;
+    }
+
+    if ([self.selectedRuleIdentifiers containsObject:identifier]) {
+        [self.selectedRuleIdentifiers removeObject:identifier];
+    } else {
+        [self.selectedRuleIdentifiers addObject:identifier];
+    }
+
+    [self updateNavigationItems];
+    [self.tableView reloadData];
+}
+
+- (void)deleteSelectedRules {
+    if (self.selectedRuleIdentifiers.count == 0) {
+        return;
+    }
+
+    NSUInteger count = self.selectedRuleIdentifiers.count;
+    NSString *message = [NSString stringWithFormat:@"将删除已选中的 %lu 条规则。", (unsigned long)count];
+
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"确认删除"
+                                                                   message:message
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+
+    __weak typeof(self) weakSelf = self;
+    [alert addAction:[UIAlertAction actionWithTitle:@"删除"
+                                              style:UIAlertActionStyleDestructive
+                                            handler:^(UIAlertAction *action) {
+        NSIndexSet *indexesToDelete = [weakSelf.rules indexesOfObjectsPassingTest:^BOOL(NSDictionary *ruleEntry, NSUInteger idx, BOOL *stop) {
+            return [weakSelf.selectedRuleIdentifiers containsObject:ruleEntry[NFRuleEntryIdentifierKey]];
+        }];
+        if (indexesToDelete.count == 0) {
+            return;
+        }
+
+        [weakSelf.rules removeObjectsAtIndexes:indexesToDelete];
+        [weakSelf.selectedRuleIdentifiers removeAllObjects];
+        [weakSelf persistRules];
+        [weakSelf toggleEditingRules];
+    }]];
+
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)updateNavigationItems {
+    self.editRulesButton.title = self.editingRules ? @"完成" : @"编辑";
+    if (self.editingRules) {
+        NSUInteger count = self.selectedRuleIdentifiers.count;
+        self.title = count > 0 ? [NSString stringWithFormat:@"已选 %lu 条", (unsigned long)count] : @"已选 0 条";
+        self.deleteButton.title = count > 0 ? [NSString stringWithFormat:@"删除(%lu)", (unsigned long)count] : @"删除";
+        self.deleteButton.enabled = count > 0;
+        self.navigationItem.rightBarButtonItems = @[self.deleteButton];
+    } else {
+        self.title = self.editorKind == NFPRuleEditorKindContains ? @"包含规则" :
+                     (self.editorKind == NFPRuleEditorKindExclude ? @"排除规则" : @"正则规则");
+        self.navigationItem.rightBarButtonItems = @[self.addButton, self.pasteButton];
+    }
 }
 
 - (void)persistRules {

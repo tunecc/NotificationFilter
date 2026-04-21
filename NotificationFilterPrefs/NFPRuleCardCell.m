@@ -8,7 +8,10 @@
 @property (nonatomic, strong) UILabel *subtitleLabel;
 @property (nonatomic, strong) UILabel *statusLabel;
 @property (nonatomic, strong) UISwitch *enabledSwitch;
+@property (nonatomic, strong) UIButton *selectionButton;
+@property (nonatomic, strong) NSLayoutConstraint *titleLeadingConstraint;
 @property (nonatomic, copy) void (^toggleHandler)(BOOL enabled);
+@property (nonatomic, copy) void (^selectionHandler)(void);
 
 @end
 
@@ -51,12 +54,20 @@
         [cardView addSubview:statusLabel];
         self.statusLabel = statusLabel;
 
+        UIButton *selectionButton = [UIButton buttonWithType:UIButtonTypeSystem];
+        selectionButton.translatesAutoresizingMaskIntoConstraints = NO;
+        selectionButton.hidden = YES;
+        [selectionButton addTarget:self action:@selector(selectionTapped) forControlEvents:UIControlEventTouchUpInside];
+        [cardView addSubview:selectionButton];
+        self.selectionButton = selectionButton;
+
         UISwitch *enabledSwitch = [[UISwitch alloc] init];
         enabledSwitch.translatesAutoresizingMaskIntoConstraints = NO;
         [enabledSwitch addTarget:self action:@selector(switchChanged:) forControlEvents:UIControlEventValueChanged];
         [cardView addSubview:enabledSwitch];
         self.enabledSwitch = enabledSwitch;
 
+        self.titleLeadingConstraint = [titleLabel.leadingAnchor constraintEqualToAnchor:cardView.leadingAnchor constant:14.0];
         [NSLayoutConstraint activateConstraints:@[
             [cardView.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:6.0],
             [cardView.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor constant:-6.0],
@@ -64,10 +75,15 @@
             [cardView.trailingAnchor constraintEqualToAnchor:self.contentView.trailingAnchor constant:-16.0],
 
             [titleLabel.topAnchor constraintEqualToAnchor:cardView.topAnchor constant:14.0],
-            [titleLabel.leadingAnchor constraintEqualToAnchor:cardView.leadingAnchor constant:14.0],
+            self.titleLeadingConstraint,
             [titleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:enabledSwitch.leadingAnchor constant:-12.0],
 
-            [enabledSwitch.topAnchor constraintEqualToAnchor:cardView.topAnchor constant:12.0],
+            [selectionButton.centerYAnchor constraintEqualToAnchor:cardView.centerYAnchor],
+            [selectionButton.leadingAnchor constraintEqualToAnchor:cardView.leadingAnchor constant:14.0],
+            [selectionButton.widthAnchor constraintEqualToConstant:28.0],
+            [selectionButton.heightAnchor constraintEqualToConstant:28.0],
+
+            [enabledSwitch.centerYAnchor constraintEqualToAnchor:cardView.centerYAnchor],
             [enabledSwitch.trailingAnchor constraintEqualToAnchor:cardView.trailingAnchor constant:-14.0],
 
             [subtitleLabel.topAnchor constraintEqualToAnchor:titleLabel.bottomAnchor constant:8.0],
@@ -87,6 +103,7 @@
 - (void)prepareForReuse {
     [super prepareForReuse];
     self.toggleHandler = nil;
+    self.selectionHandler = nil;
     self.statusLabel.hidden = YES;
     self.statusLabel.text = nil;
 }
@@ -94,29 +111,40 @@
 - (void)configureWithRuleEntry:(NSDictionary *)ruleEntry
                     editorKind:(NFPRuleEditorKind)editorKind
                validationState:(NFPRuleValidationState)validationState
-                 toggleHandler:(void (^)(BOOL))toggleHandler {
+                   editingMode:(BOOL)editingMode
+                      selected:(BOOL)selected
+                 toggleHandler:(void (^)(BOOL))toggleHandler
+              selectionHandler:(void (^)(void))selectionHandler {
     self.toggleHandler = toggleHandler;
+    self.selectionHandler = selectionHandler;
 
     NSString *ruleText = [NFPreferences ruleTextFromEntry:ruleEntry] ?: @"";
     BOOL enabled = [NFPreferences ruleEntryEnabled:ruleEntry];
 
     self.titleLabel.text = ruleText;
     self.enabledSwitch.on = enabled;
+    self.selectionButton.hidden = !editingMode;
+    self.enabledSwitch.hidden = editingMode;
+    self.selectionButton.tintColor = selected ? [UIColor systemBlueColor] : [UIColor tertiaryLabelColor];
+    UIImage *selectionImage = [UIImage systemImageNamed:selected ? @"checkmark.circle.fill" : @"circle"];
+    [self.selectionButton setImage:selectionImage forState:UIControlStateNormal];
+    self.titleLeadingConstraint.constant = editingMode ? 50.0 : 14.0;
 
     switch (editorKind) {
         case NFPRuleEditorKindContains:
-            self.subtitleLabel.text = @"命中消息内容时过滤";
+            self.subtitleLabel.text = nil;
             break;
         case NFPRuleEditorKindExclude:
-            self.subtitleLabel.text = @"命中时优先放行";
+            self.subtitleLabel.text = nil;
             break;
         default:
-            self.subtitleLabel.text = @"正则表达式";
+            self.subtitleLabel.text = nil;
             break;
     }
 
     self.titleLabel.textColor = enabled ? [UIColor labelColor] : [UIColor secondaryLabelColor];
     self.cardView.alpha = enabled ? 1.0 : 0.75;
+    self.selectionStyle = editingMode ? UITableViewCellSelectionStyleNone : UITableViewCellSelectionStyleDefault;
 
     if (validationState == NFPRuleValidationStateNone) {
         self.statusLabel.hidden = YES;
@@ -137,6 +165,12 @@
 - (void)setEditing:(BOOL)editing animated:(BOOL)animated {
     [super setEditing:editing animated:animated];
     self.enabledSwitch.enabled = !editing;
+}
+
+- (void)selectionTapped {
+    if (self.selectionHandler) {
+        self.selectionHandler();
+    }
 }
 
 - (void)switchChanged:(UISwitch *)sender {

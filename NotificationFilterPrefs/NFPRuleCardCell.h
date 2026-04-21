@@ -14,7 +14,10 @@ typedef NS_ENUM(NSInteger, NFPRuleValidationState) {
 - (void)configureWithRuleEntry:(NSDictionary *)ruleEntry
                     editorKind:(NFPRuleEditorKind)editorKind
                validationState:(NFPRuleValidationState)validationState
-                 toggleHandler:(void (^)(BOOL enabled))toggleHandler;
+                   editingMode:(BOOL)editingMode
+                      selected:(BOOL)selected
+                 toggleHandler:(void (^)(BOOL enabled))toggleHandler
+              selectionHandler:(void (^)(void))selectionHandler;
 
 @end
 
