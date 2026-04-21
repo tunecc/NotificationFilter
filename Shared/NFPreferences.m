@@ -11,6 +11,9 @@ NSString * const NFGlobalContainsKey = @"GlobalContains";
 NSString * const NFGlobalExcludeKey = @"GlobalExclude";
 NSString * const NFGlobalRegexKey = @"GlobalRegex";
 NSString * const NFAppRulesKey = @"AppRules";
+NSString * const NFPrefOnlyConfiguredAppsKey = @"PrefOnlyConfiguredApps";
+NSString * const NFPrefShowSystemAppsKey = @"PrefShowSystemApps";
+NSString * const NFPrefShowTrollAppsKey = @"PrefShowTrollApps";
 
 NSString * const NFRulesEnabledKey = @"enabled";
 NSString * const NFRulesContainsKey = @"contains";
@@ -47,7 +50,10 @@ NSString * const NFMatchModeRegex = @"regex";
         NFGlobalContainsKey,
         NFGlobalExcludeKey,
         NFGlobalRegexKey,
-        NFAppRulesKey
+        NFAppRulesKey,
+        NFPrefOnlyConfiguredAppsKey,
+        NFPrefShowSystemAppsKey,
+        NFPrefShowTrollAppsKey
     ];
 }
 
@@ -58,7 +64,10 @@ NSString * const NFMatchModeRegex = @"regex";
         NFGlobalContainsKey: @[],
         NFGlobalExcludeKey: @[],
         NFGlobalRegexKey: @[],
-        NFAppRulesKey: @{}
+        NFAppRulesKey: @{},
+        NFPrefOnlyConfiguredAppsKey: @NO,
+        NFPrefShowSystemAppsKey: @YES,
+        NFPrefShowTrollAppsKey: @YES
     };
 }
 
@@ -307,6 +316,15 @@ NSString * const NFMatchModeRegex = @"regex";
 
     if ([rawPreferences[NFGlobalRulesEnabledKey] respondsToSelector:@selector(boolValue)]) {
         normalizedPreferences[NFGlobalRulesEnabledKey] = @([rawPreferences[NFGlobalRulesEnabledKey] boolValue]);
+    }
+    if ([rawPreferences[NFPrefOnlyConfiguredAppsKey] respondsToSelector:@selector(boolValue)]) {
+        normalizedPreferences[NFPrefOnlyConfiguredAppsKey] = @([rawPreferences[NFPrefOnlyConfiguredAppsKey] boolValue]);
+    }
+    if ([rawPreferences[NFPrefShowSystemAppsKey] respondsToSelector:@selector(boolValue)]) {
+        normalizedPreferences[NFPrefShowSystemAppsKey] = @([rawPreferences[NFPrefShowSystemAppsKey] boolValue]);
+    }
+    if ([rawPreferences[NFPrefShowTrollAppsKey] respondsToSelector:@selector(boolValue)]) {
+        normalizedPreferences[NFPrefShowTrollAppsKey] = @([rawPreferences[NFPrefShowTrollAppsKey] boolValue]);
     }
 
     normalizedPreferences[NFGlobalContainsKey] = [self normalizedRuleEntriesFromArray:rawPreferences[NFGlobalContainsKey]];

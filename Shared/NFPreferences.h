@@ -11,6 +11,9 @@ extern NSString * const NFGlobalContainsKey;
 extern NSString * const NFGlobalExcludeKey;
 extern NSString * const NFGlobalRegexKey;
 extern NSString * const NFAppRulesKey;
+extern NSString * const NFPrefOnlyConfiguredAppsKey;
+extern NSString * const NFPrefShowSystemAppsKey;
+extern NSString * const NFPrefShowTrollAppsKey;
 
 extern NSString * const NFRulesEnabledKey;
 extern NSString * const NFRulesContainsKey;
