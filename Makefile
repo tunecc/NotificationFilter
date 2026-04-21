@@ -1,17 +1,32 @@
 ARCHS = arm64 arm64e
 TARGET = iphone:clang:latest:15.0
-THEOS_PACKAGE_SCHEME ?= rootless
-INSTALL_TARGET_PROCESSES = SpringBoard
+THEOS_PACKAGE_SCHEME ?= roothide
+INSTALL_TARGET_PROCESSES = SpringBoard Preferences
 
 THEOS_DEVICE_IP = localhost
-MODULE_CACHE_DIR = $(CURDIR)/.cache/clang/ModuleCache
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = ShortcutsTimeoutBlocker
+SUBPROJECTS += NotificationFilterTweak NotificationFilterPrefs
 
-ShortcutsTimeoutBlocker_FILES = Tweak.xm
-ShortcutsTimeoutBlocker_CFLAGS = -fobjc-arc -fmodules-cache-path=$(MODULE_CACHE_DIR)
-ShortcutsTimeoutBlocker_FRAMEWORKS = Foundation
+include $(THEOS_MAKE_PATH)/aggregate.mk
 
-include $(THEOS_MAKE_PATH)/tweak.mk
+.PHONY: package-roothide install-roothide package-debug-roothide install-debug-roothide package-rootless install-rootless
+
+package-roothide:
+	$(MAKE) clean package THEOS_PACKAGE_SCHEME=roothide FINALPACKAGE=1
+
+install-roothide:
+	$(MAKE) clean do THEOS_PACKAGE_SCHEME=roothide FINALPACKAGE=1
+
+package-debug-roothide:
+	$(MAKE) clean package THEOS_PACKAGE_SCHEME=roothide
+
+install-debug-roothide:
+	$(MAKE) clean do THEOS_PACKAGE_SCHEME=roothide
+
+package-rootless:
+	$(MAKE) clean package THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1
+
+install-rootless:
+	$(MAKE) clean do THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1

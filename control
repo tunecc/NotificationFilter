@@ -1,9 +1,9 @@
-Package: com.tune.shortcutstimeoutblocker
-Name: Shortcuts Timeout Blocker
-Depends: mobilesubstrate
+Package: com.tune.notificationfilter
+Name: Notification Filter
+Depends: mobilesubstrate, preferenceloader
 Architecture: iphoneos-arm64
-Description: Blocks Shortcuts Automation failed notifications.
+Description: Filter notifications by global and per-app rules.
 Maintainer: tune
 Author: tune
 Section: Tweaks
-Version: 0.0.1
+Version: 0.1.0
