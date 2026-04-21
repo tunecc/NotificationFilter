@@ -16,6 +16,9 @@ NSString * const NFRulesEnabledKey = @"enabled";
 NSString * const NFRulesContainsKey = @"contains";
 NSString * const NFRulesExcludeKey = @"exclude";
 NSString * const NFRulesRegexKey = @"regex";
+NSString * const NFRuleEntryIdentifierKey = @"id";
+NSString * const NFRuleEntryTextKey = @"text";
+NSString * const NFRuleEntryEnabledKey = @"enabled";
 
 NSString * const NFLogIdentifierKey = @"id";
 NSString * const NFLogTimestampKey = @"timestamp";
@@ -141,9 +144,9 @@ NSString * const NFMatchModeRegex = @"regex";
                                                  regex:(NSArray *)regex {
     return @{
         NFRulesEnabledKey: @(enabled),
-        NFRulesContainsKey: [self normalizedRuleLinesFromArray:contains],
-        NFRulesExcludeKey: [self normalizedRuleLinesFromArray:exclude],
-        NFRulesRegexKey: [self normalizedRuleLinesFromArray:regex]
+        NFRulesContainsKey: [self normalizedRuleEntriesFromArray:contains],
+        NFRulesExcludeKey: [self normalizedRuleEntriesFromArray:exclude],
+        NFRulesRegexKey: [self normalizedRuleEntriesFromArray:regex]
     };
 }
 
@@ -161,6 +164,92 @@ NSString * const NFMatchModeRegex = @"regex";
            [rules[NFRulesRegexKey] count] > 0;
 }
 
++ (NSArray<NSDictionary *> *)normalizedRuleEntriesFromArray:(NSArray *)rawRules {
+    if (![rawRules isKindOfClass:[NSArray class]]) {
+        return @[];
+    }
+
+    NSMutableArray<NSDictionary *> *entries = [NSMutableArray array];
+    for (id rawRule in rawRules) {
+        NSString *identifier = nil;
+        NSString *text = nil;
+        BOOL enabled = YES;
+
+        if ([rawRule isKindOfClass:[NSDictionary class]]) {
+            NSDictionary *dictionary = rawRule;
+            id textValue = dictionary[NFRuleEntryTextKey] ?: dictionary[@"value"];
+            if ([dictionary[NFRuleEntryEnabledKey] respondsToSelector:@selector(boolValue)]) {
+                enabled = [dictionary[NFRuleEntryEnabledKey] boolValue];
+            }
+            if ([dictionary[NFRuleEntryIdentifierKey] isKindOfClass:[NSString class]] &&
+                [dictionary[NFRuleEntryIdentifierKey] length] > 0) {
+                identifier = dictionary[NFRuleEntryIdentifierKey];
+            }
+            text = [self _normalizedRuleText:textValue];
+        } else {
+            text = [self _normalizedRuleText:rawRule];
+        }
+
+        if (text.length == 0) {
+            continue;
+        }
+
+        [entries addObject:[self ruleEntryWithText:text
+                                           enabled:enabled
+                                         identifier:identifier]];
+    }
+
+    return entries;
+}
+
++ (NSArray<NSString *> *)activeRuleTextsFromRuleEntries:(NSArray *)rawRules {
+    NSMutableArray<NSString *> *texts = [NSMutableArray array];
+    for (NSDictionary *entry in [self normalizedRuleEntriesFromArray:rawRules]) {
+        if (![self ruleEntryEnabled:entry]) {
+            continue;
+        }
+
+        NSString *text = [self ruleTextFromEntry:entry];
+        if (text.length > 0) {
+            [texts addObject:text];
+        }
+    }
+
+    return texts;
+}
+
++ (NSString *)ruleTextFromEntry:(NSDictionary *)entry {
+    if (![entry isKindOfClass:[NSDictionary class]]) {
+        return nil;
+    }
+
+    return [self _normalizedRuleText:entry[NFRuleEntryTextKey]];
+}
+
++ (BOOL)ruleEntryEnabled:(NSDictionary *)entry {
+    if (![entry isKindOfClass:[NSDictionary class]]) {
+        return NO;
+    }
+
+    if ([entry[NFRuleEntryEnabledKey] respondsToSelector:@selector(boolValue)]) {
+        return [entry[NFRuleEntryEnabledKey] boolValue];
+    }
+
+    return YES;
+}
+
++ (NSDictionary *)ruleEntryWithText:(NSString *)text
+                            enabled:(BOOL)enabled
+                          identifier:(NSString *)identifier {
+    NSString *normalizedText = [self _normalizedRuleText:text];
+    NSString *resolvedIdentifier = identifier.length > 0 ? identifier : [NSUUID UUID].UUIDString;
+    return @{
+        NFRuleEntryIdentifierKey: resolvedIdentifier,
+        NFRuleEntryTextKey: normalizedText ?: @"",
+        NFRuleEntryEnabledKey: @(enabled)
+    };
+}
+
 + (NSArray<NSString *> *)normalizedRuleLinesFromArray:(NSArray *)rawRules {
     if (![rawRules isKindOfClass:[NSArray class]]) {
         return @[];
@@ -169,9 +258,14 @@ NSString * const NFMatchModeRegex = @"regex";
     NSMutableArray<NSString *> *normalizedRules = [NSMutableArray array];
     NSMutableSet<NSString *> *seenRules = [NSMutableSet set];
 
-    for (id value in rawRules) {
+    for (id rawValue in rawRules) {
+        id value = rawValue;
         if (![value respondsToSelector:@selector(description)]) {
             continue;
+        }
+
+        if ([value isKindOfClass:[NSDictionary class]]) {
+            value = [self ruleTextFromEntry:value];
         }
 
         NSString *rule = [[value description] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
@@ -215,9 +309,9 @@ NSString * const NFMatchModeRegex = @"regex";
         normalizedPreferences[NFGlobalRulesEnabledKey] = @([rawPreferences[NFGlobalRulesEnabledKey] boolValue]);
     }
 
-    normalizedPreferences[NFGlobalContainsKey] = [self normalizedRuleLinesFromArray:rawPreferences[NFGlobalContainsKey]];
-    normalizedPreferences[NFGlobalExcludeKey] = [self normalizedRuleLinesFromArray:rawPreferences[NFGlobalExcludeKey]];
-    normalizedPreferences[NFGlobalRegexKey] = [self normalizedRuleLinesFromArray:rawPreferences[NFGlobalRegexKey]];
+    normalizedPreferences[NFGlobalContainsKey] = [self normalizedRuleEntriesFromArray:rawPreferences[NFGlobalContainsKey]];
+    normalizedPreferences[NFGlobalExcludeKey] = [self normalizedRuleEntriesFromArray:rawPreferences[NFGlobalExcludeKey]];
+    normalizedPreferences[NFGlobalRegexKey] = [self normalizedRuleEntriesFromArray:rawPreferences[NFGlobalRegexKey]];
 
     NSMutableDictionary *normalizedAppRules = [NSMutableDictionary dictionary];
     NSDictionary *rawAppRules = rawPreferences[NFAppRulesKey];
@@ -234,6 +328,14 @@ NSString * const NFMatchModeRegex = @"regex";
     normalizedPreferences[NFAppRulesKey] = normalizedAppRules;
 
     return normalizedPreferences;
+}
+
++ (NSString *)_normalizedRuleText:(id)value {
+    if (![value respondsToSelector:@selector(description)]) {
+        return nil;
+    }
+
+    return [[[value description] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] copy];
 }
 
 @end

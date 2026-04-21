@@ -16,6 +16,9 @@ extern NSString * const NFRulesEnabledKey;
 extern NSString * const NFRulesContainsKey;
 extern NSString * const NFRulesExcludeKey;
 extern NSString * const NFRulesRegexKey;
+extern NSString * const NFRuleEntryIdentifierKey;
+extern NSString * const NFRuleEntryTextKey;
+extern NSString * const NFRuleEntryEnabledKey;
 
 extern NSString * const NFLogIdentifierKey;
 extern NSString * const NFLogTimestampKey;
@@ -53,6 +56,14 @@ extern NSString * const NFMatchModeRegex;
                                                exclude:(NSArray * _Nullable)exclude
                                                  regex:(NSArray * _Nullable)regex;
 + (BOOL)rulesDictionaryHasConfiguredValues:(NSDictionary * _Nullable)rules;
+
++ (NSArray<NSDictionary *> *)normalizedRuleEntriesFromArray:(NSArray * _Nullable)rawRules;
++ (NSArray<NSString *> *)activeRuleTextsFromRuleEntries:(NSArray * _Nullable)rawRules;
++ (NSString *)ruleTextFromEntry:(NSDictionary * _Nullable)entry;
++ (BOOL)ruleEntryEnabled:(NSDictionary * _Nullable)entry;
++ (NSDictionary *)ruleEntryWithText:(NSString *)text
+                            enabled:(BOOL)enabled
+                          identifier:(NSString * _Nullable)identifier;
 
 + (NSArray<NSString *> *)normalizedRuleLinesFromArray:(NSArray * _Nullable)rawRules;
 + (NSArray<NSString *> *)normalizedRuleLinesFromMultilineString:(NSString * _Nullable)multilineString;

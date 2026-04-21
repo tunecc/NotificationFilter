@@ -77,7 +77,8 @@
 
     for (NSDictionary *scope in scopes) {
         NSDictionary *rules = scope[@"rules"];
-        NSString *matchedRule = [self _firstMatchingContainsRuleInRules:rules[NFRulesExcludeKey] text:joinedText];
+        NSString *matchedRule = [self _firstMatchingContainsRuleInRules:[NFPreferences activeRuleTextsFromRuleEntries:rules[NFRulesExcludeKey]]
+                                                                   text:joinedText];
         if (matchedRule.length > 0) {
             NFMatchResult *result = [[NFMatchResult alloc] init];
             result.shouldBlock = NO;
@@ -90,7 +91,8 @@
 
     for (NSDictionary *scope in scopes) {
         NSDictionary *rules = scope[@"rules"];
-        NSString *matchedContainsRule = [self _firstMatchingContainsRuleInRules:rules[NFRulesContainsKey] text:messageText];
+        NSString *matchedContainsRule = [self _firstMatchingContainsRuleInRules:[NFPreferences activeRuleTextsFromRuleEntries:rules[NFRulesContainsKey]]
+                                                                           text:messageText];
         if (matchedContainsRule.length > 0) {
             NFMatchResult *result = [[NFMatchResult alloc] init];
             result.shouldBlock = YES;
@@ -100,7 +102,8 @@
             return result;
         }
 
-        NSString *matchedRegexRule = [self _firstMatchingRegexRuleInRules:rules[NFRulesRegexKey] text:joinedText];
+        NSString *matchedRegexRule = [self _firstMatchingRegexRuleInRules:[NFPreferences activeRuleTextsFromRuleEntries:rules[NFRulesRegexKey]]
+                                                                     text:joinedText];
         if (matchedRegexRule.length > 0) {
             NFMatchResult *result = [[NFMatchResult alloc] init];
             result.shouldBlock = YES;

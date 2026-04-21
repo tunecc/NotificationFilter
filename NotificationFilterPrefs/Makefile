@@ -11,6 +11,9 @@ NotificationFilterPrefs_FILES = \
 	NFPAppRulesListController.m \
 	NFPPerAppRulesController.m \
 	NFPMultilineRulesEditorController.m \
+	NFPRuleCardCell.m \
+	NFPRuleTextEditorController.m \
+	NFPRulesListEditorController.m \
 	NFPJSONImportController.m \
 	NFPImportExportController.m \
 	NFPLogsListController.m \

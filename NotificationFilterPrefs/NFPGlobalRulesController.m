@@ -1,6 +1,6 @@
 #import "NFPGlobalRulesController.h"
 #import "../Shared/NFPreferences.h"
-#import "NFPMultilineRulesEditorController.h"
+#import "NFPRulesListEditorController.h"
 
 typedef NS_ENUM(NSInteger, NFPGlobalRulesRow) {
     NFPGlobalRulesRowContains = 0,
@@ -91,32 +91,32 @@ typedef NS_ENUM(NSInteger, NFPGlobalRulesRow) {
     }
 
     NSString *title = nil;
-    NSString *multilineText = nil;
+    NSArray<NSString *> *rules = nil;
     NFPRuleEditorKind editorKind = NFPRuleEditorKindContains;
 
     switch (indexPath.row) {
         case NFPGlobalRulesRowContains:
             title = @"包含规则";
-            multilineText = [NFPreferences multilineStringFromRuleLines:self.rules[NFRulesContainsKey]];
+            rules = self.rules[NFRulesContainsKey];
             editorKind = NFPRuleEditorKindContains;
             break;
         case NFPGlobalRulesRowExclude:
             title = @"排除规则";
-            multilineText = [NFPreferences multilineStringFromRuleLines:self.rules[NFRulesExcludeKey]];
+            rules = self.rules[NFRulesExcludeKey];
             editorKind = NFPRuleEditorKindExclude;
             break;
         default:
             title = @"正则规则";
-            multilineText = [NFPreferences multilineStringFromRuleLines:self.rules[NFRulesRegexKey]];
+            rules = self.rules[NFRulesRegexKey];
             editorKind = NFPRuleEditorKindRegex;
             break;
     }
 
     __weak typeof(self) weakSelf = self;
-    NFPMultilineRulesEditorController *controller = [[NFPMultilineRulesEditorController alloc] initWithTitle:title
-                                                                                                   initialText:multilineText
-                                                                                                    editorKind:editorKind
-                                                                                                   saveHandler:^(NSArray<NSString *> *rules) {
+    NFPRulesListEditorController *controller = [[NFPRulesListEditorController alloc] initWithTitle:title
+                                                                                         editorKind:editorKind
+                                                                                              rules:rules ?: @[]
+                                                                                        saveHandler:^(NSArray<NSString *> *rules) {
         [weakSelf updateRules:rules forRow:indexPath.row];
     }];
     [self.navigationController pushViewController:controller animated:YES];
