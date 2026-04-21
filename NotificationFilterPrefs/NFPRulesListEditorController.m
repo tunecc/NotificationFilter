@@ -19,6 +19,10 @@
 
 @implementation NFPRulesListEditorController
 
+static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) {
+    return editorKind == NFPRuleEditorKindContains ? NFRuleScopeMessage : NFRuleScopeAll;
+}
+
 - (instancetype)initWithTitle:(NSString *)title
                    editorKind:(NFPRuleEditorKind)editorKind
                         rules:(NSArray *)rules
@@ -74,11 +78,11 @@
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     switch (self.editorKind) {
         case NFPRuleEditorKindContains:
-            return @"命中消息时过滤";
+            return @"每条规则都可以选择匹配消息、标题、副标题或全部文本。";
         case NFPRuleEditorKindExclude:
-            return @"命中时优先放行";
+            return @"排除规则命中时优先放行，也支持选择匹配字段。";
         default:
-            return @"保存前会校验正则语法。";
+            return @"正则规则支持选择匹配字段，保存前会校验语法。";
     }
 }
 
@@ -184,25 +188,32 @@
     NFPRuleTextEditorController *controller = [[NFPRuleTextEditorController alloc] initWithTitle:self.title
                                                                                       placeholder:placeholder
                                                                                       initialRule:[NFPreferences ruleTextFromEntry:ruleEntry]
+                                                                                     initialScope:[NFPreferences ruleScopeFromEntry:ruleEntry
+                                                                                                                    defaultScope:NFPRuleDefaultScopeForEditorKind(self.editorKind)]
                                                                                        editorKind:self.editorKind
-                                                                                      saveHandler:^(NSString *newRule) {
-        [weakSelf saveRule:newRule atIndex:index];
+                                                                                      saveHandler:^(NSString *newRule, NSString *scope) {
+        [weakSelf saveRule:newRule scope:scope atIndex:index];
     }];
     [self.navigationController pushViewController:controller animated:YES];
 }
 
-- (void)saveRule:(NSString *)rule atIndex:(NSUInteger)index {
+- (void)saveRule:(NSString *)rule scope:(NSString *)scope atIndex:(NSUInteger)index {
     NSMutableArray<NSDictionary *> *updatedRules = [self.rules mutableCopy];
     if (index == NSNotFound || index >= updatedRules.count) {
-        [updatedRules addObject:[NFPreferences ruleEntryWithText:rule enabled:YES identifier:nil]];
+        [updatedRules addObject:[NFPreferences ruleEntryWithText:rule
+                                                         enabled:YES
+                                                       identifier:nil
+                                                            scope:scope]];
     } else {
         NSDictionary *existingEntry = updatedRules[index];
         updatedRules[index] = [NFPreferences ruleEntryWithText:rule
                                                        enabled:[NFPreferences ruleEntryEnabled:existingEntry]
-                                                     identifier:existingEntry[NFRuleEntryIdentifierKey]];
+                                                     identifier:existingEntry[NFRuleEntryIdentifierKey]
+                                                          scope:scope];
     }
 
-    self.rules = [[NFPreferences normalizedRuleEntriesFromArray:updatedRules] mutableCopy];
+    self.rules = [[NFPreferences normalizedRuleEntriesFromArray:updatedRules
+                                                   defaultScope:NFPRuleDefaultScopeForEditorKind(self.editorKind)] mutableCopy];
     [self persistRules];
     [self.tableView reloadData];
 }
@@ -216,10 +227,14 @@
 
     NSMutableArray<NSDictionary *> *combinedRules = [self.rules mutableCopy];
     for (NSString *ruleText in [NFPreferences normalizedRuleLinesFromMultilineString:clipboardText]) {
-        [combinedRules addObject:[NFPreferences ruleEntryWithText:ruleText enabled:YES identifier:nil]];
+        [combinedRules addObject:[NFPreferences ruleEntryWithText:ruleText
+                                                         enabled:YES
+                                                       identifier:nil
+                                                            scope:NFPRuleDefaultScopeForEditorKind(self.editorKind)]];
     }
 
-    NSArray<NSDictionary *> *normalizedRules = [NFPreferences normalizedRuleEntriesFromArray:combinedRules];
+    NSArray<NSDictionary *> *normalizedRules = [NFPreferences normalizedRuleEntriesFromArray:combinedRules
+                                                                                 defaultScope:NFPRuleDefaultScopeForEditorKind(self.editorKind)];
     if (self.editorKind == NFPRuleEditorKindRegex) {
         NSError *error = [self validateRegexRules:normalizedRules];
         if (error) {
@@ -270,7 +285,9 @@
     NSDictionary *ruleEntry = self.rules[index];
     self.rules[index] = [NFPreferences ruleEntryWithText:[NFPreferences ruleTextFromEntry:ruleEntry]
                                                  enabled:enabled
-                                               identifier:ruleEntry[NFRuleEntryIdentifierKey]];
+                                               identifier:ruleEntry[NFRuleEntryIdentifierKey]
+                                                    scope:[NFPreferences ruleScopeFromEntry:ruleEntry
+                                                                               defaultScope:NFPRuleDefaultScopeForEditorKind(self.editorKind)]];
     [self persistRules];
 }
 

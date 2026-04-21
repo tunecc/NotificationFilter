@@ -8,8 +8,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithTitle:(NSString *)title
                   placeholder:(NSString *)placeholder
                   initialRule:(NSString * _Nullable)initialRule
+                 initialScope:(NSString *)initialScope
                    editorKind:(NFPRuleEditorKind)editorKind
-                  saveHandler:(void (^)(NSString *rule))saveHandler;
+                  saveHandler:(void (^)(NSString *rule, NSString *scope))saveHandler;
 
 @end
 

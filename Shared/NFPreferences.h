@@ -22,6 +22,11 @@ extern NSString * const NFRulesRegexKey;
 extern NSString * const NFRuleEntryIdentifierKey;
 extern NSString * const NFRuleEntryTextKey;
 extern NSString * const NFRuleEntryEnabledKey;
+extern NSString * const NFRuleEntryScopeKey;
+extern NSString * const NFRuleScopeMessage;
+extern NSString * const NFRuleScopeTitle;
+extern NSString * const NFRuleScopeSubtitle;
+extern NSString * const NFRuleScopeAll;
 
 extern NSString * const NFLogIdentifierKey;
 extern NSString * const NFLogTimestampKey;
@@ -61,12 +66,19 @@ extern NSString * const NFMatchModeRegex;
 + (BOOL)rulesDictionaryHasConfiguredValues:(NSDictionary * _Nullable)rules;
 
 + (NSArray<NSDictionary *> *)normalizedRuleEntriesFromArray:(NSArray * _Nullable)rawRules;
++ (NSArray<NSDictionary *> *)normalizedRuleEntriesFromArray:(NSArray * _Nullable)rawRules
+                                              defaultScope:(NSString *)defaultScope;
 + (NSArray<NSString *> *)activeRuleTextsFromRuleEntries:(NSArray * _Nullable)rawRules;
++ (NSArray<NSDictionary *> *)activeRuleEntriesFromArray:(NSArray * _Nullable)rawRules
+                                          defaultScope:(NSString *)defaultScope;
 + (NSString *)ruleTextFromEntry:(NSDictionary * _Nullable)entry;
 + (BOOL)ruleEntryEnabled:(NSDictionary * _Nullable)entry;
++ (NSString *)ruleScopeFromEntry:(NSDictionary * _Nullable)entry
+                    defaultScope:(NSString *)defaultScope;
 + (NSDictionary *)ruleEntryWithText:(NSString *)text
                             enabled:(BOOL)enabled
-                          identifier:(NSString * _Nullable)identifier;
+                          identifier:(NSString * _Nullable)identifier
+                               scope:(NSString *)scope;
 
 + (NSArray<NSString *> *)normalizedRuleLinesFromArray:(NSArray * _Nullable)rawRules;
 + (NSArray<NSString *> *)normalizedRuleLinesFromMultilineString:(NSString * _Nullable)multilineString;

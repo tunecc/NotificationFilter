@@ -22,6 +22,11 @@ NSString * const NFRulesRegexKey = @"regex";
 NSString * const NFRuleEntryIdentifierKey = @"id";
 NSString * const NFRuleEntryTextKey = @"text";
 NSString * const NFRuleEntryEnabledKey = @"enabled";
+NSString * const NFRuleEntryScopeKey = @"scope";
+NSString * const NFRuleScopeMessage = @"message";
+NSString * const NFRuleScopeTitle = @"title";
+NSString * const NFRuleScopeSubtitle = @"subtitle";
+NSString * const NFRuleScopeAll = @"all";
 
 NSString * const NFLogIdentifierKey = @"id";
 NSString * const NFLogTimestampKey = @"timestamp";
@@ -153,9 +158,9 @@ NSString * const NFMatchModeRegex = @"regex";
                                                  regex:(NSArray *)regex {
     return @{
         NFRulesEnabledKey: @(enabled),
-        NFRulesContainsKey: [self normalizedRuleEntriesFromArray:contains],
-        NFRulesExcludeKey: [self normalizedRuleEntriesFromArray:exclude],
-        NFRulesRegexKey: [self normalizedRuleEntriesFromArray:regex]
+        NFRulesContainsKey: [self normalizedRuleEntriesFromArray:contains defaultScope:NFRuleScopeMessage],
+        NFRulesExcludeKey: [self normalizedRuleEntriesFromArray:exclude defaultScope:NFRuleScopeAll],
+        NFRulesRegexKey: [self normalizedRuleEntriesFromArray:regex defaultScope:NFRuleScopeAll]
     };
 }
 
@@ -174,6 +179,11 @@ NSString * const NFMatchModeRegex = @"regex";
 }
 
 + (NSArray<NSDictionary *> *)normalizedRuleEntriesFromArray:(NSArray *)rawRules {
+    return [self normalizedRuleEntriesFromArray:rawRules defaultScope:NFRuleScopeAll];
+}
+
++ (NSArray<NSDictionary *> *)normalizedRuleEntriesFromArray:(NSArray *)rawRules
+                                              defaultScope:(NSString *)defaultScope {
     if (![rawRules isKindOfClass:[NSArray class]]) {
         return @[];
     }
@@ -183,12 +193,17 @@ NSString * const NFMatchModeRegex = @"regex";
         NSString *identifier = nil;
         NSString *text = nil;
         BOOL enabled = YES;
+        NSString *scope = defaultScope;
 
         if ([rawRule isKindOfClass:[NSDictionary class]]) {
             NSDictionary *dictionary = rawRule;
             id textValue = dictionary[NFRuleEntryTextKey] ?: dictionary[@"value"];
             if ([dictionary[NFRuleEntryEnabledKey] respondsToSelector:@selector(boolValue)]) {
                 enabled = [dictionary[NFRuleEntryEnabledKey] boolValue];
+            }
+            if ([dictionary[NFRuleEntryScopeKey] isKindOfClass:[NSString class]] &&
+                [dictionary[NFRuleEntryScopeKey] length] > 0) {
+                scope = dictionary[NFRuleEntryScopeKey];
             }
             if ([dictionary[NFRuleEntryIdentifierKey] isKindOfClass:[NSString class]] &&
                 [dictionary[NFRuleEntryIdentifierKey] length] > 0) {
@@ -205,7 +220,8 @@ NSString * const NFMatchModeRegex = @"regex";
 
         [entries addObject:[self ruleEntryWithText:text
                                            enabled:enabled
-                                         identifier:identifier]];
+                                         identifier:identifier
+                                              scope:[self _normalizedRuleScope:scope defaultScope:defaultScope]]];
     }
 
     return entries;
@@ -225,6 +241,17 @@ NSString * const NFMatchModeRegex = @"regex";
     }
 
     return texts;
+}
+
++ (NSArray<NSDictionary *> *)activeRuleEntriesFromArray:(NSArray *)rawRules
+                                          defaultScope:(NSString *)defaultScope {
+    NSMutableArray<NSDictionary *> *entries = [NSMutableArray array];
+    for (NSDictionary *entry in [self normalizedRuleEntriesFromArray:rawRules defaultScope:defaultScope]) {
+        if ([self ruleEntryEnabled:entry]) {
+            [entries addObject:entry];
+        }
+    }
+    return entries;
 }
 
 + (NSString *)ruleTextFromEntry:(NSDictionary *)entry {
@@ -247,15 +274,26 @@ NSString * const NFMatchModeRegex = @"regex";
     return YES;
 }
 
++ (NSString *)ruleScopeFromEntry:(NSDictionary *)entry
+                    defaultScope:(NSString *)defaultScope {
+    if (![entry isKindOfClass:[NSDictionary class]]) {
+        return [self _normalizedRuleScope:nil defaultScope:defaultScope];
+    }
+
+    return [self _normalizedRuleScope:entry[NFRuleEntryScopeKey] defaultScope:defaultScope];
+}
+
 + (NSDictionary *)ruleEntryWithText:(NSString *)text
                             enabled:(BOOL)enabled
-                          identifier:(NSString *)identifier {
+                          identifier:(NSString *)identifier
+                               scope:(NSString *)scope {
     NSString *normalizedText = [self _normalizedRuleText:text];
     NSString *resolvedIdentifier = identifier.length > 0 ? identifier : [NSUUID UUID].UUIDString;
     return @{
         NFRuleEntryIdentifierKey: resolvedIdentifier,
         NFRuleEntryTextKey: normalizedText ?: @"",
-        NFRuleEntryEnabledKey: @(enabled)
+        NFRuleEntryEnabledKey: @(enabled),
+        NFRuleEntryScopeKey: [self _normalizedRuleScope:scope defaultScope:NFRuleScopeAll]
     };
 }
 
@@ -327,9 +365,9 @@ NSString * const NFMatchModeRegex = @"regex";
         normalizedPreferences[NFPrefShowTrollAppsKey] = @([rawPreferences[NFPrefShowTrollAppsKey] boolValue]);
     }
 
-    normalizedPreferences[NFGlobalContainsKey] = [self normalizedRuleEntriesFromArray:rawPreferences[NFGlobalContainsKey]];
-    normalizedPreferences[NFGlobalExcludeKey] = [self normalizedRuleEntriesFromArray:rawPreferences[NFGlobalExcludeKey]];
-    normalizedPreferences[NFGlobalRegexKey] = [self normalizedRuleEntriesFromArray:rawPreferences[NFGlobalRegexKey]];
+    normalizedPreferences[NFGlobalContainsKey] = [self normalizedRuleEntriesFromArray:rawPreferences[NFGlobalContainsKey] defaultScope:NFRuleScopeMessage];
+    normalizedPreferences[NFGlobalExcludeKey] = [self normalizedRuleEntriesFromArray:rawPreferences[NFGlobalExcludeKey] defaultScope:NFRuleScopeAll];
+    normalizedPreferences[NFGlobalRegexKey] = [self normalizedRuleEntriesFromArray:rawPreferences[NFGlobalRegexKey] defaultScope:NFRuleScopeAll];
 
     NSMutableDictionary *normalizedAppRules = [NSMutableDictionary dictionary];
     NSDictionary *rawAppRules = rawPreferences[NFAppRulesKey];
@@ -354,6 +392,20 @@ NSString * const NFMatchModeRegex = @"regex";
     }
 
     return [[[value description] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] copy];
+}
+
++ (NSString *)_normalizedRuleScope:(NSString *)scope defaultScope:(NSString *)defaultScope {
+    NSString *resolvedScope = [scope isKindOfClass:[NSString class]] ? scope : defaultScope;
+    NSSet<NSString *> *allowedScopes = [NSSet setWithObjects:
+        NFRuleScopeMessage,
+        NFRuleScopeTitle,
+        NFRuleScopeSubtitle,
+        NFRuleScopeAll,
+        nil];
+    if (![allowedScopes containsObject:resolvedScope]) {
+        return defaultScope ?: NFRuleScopeAll;
+    }
+    return resolvedScope;
 }
 
 @end

@@ -17,6 +17,19 @@
 
 @implementation NFPRuleCardCell
 
+static NSString *NFPRuleScopeDisplayName(NSString *scope) {
+    if ([scope isEqualToString:NFRuleScopeTitle]) {
+        return @"标题";
+    }
+    if ([scope isEqualToString:NFRuleScopeSubtitle]) {
+        return @"副标题";
+    }
+    if ([scope isEqualToString:NFRuleScopeAll]) {
+        return @"全部文本";
+    }
+    return @"消息";
+}
+
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
     self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
     if (self) {
@@ -120,6 +133,8 @@
 
     NSString *ruleText = [NFPreferences ruleTextFromEntry:ruleEntry] ?: @"";
     BOOL enabled = [NFPreferences ruleEntryEnabled:ruleEntry];
+    NSString *scope = [NFPreferences ruleScopeFromEntry:ruleEntry
+                                           defaultScope:editorKind == NFPRuleEditorKindContains ? NFRuleScopeMessage : NFRuleScopeAll];
 
     self.titleLabel.text = ruleText;
     self.enabledSwitch.on = enabled;
@@ -132,13 +147,13 @@
 
     switch (editorKind) {
         case NFPRuleEditorKindContains:
-            self.subtitleLabel.text = nil;
+            self.subtitleLabel.text = NFPRuleScopeDisplayName(scope);
             break;
         case NFPRuleEditorKindExclude:
-            self.subtitleLabel.text = nil;
+            self.subtitleLabel.text = NFPRuleScopeDisplayName(scope);
             break;
         default:
-            self.subtitleLabel.text = nil;
+            self.subtitleLabel.text = NFPRuleScopeDisplayName(scope);
             break;
     }
 

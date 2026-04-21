@@ -43,6 +43,21 @@
     return nil;
 }
 
++ (NSString *)_textForScope:(NSString *)scope record:(NFNotificationRecord *)record defaultScope:(NSString *)defaultScope {
+    NSString *resolvedScope = [NFPreferences ruleScopeFromEntry:@{ NFRuleEntryScopeKey: scope ?: @"" }
+                                                  defaultScope:defaultScope];
+    if ([resolvedScope isEqualToString:NFRuleScopeTitle]) {
+        return record.title ?: @"";
+    }
+    if ([resolvedScope isEqualToString:NFRuleScopeSubtitle]) {
+        return record.subtitle ?: @"";
+    }
+    if ([resolvedScope isEqualToString:NFRuleScopeMessage]) {
+        return record.messageText ?: @"";
+    }
+    return record.joinedText ?: @"";
+}
+
 + (NFMatchResult *)evaluateRecord:(NFNotificationRecord *)record
                       preferences:(NSDictionary *)preferences {
     if (![preferences[NFEnabledKey] boolValue]) {
@@ -77,40 +92,61 @@
 
     for (NSDictionary *scope in scopes) {
         NSDictionary *rules = scope[@"rules"];
-        NSString *matchedRule = [self _firstMatchingContainsRuleInRules:[NFPreferences activeRuleTextsFromRuleEntries:rules[NFRulesExcludeKey]]
-                                                                   text:joinedText];
-        if (matchedRule.length > 0) {
-            NFMatchResult *result = [[NFMatchResult alloc] init];
-            result.shouldBlock = NO;
-            result.matchedScope = scope[@"name"];
-            result.matchedMode = NFMatchModeExclude;
-            result.matchedPattern = matchedRule;
-            return result;
+        for (NSDictionary *ruleEntry in [NFPreferences activeRuleEntriesFromArray:rules[NFRulesExcludeKey]
+                                                                     defaultScope:NFRuleScopeAll]) {
+            NSString *ruleText = [NFPreferences ruleTextFromEntry:ruleEntry];
+            NSString *matchText = [self _textForScope:[NFPreferences ruleScopeFromEntry:ruleEntry defaultScope:NFRuleScopeAll]
+                                               record:record
+                                         defaultScope:NFRuleScopeAll];
+            NSString *matchedRule = [self _firstMatchingContainsRuleInRules:ruleText.length > 0 ? @[ruleText] : @[]
+                                                                       text:matchText];
+            if (matchedRule.length > 0) {
+                NFMatchResult *result = [[NFMatchResult alloc] init];
+                result.shouldBlock = NO;
+                result.matchedScope = scope[@"name"];
+                result.matchedMode = NFMatchModeExclude;
+                result.matchedPattern = matchedRule;
+                return result;
+            }
         }
     }
 
     for (NSDictionary *scope in scopes) {
         NSDictionary *rules = scope[@"rules"];
-        NSString *matchedContainsRule = [self _firstMatchingContainsRuleInRules:[NFPreferences activeRuleTextsFromRuleEntries:rules[NFRulesContainsKey]]
-                                                                           text:messageText];
-        if (matchedContainsRule.length > 0) {
-            NFMatchResult *result = [[NFMatchResult alloc] init];
-            result.shouldBlock = YES;
-            result.matchedScope = scope[@"name"];
-            result.matchedMode = NFMatchModeContains;
-            result.matchedPattern = matchedContainsRule;
-            return result;
+        for (NSDictionary *ruleEntry in [NFPreferences activeRuleEntriesFromArray:rules[NFRulesContainsKey]
+                                                                     defaultScope:NFRuleScopeMessage]) {
+            NSString *ruleText = [NFPreferences ruleTextFromEntry:ruleEntry];
+            NSString *matchText = [self _textForScope:[NFPreferences ruleScopeFromEntry:ruleEntry defaultScope:NFRuleScopeMessage]
+                                               record:record
+                                         defaultScope:NFRuleScopeMessage];
+            NSString *matchedContainsRule = [self _firstMatchingContainsRuleInRules:ruleText.length > 0 ? @[ruleText] : @[]
+                                                                                text:matchText];
+            if (matchedContainsRule.length > 0) {
+                NFMatchResult *result = [[NFMatchResult alloc] init];
+                result.shouldBlock = YES;
+                result.matchedScope = scope[@"name"];
+                result.matchedMode = NFMatchModeContains;
+                result.matchedPattern = matchedContainsRule;
+                return result;
+            }
         }
 
-        NSString *matchedRegexRule = [self _firstMatchingRegexRuleInRules:[NFPreferences activeRuleTextsFromRuleEntries:rules[NFRulesRegexKey]]
-                                                                     text:joinedText];
-        if (matchedRegexRule.length > 0) {
-            NFMatchResult *result = [[NFMatchResult alloc] init];
-            result.shouldBlock = YES;
-            result.matchedScope = scope[@"name"];
-            result.matchedMode = NFMatchModeRegex;
-            result.matchedPattern = matchedRegexRule;
-            return result;
+        for (NSDictionary *ruleEntry in [NFPreferences activeRuleEntriesFromArray:rules[NFRulesRegexKey]
+                                                                     defaultScope:NFRuleScopeAll]) {
+            NSString *ruleText = [NFPreferences ruleTextFromEntry:ruleEntry];
+            NSString *matchText = [self _textForScope:[NFPreferences ruleScopeFromEntry:ruleEntry defaultScope:NFRuleScopeAll]
+                                               record:record
+                                         defaultScope:NFRuleScopeAll];
+            NSString *matchedRegexRule = [self _firstMatchingRegexRuleInRules:ruleText.length > 0 ? @[ruleText] : @[]
+                                                                         text:matchText];
+            if (matchedRegexRule.length > 0) {
+                NFMatchResult *result = [[NFMatchResult alloc] init];
+                result.shouldBlock = YES;
+                result.matchedScope = scope[@"name"];
+                result.matchedMode = NFMatchModeRegex;
+                result.matchedPattern = matchedRegexRule;
+                return result;
+            }
         }
     }
 
