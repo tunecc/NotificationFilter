@@ -11,6 +11,7 @@ NSString * const NFGlobalContainsKey = @"GlobalContains";
 NSString * const NFGlobalExcludeKey = @"GlobalExclude";
 NSString * const NFGlobalRegexKey = @"GlobalRegex";
 NSString * const NFAppRulesKey = @"AppRules";
+NSString * const NFDeleteFilteredNotificationsKey = @"DeleteFilteredNotifications";
 NSString * const NFPrefOnlyConfiguredAppsKey = @"PrefOnlyConfiguredApps";
 NSString * const NFPrefShowSystemAppsKey = @"PrefShowSystemApps";
 NSString * const NFPrefShowTrollAppsKey = @"PrefShowTrollApps";
@@ -37,9 +38,16 @@ NSString * const NFLogBodyKey = @"body";
 NSString * const NFLogHeaderKey = @"header";
 NSString * const NFLogMessageKey = @"message";
 NSString * const NFLogJoinedTextKey = @"joinedText";
+NSString * const NFLogSectionIDKey = @"sectionID";
+NSString * const NFLogBulletinIDKey = @"bulletinID";
+NSString * const NFLogRecordIDKey = @"recordID";
+NSString * const NFLogPublisherBulletinIDKey = @"publisherBulletinID";
 NSString * const NFLogMatchedScopeKey = @"matchedScope";
 NSString * const NFLogMatchedModeKey = @"matchedMode";
 NSString * const NFLogMatchedPatternKey = @"matchedPattern";
+NSString * const NFLogDeleteRequestedKey = @"deleteRequested";
+NSString * const NFLogDeleteStatusKey = @"deleteStatus";
+NSString * const NFLogDeleteMethodKey = @"deleteMethod";
 
 NSString * const NFMatchScopeGlobal = @"global";
 NSString * const NFMatchModeExclude = @"exclude";
@@ -56,6 +64,7 @@ NSString * const NFMatchModeRegex = @"regex";
         NFGlobalExcludeKey,
         NFGlobalRegexKey,
         NFAppRulesKey,
+        NFDeleteFilteredNotificationsKey,
         NFPrefOnlyConfiguredAppsKey,
         NFPrefShowSystemAppsKey,
         NFPrefShowTrollAppsKey
@@ -70,6 +79,7 @@ NSString * const NFMatchModeRegex = @"regex";
         NFGlobalExcludeKey: @[],
         NFGlobalRegexKey: @[],
         NFAppRulesKey: @{},
+        NFDeleteFilteredNotificationsKey: @NO,
         NFPrefOnlyConfiguredAppsKey: @NO,
         NFPrefShowSystemAppsKey: @YES,
         NFPrefShowTrollAppsKey: @YES
@@ -354,6 +364,9 @@ NSString * const NFMatchModeRegex = @"regex";
 
     if ([rawPreferences[NFGlobalRulesEnabledKey] respondsToSelector:@selector(boolValue)]) {
         normalizedPreferences[NFGlobalRulesEnabledKey] = @([rawPreferences[NFGlobalRulesEnabledKey] boolValue]);
+    }
+    if ([rawPreferences[NFDeleteFilteredNotificationsKey] respondsToSelector:@selector(boolValue)]) {
+        normalizedPreferences[NFDeleteFilteredNotificationsKey] = @([rawPreferences[NFDeleteFilteredNotificationsKey] boolValue]);
     }
     if ([rawPreferences[NFPrefOnlyConfiguredAppsKey] respondsToSelector:@selector(boolValue)]) {
         normalizedPreferences[NFPrefOnlyConfiguredAppsKey] = @([rawPreferences[NFPrefOnlyConfiguredAppsKey] boolValue]);

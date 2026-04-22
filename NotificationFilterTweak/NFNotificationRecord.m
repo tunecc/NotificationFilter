@@ -93,6 +93,13 @@ static NSString *NFJoinedText(NSArray<NSString *> *values) {
 + (instancetype)recordFromBulletin:(id)bulletin {
     NFNotificationRecord *record = [[self alloc] init];
     record.bundleIdentifier = NFSectionIdentifier(bulletin);
+    record.sectionID = NFValueForSelectorName(bulletin, nil, @"sectionID");
+    if (record.sectionID.length == 0) {
+        record.sectionID = NFValueForSelectorName(bulletin, nil, @"section");
+    }
+    record.bulletinID = NFValueForSelectorName(bulletin, nil, @"bulletinID");
+    record.recordID = NFValueForSelectorName(bulletin, nil, @"recordID");
+    record.publisherBulletinID = NFValueForSelectorName(bulletin, nil, @"publisherBulletinID");
     record.title = NFValueForSelectorName(bulletin, nil, @"title");
     record.subtitle = NFValueForSelectorName(bulletin, nil, @"subtitle");
     record.header = NFValueForSelectorName(bulletin, nil, @"header");
@@ -135,6 +142,18 @@ static NSString *NFJoinedText(NSArray<NSString *> *values) {
     }
     if (self.message.length > 0) {
         dictionary[NFLogMessageKey] = self.message;
+    }
+    if (self.sectionID.length > 0) {
+        dictionary[NFLogSectionIDKey] = self.sectionID;
+    }
+    if (self.bulletinID.length > 0) {
+        dictionary[NFLogBulletinIDKey] = self.bulletinID;
+    }
+    if (self.recordID.length > 0) {
+        dictionary[NFLogRecordIDKey] = self.recordID;
+    }
+    if (self.publisherBulletinID.length > 0) {
+        dictionary[NFLogPublisherBulletinIDKey] = self.publisherBulletinID;
     }
 
     return dictionary;

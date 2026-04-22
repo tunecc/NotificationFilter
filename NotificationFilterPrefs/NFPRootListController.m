@@ -35,8 +35,19 @@
     [enabledSpecifier setProperty:@YES forKey:PSDefaultValueKey];
     [specifiers addObject:enabledSpecifier];
 
+    PSSpecifier *deleteSpecifier = [PSSpecifier preferenceSpecifierNamed:@"从通知中心删除过滤通知"
+                                                                  target:self
+                                                                     set:@selector(setPreferenceValue:specifier:)
+                                                                     get:@selector(readPreferenceValue:)
+                                                                  detail:nil
+                                                                    cell:PSSwitchCell
+                                                                    edit:nil];
+    [deleteSpecifier setProperty:NFDeleteFilteredNotificationsKey forKey:PSKeyNameKey];
+    [deleteSpecifier setProperty:@NO forKey:PSDefaultValueKey];
+    [specifiers addObject:deleteSpecifier];
+
     PSSpecifier *pagesGroup = [PSSpecifier emptyGroupSpecifier];
-    [pagesGroup setProperty:@"全局规则和单应用规则叠加生效；命中排除规则优先放行。" forKey:PSFooterTextGroupKey];
+    [pagesGroup setProperty:@"全局规则和单应用规则叠加生效；命中排除规则优先放行。开启后，会优先尝试把命中过滤的通知从通知中心直接清掉，并补做一次 provider 撤回；不同系统版本的表现可能不完全一致。" forKey:PSFooterTextGroupKey];
     [specifiers addObject:pagesGroup];
 
     [specifiers addObject:[self linkSpecifierWithName:@"全局规则" action:@selector(openGlobalRules:)]];

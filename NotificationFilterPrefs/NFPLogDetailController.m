@@ -47,6 +47,22 @@
     [lines addObject:[NSString stringWithFormat:@"作用域: %@", self.entry[NFLogMatchedScopeKey] ?: @"未知"]];
     [lines addObject:[NSString stringWithFormat:@"规则类型: %@", self.entry[NFLogMatchedModeKey] ?: @"未知"]];
     [lines addObject:[NSString stringWithFormat:@"命中规则: %@", self.entry[NFLogMatchedPatternKey] ?: @"未知"]];
+    if ([self.entry[NFLogDeleteRequestedKey] boolValue]) {
+        [lines addObject:[NSString stringWithFormat:@"删除结果: %@", self.entry[NFLogDeleteStatusKey] ?: @"未知"]];
+        [lines addObject:[NSString stringWithFormat:@"删除路径: %@", self.entry[NFLogDeleteMethodKey] ?: @"未知"]];
+    }
+    if ([self.entry[NFLogSectionIDKey] length] > 0) {
+        [lines addObject:[NSString stringWithFormat:@"Section ID: %@", self.entry[NFLogSectionIDKey]]];
+    }
+    if ([self.entry[NFLogBulletinIDKey] length] > 0) {
+        [lines addObject:[NSString stringWithFormat:@"Bulletin ID: %@", self.entry[NFLogBulletinIDKey]]];
+    }
+    if ([self.entry[NFLogRecordIDKey] length] > 0) {
+        [lines addObject:[NSString stringWithFormat:@"Record ID: %@", self.entry[NFLogRecordIDKey]]];
+    }
+    if ([self.entry[NFLogPublisherBulletinIDKey] length] > 0) {
+        [lines addObject:[NSString stringWithFormat:@"Publisher Bulletin ID: %@", self.entry[NFLogPublisherBulletinIDKey]]];
+    }
     [lines addObject:@""];
     [lines addObject:[NSString stringWithFormat:@"Title: %@", self.entry[NFLogTitleKey] ?: @""]];
     [lines addObject:[NSString stringWithFormat:@"Subtitle: %@", self.entry[NFLogSubtitleKey] ?: @""]];
