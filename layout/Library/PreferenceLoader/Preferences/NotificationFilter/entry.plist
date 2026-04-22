@@ -11,7 +11,7 @@
 		<key>isController</key>
 		<true/>
 		<key>label</key>
-		<string>通知过滤</string>
+		<string>Notification Filter</string>
 	</dict>
 </dict>
 </plist>

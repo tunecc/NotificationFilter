@@ -1,0 +1,164 @@
+"ROOT_TITLE" = "通知过滤";
+"ROOT_TOGGLE_FOOTER" = "关闭主开关后，所有通知都会直接放行。";
+"ROOT_ENABLE_FILTER" = "启用过滤";
+"ROOT_DELETE_FILTERED" = "从通知中心删除过滤通知";
+"ROOT_RULES_FOOTER" = "全局规则和单应用规则叠加生效；命中排除规则优先放行。开启后，会优先尝试把命中过滤的通知从通知中心直接清掉，并补做一次 provider 撤回；不同系统版本的表现可能不完全一致。";
+"ROOT_GLOBAL_RULES" = "全局规则";
+"ROOT_APP_RULES" = "应用规则";
+"ROOT_IMPORT_EXPORT" = "规则导入导出";
+"ROOT_FILTERED_LOGS" = "已过滤通知";
+"ROOT_SAVE_FAILED_MESSAGE" = "无法写入配置。";
+
+"COMMON_SAVE_FAILED" = "保存失败";
+"COMMON_OK" = "好";
+"COMMON_IMPORT_FAILED" = "导入失败";
+"COMMON_EXPORT_FAILED" = "导出失败";
+"COMMON_IMPORT_SUCCEEDED" = "导入完成";
+"COMMON_CANCEL" = "取消";
+"COMMON_DELETE" = "删除";
+"COMMON_CLEAR" = "清空";
+"COMMON_EDIT" = "编辑";
+"COMMON_DONE" = "完成";
+"COMMON_PASTE" = "粘贴";
+"COMMON_UNKNOWN" = "未知";
+"COMMON_CONFIRM_DELETE" = "确认删除";
+"COMMON_DELETE_FAILED" = "删除失败";
+
+"APP_UNKNOWN" = "未知应用";
+
+"GLOBAL_RULES_TITLE" = "全局规则";
+"GLOBAL_RULES_TOGGLE_FOOTER" = "关闭后，全局规则不会参与匹配。";
+"GLOBAL_RULES_LIST_FOOTER" = "这些规则会作用到所有应用；命中排除规则时会优先放行。";
+"GLOBAL_RULES_ENABLE" = "启用全局规则";
+"GLOBAL_RULES_SAVE_FAILED_MESSAGE" = "无法保存全局规则。";
+
+"IMPORT_EXPORT_TITLE" = "规则导入导出";
+"IMPORT_EXPORT_SECTION_EXPORT" = "导出";
+"IMPORT_EXPORT_SECTION_IMPORT" = "导入";
+"IMPORT_EXPORT_FOOTER_EXPORT" = "把当前规则配置导出为 JSON，方便备份或分享。";
+"IMPORT_EXPORT_FOOTER_IMPORT" = "导入后会覆盖当前规则配置。";
+"IMPORT_EXPORT_EXPORT_JSON" = "导出到文件";
+"IMPORT_EXPORT_EXPORT_JSON_DETAIL" = "打开分享面板并保存 JSON 文件。";
+"IMPORT_EXPORT_COPY_JSON" = "复制 JSON";
+"IMPORT_EXPORT_COPY_JSON_DETAIL" = "把当前配置 JSON 复制到剪贴板。";
+"IMPORT_EXPORT_IMPORT_PASTEBOARD" = "从剪贴板导入";
+"IMPORT_EXPORT_IMPORT_PASTEBOARD_DETAIL" = "直接读取剪贴板中的 JSON 并应用。";
+"IMPORT_EXPORT_IMPORT_MANUAL" = "手动粘贴 JSON";
+"IMPORT_EXPORT_IMPORT_MANUAL_DETAIL" = "打开编辑页，粘贴完整配置 JSON。";
+"IMPORT_EXPORT_COPY_FAILED" = "复制失败";
+"IMPORT_EXPORT_COPIED" = "已复制";
+"IMPORT_EXPORT_COPIED_MESSAGE" = "配置 JSON 已复制到剪贴板。";
+"IMPORT_EXPORT_EMPTY_PASTEBOARD_MESSAGE" = "剪贴板里没有可用内容。";
+"IMPORT_EXPORT_SAVE_FAILED_MESSAGE" = "无法保存导入的规则。";
+"IMPORT_EXPORT_IMPORT_SUCCEEDED_MESSAGE" = "导入的规则配置已生效。";
+"JSON_PARSE_FAILED_MESSAGE" = "无法解析 JSON。";
+"JSON_GENERATE_FAILED_MESSAGE" = "无法生成 JSON。";
+
+"RULE_CONTAINS_TITLE" = "包含规则";
+"RULE_EXCLUDE_TITLE" = "排除规则";
+"RULE_REGEX_TITLE" = "正则规则";
+"SCOPE_MESSAGE" = "消息";
+"SCOPE_TITLE" = "标题";
+"SCOPE_SUBTITLE" = "副标题";
+"SCOPE_ALL" = "全部文本";
+
+"APP_RULES_SEARCH_PLACEHOLDER" = "搜索应用名或 Bundle ID";
+"APP_RULES_LOADING" = "正在加载应用列表…";
+"APP_RULES_FOOTER" = "下拉可以刷新应用列表；已经配置规则的应用会固定排在前面。";
+"APP_RULES_COUNT_FORMAT" = "%lu条";
+"APP_RULES_FILTER_ONLY_CONFIGURED" = "只看已配置规则";
+"APP_RULES_FILTER_SHOW_SYSTEM" = "显示系统项";
+"APP_RULES_FILTER_SHOW_TROLL" = "显示 Troll 应用";
+"APP_RULES_FILTER_RESET" = "恢复默认";
+"APP_RULES_TITLE" = "应用规则";
+"APP_RULES_SUBTITLE_CONFIGURED_ONLY" = "只看已配置";
+"APP_RULES_SUBTITLE_SHOW_ALL" = "显示所有";
+"APP_RULES_SUBTITLE_HIDE_SYSTEM_ONLY" = "仅隐藏系统项";
+"APP_RULES_SUBTITLE_REGULAR_ONLY" = "仅常规应用";
+
+"JSON_IMPORT_TITLE" = "粘贴 JSON";
+"JSON_IMPORT_PROMPT" = "粘贴完整配置 JSON，保存后会覆盖当前规则。";
+"JSON_IMPORT_UTF8_ERROR" = "JSON 文本无法编码为 UTF-8。";
+"JSON_IMPORT_ROOT_OBJECT_ERROR" = "JSON 顶层必须是对象。";
+
+"MULTILINE_EDITOR_PROMPT_RULE" = "一行一条规则";
+"MULTILINE_EDITOR_PROMPT_REGEX" = "一行一个正则表达式";
+"REGEX_INVALID_TITLE" = "正则无效";
+"REGEX_COMPILE_FAILED_FORMAT" = "正则“%@”无法编译：%@";
+
+"LOGS_TITLE" = "已过滤通知";
+"LOGS_SEARCH_PLACEHOLDER" = "搜索应用、Bundle ID、规则或内容";
+"LOGS_EMPTY" = "暂无过滤记录";
+"LOGS_EMPTY_PREVIEW" = "无可预览内容";
+"LOGS_FOOTER" = "只保存最近 500 条被拦截的通知。";
+"LOGS_CLEAR_TITLE" = "清空日志";
+"LOGS_CLEAR_MESSAGE" = "该操作只会删除过滤记录，不会影响规则。";
+
+"LOG_DETAIL_TITLE" = "通知详情";
+"LOG_DETAIL_APP_FORMAT" = "应用：%@";
+"LOG_DETAIL_BUNDLE_ID_FORMAT" = "Bundle ID：%@";
+"LOG_DETAIL_TIME_FORMAT" = "时间：%@";
+"LOG_DETAIL_SCOPE_FORMAT" = "作用域：%@";
+"LOG_DETAIL_MODE_FORMAT" = "规则类型：%@";
+"LOG_DETAIL_PATTERN_FORMAT" = "命中规则：%@";
+"LOG_DETAIL_DELETE_STATUS_FORMAT" = "删除结果：%@";
+"LOG_DETAIL_DELETE_METHOD_FORMAT" = "删除路径：%@";
+"LOG_DETAIL_SECTION_ID_FORMAT" = "Section ID：%@";
+"LOG_DETAIL_BULLETIN_ID_FORMAT" = "Bulletin ID：%@";
+"LOG_DETAIL_RECORD_ID_FORMAT" = "Record ID：%@";
+"LOG_DETAIL_PUBLISHER_BULLETIN_ID_FORMAT" = "Publisher Bulletin ID：%@";
+"LOG_DETAIL_NOTIFICATION_TITLE_FORMAT" = "标题：%@";
+"LOG_DETAIL_NOTIFICATION_SUBTITLE_FORMAT" = "副标题：%@";
+"LOG_DETAIL_NOTIFICATION_HEADER_FORMAT" = "Header：%@";
+"LOG_DETAIL_NOTIFICATION_BODY_FORMAT" = "正文：%@";
+"LOG_DETAIL_NOTIFICATION_MESSAGE_FORMAT" = "Message：%@";
+"LOG_DETAIL_JOINED_TEXT_TITLE" = "合并文本：";
+
+"DELETE_STATUS_SUCCESS" = "成功";
+"DELETE_STATUS_FAILED" = "失败";
+"DELETE_STATUS_SKIPPED" = "跳过";
+"DELETE_METHOD_CLEAR_BULLETIN_IDS" = "按 Bulletin ID 清理";
+"DELETE_METHOD_WITHDRAW_PUBLISHER" = "按 Publisher ID 撤回";
+"DELETE_METHOD_WITHDRAW_RECORD" = "按 Record ID 撤回";
+"DELETE_METHOD_REMOVE_BULLETIN" = "直接移除 Bulletin";
+"DELETE_METHOD_REMOVE_BULLETIN_RESCHEDULE" = "移除 Bulletin（重排队列）";
+"DELETE_METHOD_NONE" = "无";
+"DELETE_METHOD_INVALID_INPUT" = "输入无效";
+
+"PER_APP_RULES_ENABLED_FOOTER" = "关闭后，该应用规则不会参与匹配。";
+"PER_APP_RULES_LIST_FOOTER" = "只有该应用的通知会使用这里的规则，并与全局规则一起参与判断。";
+"PER_APP_RULES_ENABLE" = "启用该应用规则";
+"PER_APP_RULES_DELETE" = "删除该应用规则";
+"PER_APP_RULES_DELETE_TITLE" = "删除规则";
+"PER_APP_RULES_DELETE_MESSAGE" = "会移除该应用的所有过滤设置。";
+"PER_APP_RULES_DELETE_FAILED_MESSAGE" = "无法删除该应用规则。";
+"PER_APP_RULES_SAVE_FAILED_MESSAGE" = "无法保存应用规则。";
+
+"RULE_CARD_VALID" = "有效";
+"RULE_CARD_INVALID" = "无效";
+
+"RULE_TEXT_SCOPE_LABEL" = "作用域";
+"RULE_TEXT_EMPTY_TITLE" = "规则为空";
+"RULE_TEXT_EMPTY_MESSAGE" = "请输入一条规则。";
+"RULE_TEXT_INVALID_TITLE" = "规则无效";
+"RULE_TEXT_HINT_MESSAGE_TITLE" = "消息：只匹配正文 / message";
+"RULE_TEXT_HINT_MESSAGE_DETAIL" = "例如一条通知标题是“QQ”，正文是“你的验证码是 1234”，你写“验证码”会命中；只写“QQ”不会因为应用名或标题而误伤。最适合日常使用。";
+"RULE_TEXT_HINT_TITLE_TITLE" = "标题：只匹配通知主标题";
+"RULE_TEXT_HINT_TITLE_DETAIL" = "例如标题是“付款成功”，你写“付款”就会命中；正文里就算没有“付款”，也会过滤。适合处理固定标题的系统通知。";
+"RULE_TEXT_HINT_SUBTITLE_TITLE" = "副标题：只匹配通知副标题";
+"RULE_TEXT_HINT_SUBTITLE_DETAIL" = "例如副标题是“来自小王”，你写“小王”就会命中；正文里没有“小王”也不影响。适合筛选来源、会话名、发件人。";
+"RULE_TEXT_HINT_ALL_TITLE" = "全部文本：标题、副标题、header、正文、message 全都会匹配";
+"RULE_TEXT_HINT_ALL_DETAIL" = "例如你写“验证码”，只要标题、正文或副标题任意一处出现“验证码”都会命中。适合做兜底，但也最容易误伤。";
+
+"RULES_LIST_CONTAINS_FOOTER" = "每条规则都可以选择匹配消息、标题、副标题或全部文本。";
+"RULES_LIST_EXCLUDE_FOOTER" = "排除规则命中时优先放行，也支持选择匹配字段。";
+"RULES_LIST_REGEX_FOOTER" = "正则规则支持选择匹配字段，保存前会校验语法。";
+"RULES_LIST_EMPTY_TITLE" = "暂无规则";
+"RULES_LIST_EMPTY_DETAIL" = "右上角可直接新增一条，或从剪贴板导入。";
+"RULES_LIST_CONTAINS_PLACEHOLDER" = "输入一条需要匹配的消息内容，例如：支付成功";
+"RULES_LIST_EXCLUDE_PLACEHOLDER" = "输入一条需要放行的消息内容，例如：验证码";
+"RULES_LIST_REGEX_PLACEHOLDER" = "输入一条正则表达式，例如：验证码\\d{4,6}";
+"RULES_LIST_IMPORT_EMPTY_PASTEBOARD_MESSAGE" = "剪贴板里没有可用内容。";
+"RULES_LIST_DELETE_CONFIRM_MESSAGE_FORMAT" = "将删除已选中的 %lu 条规则。";
+"RULES_LIST_SELECTED_COUNT_TITLE_FORMAT" = "已选 %lu 条";
+"RULES_LIST_DELETE_COUNT_BUTTON_FORMAT" = "删除(%lu)";

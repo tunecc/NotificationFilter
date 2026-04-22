@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
+	<key>CFBundleDisplayName</key>
+	<string>Notification Filter</string>
 	<key>CFBundleExecutable</key>
 	<string>NotificationFilterPrefs</string>
 	<key>CFBundleIdentifier</key>

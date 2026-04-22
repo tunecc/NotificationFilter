@@ -1,5 +1,6 @@
 #import "NFPRulesListEditorController.h"
 #import "../Shared/NFPreferences.h"
+#import "NFPLocalization.h"
 #import "NFPRuleTextEditorController.h"
 #import "NFPRuleCardCell.h"
 
@@ -47,20 +48,20 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     self.tableView.rowHeight = UITableViewAutomaticDimension;
     self.navigationItem.leftItemsSupplementBackButton = YES;
 
-    self.editRulesButton = [[UIBarButtonItem alloc] initWithTitle:@"编辑"
+    self.editRulesButton = [[UIBarButtonItem alloc] initWithTitle:NFPLocalizedString(@"COMMON_EDIT")
                                                             style:UIBarButtonItemStylePlain
                                                            target:self
                                                            action:@selector(toggleEditingRules)];
     self.navigationItem.leftBarButtonItem = self.editRulesButton;
 
-    self.pasteButton = [[UIBarButtonItem alloc] initWithTitle:@"粘贴"
+    self.pasteButton = [[UIBarButtonItem alloc] initWithTitle:NFPLocalizedString(@"COMMON_PASTE")
                                                         style:UIBarButtonItemStylePlain
                                                        target:self
                                                        action:@selector(importFromPasteboardButtonTapped:)];
     self.addButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd
                                                                     target:self
                                                                     action:@selector(addButtonTapped:)];
-    self.deleteButton = [[UIBarButtonItem alloc] initWithTitle:@"删除"
+    self.deleteButton = [[UIBarButtonItem alloc] initWithTitle:NFPLocalizedString(@"COMMON_DELETE")
                                                          style:UIBarButtonItemStylePlain
                                                         target:self
                                                         action:@selector(deleteSelectedRules)];
@@ -78,11 +79,11 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     switch (self.editorKind) {
         case NFPRuleEditorKindContains:
-            return @"每条规则都可以选择匹配消息、标题、副标题或全部文本。";
+            return NFPLocalizedString(@"RULES_LIST_CONTAINS_FOOTER");
         case NFPRuleEditorKindExclude:
-            return @"排除规则命中时优先放行，也支持选择匹配字段。";
+            return NFPLocalizedString(@"RULES_LIST_EXCLUDE_FOOTER");
         default:
-            return @"正则规则支持选择匹配字段，保存前会校验语法。";
+            return NFPLocalizedString(@"RULES_LIST_REGEX_FOOTER");
     }
 }
 
@@ -95,8 +96,8 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
             cell.detailTextLabel.numberOfLines = 0;
             cell.detailTextLabel.textColor = [UIColor secondaryLabelColor];
         }
-        cell.textLabel.text = @"暂无规则";
-        cell.detailTextLabel.text = @"右上角可直接新增一条，或从剪贴板导入。";
+        cell.textLabel.text = NFPLocalizedString(@"RULES_LIST_EMPTY_TITLE");
+        cell.detailTextLabel.text = NFPLocalizedString(@"RULES_LIST_EMPTY_DETAIL");
         cell.accessoryType = UITableViewCellAccessoryNone;
         return cell;
     }
@@ -147,7 +148,7 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
 
     __weak typeof(self) weakSelf = self;
     UIContextualAction *deleteAction = [UIContextualAction contextualActionWithStyle:UIContextualActionStyleDestructive
-                                                                               title:@"删除"
+                                                                               title:NFPLocalizedString(@"COMMON_DELETE")
                                                                              handler:^(UIContextualAction *action, UIView *sourceView, void (^completionHandler)(BOOL)) {
         [weakSelf.rules removeObjectAtIndex:indexPath.row];
         [weakSelf persistRules];
@@ -174,13 +175,13 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     NSString *placeholder = nil;
     switch (self.editorKind) {
         case NFPRuleEditorKindContains:
-            placeholder = @"输入一条需要匹配的消息内容，例如：支付成功";
+            placeholder = NFPLocalizedString(@"RULES_LIST_CONTAINS_PLACEHOLDER");
             break;
         case NFPRuleEditorKindExclude:
-            placeholder = @"输入一条需要放行的消息内容，例如：验证码";
+            placeholder = NFPLocalizedString(@"RULES_LIST_EXCLUDE_PLACEHOLDER");
             break;
         default:
-            placeholder = @"输入一条正则表达式，例如：验证码\\d{4,6}";
+            placeholder = NFPLocalizedString(@"RULES_LIST_REGEX_PLACEHOLDER");
             break;
     }
 
@@ -221,7 +222,8 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
 - (void)importRulesFromPasteboard {
     NSString *clipboardText = [UIPasteboard generalPasteboard].string;
     if (clipboardText.length == 0) {
-        [self presentAlertWithTitle:@"导入失败" message:@"剪贴板里没有可用内容。"];
+        [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_IMPORT_FAILED")
+                            message:NFPLocalizedString(@"RULES_LIST_IMPORT_EMPTY_PASTEBOARD_MESSAGE")];
         return;
     }
 
@@ -238,7 +240,7 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     if (self.editorKind == NFPRuleEditorKindRegex) {
         NSError *error = [self validateRegexRules:normalizedRules];
         if (error) {
-            [self presentAlertWithTitle:@"导入失败" message:error.localizedDescription];
+            [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_IMPORT_FAILED") message:error.localizedDescription];
             return;
         }
     }
@@ -258,7 +260,9 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
         if (error) {
             return [NSError errorWithDomain:NFPreferencesIdentifier
                                        code:4
-                                   userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"正则“%@”无法编译：%@", rule, error.localizedDescription ?: @"未知错误"]}];
+                                   userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:NFPLocalizedString(@"REGEX_COMPILE_FAILED_FORMAT"),
+                                                                          rule,
+                                                                          error.localizedDescription ?: NFPLocalizedString(@"COMMON_UNKNOWN")]}];
         }
     }
     return nil;
@@ -326,15 +330,15 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     }
 
     NSUInteger count = self.selectedRuleIdentifiers.count;
-    NSString *message = [NSString stringWithFormat:@"将删除已选中的 %lu 条规则。", (unsigned long)count];
+    NSString *message = [NSString stringWithFormat:NFPLocalizedString(@"RULES_LIST_DELETE_CONFIRM_MESSAGE_FORMAT"), (unsigned long)count];
 
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"确认删除"
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"COMMON_CONFIRM_DELETE")
                                                                    message:message
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_CANCEL") style:UIAlertActionStyleCancel handler:nil]];
 
     __weak typeof(self) weakSelf = self;
-    [alert addAction:[UIAlertAction actionWithTitle:@"删除"
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_DELETE")
                                               style:UIAlertActionStyleDestructive
                                             handler:^(UIAlertAction *action) {
         NSIndexSet *indexesToDelete = [weakSelf.rules indexesOfObjectsPassingTest:^BOOL(NSDictionary *ruleEntry, NSUInteger idx, BOOL *stop) {
@@ -354,16 +358,15 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
 }
 
 - (void)updateNavigationItems {
-    self.editRulesButton.title = self.editingRules ? @"完成" : @"编辑";
+    self.editRulesButton.title = self.editingRules ? NFPLocalizedString(@"COMMON_DONE") : NFPLocalizedString(@"COMMON_EDIT");
     if (self.editingRules) {
         NSUInteger count = self.selectedRuleIdentifiers.count;
-        self.title = count > 0 ? [NSString stringWithFormat:@"已选 %lu 条", (unsigned long)count] : @"已选 0 条";
-        self.deleteButton.title = count > 0 ? [NSString stringWithFormat:@"删除(%lu)", (unsigned long)count] : @"删除";
+        self.title = [NSString stringWithFormat:NFPLocalizedString(@"RULES_LIST_SELECTED_COUNT_TITLE_FORMAT"), (unsigned long)count];
+        self.deleteButton.title = count > 0 ? [NSString stringWithFormat:NFPLocalizedString(@"RULES_LIST_DELETE_COUNT_BUTTON_FORMAT"), (unsigned long)count] : NFPLocalizedString(@"COMMON_DELETE");
         self.deleteButton.enabled = count > 0;
         self.navigationItem.rightBarButtonItems = @[self.deleteButton];
     } else {
-        self.title = self.editorKind == NFPRuleEditorKindContains ? @"包含规则" :
-                     (self.editorKind == NFPRuleEditorKindExclude ? @"排除规则" : @"正则规则");
+        self.title = NFPLocalizedRuleEditorTitle(self.editorKind);
         self.navigationItem.rightBarButtonItems = @[self.addButton, self.pasteButton];
     }
 }
@@ -378,7 +381,7 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:title
                                                                    message:message
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleDefault handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_OK") style:UIAlertActionStyleDefault handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 

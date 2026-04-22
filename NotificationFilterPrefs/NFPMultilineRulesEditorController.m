@@ -1,4 +1,5 @@
 #import "NFPMultilineRulesEditorController.h"
+#import "NFPLocalization.h"
 #import "../Shared/NFPreferences.h"
 
 @interface NFPMultilineRulesEditorController ()
@@ -33,7 +34,7 @@
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemSave
                                                                                             target:self
                                                                                             action:@selector(saveTapped)];
-    self.navigationItem.prompt = self.editorKind == NFPRuleEditorKindRegex ? @"一行一个正则表达式" : @"一行一条规则";
+    self.navigationItem.prompt = self.editorKind == NFPRuleEditorKindRegex ? NFPLocalizedString(@"MULTILINE_EDITOR_PROMPT_REGEX") : NFPLocalizedString(@"MULTILINE_EDITOR_PROMPT_RULE");
 
     UITextView *textView = [[UITextView alloc] initWithFrame:self.view.bounds];
     textView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
@@ -51,7 +52,7 @@
     if (self.editorKind == NFPRuleEditorKindRegex) {
         NSError *validationError = [self validateRegexRules:rules];
         if (validationError) {
-            [self presentAlertWithTitle:@"正则无效" message:validationError.localizedDescription];
+            [self presentAlertWithTitle:NFPLocalizedString(@"REGEX_INVALID_TITLE") message:validationError.localizedDescription];
             return;
         }
     }
@@ -72,7 +73,9 @@
         if (error) {
             return [NSError errorWithDomain:NFPreferencesIdentifier
                                        code:2
-                                   userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"规则“%@”无法编译：%@", rule, error.localizedDescription ?: @"未知错误"]}];
+                                   userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:NFPLocalizedString(@"REGEX_COMPILE_FAILED_FORMAT"),
+                                                                          rule,
+                                                                          error.localizedDescription ?: NFPLocalizedString(@"COMMON_UNKNOWN")]}];
         }
     }
 
@@ -83,7 +86,7 @@
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:title
                                                                    message:message
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleDefault handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_OK") style:UIAlertActionStyleDefault handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 

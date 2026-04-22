@@ -1,6 +1,7 @@
 #import "NFPRootListController.h"
 #import <Preferences/PSSpecifier.h>
 #import "../Shared/NFPreferences.h"
+#import "NFPLocalization.h"
 #import "NFPGlobalRulesController.h"
 #import "NFPAppRulesListController.h"
 #import "NFPImportExportController.h"
@@ -10,7 +11,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"通知过滤";
+    self.title = NFPLocalizedString(@"ROOT_TITLE");
 }
 
 - (NSArray *)specifiers {
@@ -21,10 +22,10 @@
     NSMutableArray *specifiers = [NSMutableArray array];
 
     PSSpecifier *toggleGroup = [PSSpecifier emptyGroupSpecifier];
-    [toggleGroup setProperty:@"关闭主开关后，所有通知都会直接放行。" forKey:PSFooterTextGroupKey];
+    [toggleGroup setProperty:NFPLocalizedString(@"ROOT_TOGGLE_FOOTER") forKey:PSFooterTextGroupKey];
     [specifiers addObject:toggleGroup];
 
-    PSSpecifier *enabledSpecifier = [PSSpecifier preferenceSpecifierNamed:@"启用过滤"
+    PSSpecifier *enabledSpecifier = [PSSpecifier preferenceSpecifierNamed:NFPLocalizedString(@"ROOT_ENABLE_FILTER")
                                                                    target:self
                                                                       set:@selector(setPreferenceValue:specifier:)
                                                                       get:@selector(readPreferenceValue:)
@@ -35,7 +36,7 @@
     [enabledSpecifier setProperty:@YES forKey:PSDefaultValueKey];
     [specifiers addObject:enabledSpecifier];
 
-    PSSpecifier *deleteSpecifier = [PSSpecifier preferenceSpecifierNamed:@"从通知中心删除过滤通知"
+    PSSpecifier *deleteSpecifier = [PSSpecifier preferenceSpecifierNamed:NFPLocalizedString(@"ROOT_DELETE_FILTERED")
                                                                   target:self
                                                                      set:@selector(setPreferenceValue:specifier:)
                                                                      get:@selector(readPreferenceValue:)
@@ -47,13 +48,13 @@
     [specifiers addObject:deleteSpecifier];
 
     PSSpecifier *pagesGroup = [PSSpecifier emptyGroupSpecifier];
-    [pagesGroup setProperty:@"全局规则和单应用规则叠加生效；命中排除规则优先放行。开启后，会优先尝试把命中过滤的通知从通知中心直接清掉，并补做一次 provider 撤回；不同系统版本的表现可能不完全一致。" forKey:PSFooterTextGroupKey];
+    [pagesGroup setProperty:NFPLocalizedString(@"ROOT_RULES_FOOTER") forKey:PSFooterTextGroupKey];
     [specifiers addObject:pagesGroup];
 
-    [specifiers addObject:[self linkSpecifierWithName:@"全局规则" action:@selector(openGlobalRules:)]];
-    [specifiers addObject:[self linkSpecifierWithName:@"应用规则" action:@selector(openAppRules:)]];
-    [specifiers addObject:[self linkSpecifierWithName:@"规则导入导出" action:@selector(openImportExport:)]];
-    [specifiers addObject:[self linkSpecifierWithName:@"已过滤通知" action:@selector(openLogs:)]];
+    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_GLOBAL_RULES") action:@selector(openGlobalRules:)]];
+    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_APP_RULES") action:@selector(openAppRules:)]];
+    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_IMPORT_EXPORT") action:@selector(openImportExport:)]];
+    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_FILTERED_LOGS") action:@selector(openLogs:)]];
 
     _specifiers = [specifiers copy];
     return _specifiers;
@@ -121,10 +122,10 @@
 }
 
 - (void)presentError:(NSError *)error {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"保存失败"
-                                                                   message:error.localizedDescription ?: @"无法写入配置。"
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"COMMON_SAVE_FAILED")
+                                                                   message:error.localizedDescription ?: NFPLocalizedString(@"ROOT_SAVE_FAILED_MESSAGE")
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleDefault handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_OK") style:UIAlertActionStyleDefault handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 

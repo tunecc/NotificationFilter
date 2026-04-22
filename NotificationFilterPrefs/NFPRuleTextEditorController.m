@@ -1,4 +1,5 @@
 #import "NFPRuleTextEditorController.h"
+#import "NFPLocalization.h"
 #import "../Shared/NFPreferences.h"
 
 @interface NFPRuleTextEditorController () <UITextViewDelegate>
@@ -52,7 +53,7 @@
     [self.view addSubview:scopeContainer];
 
     UILabel *scopeLabel = [[UILabel alloc] init];
-    scopeLabel.text = @"作用域";
+    scopeLabel.text = NFPLocalizedString(@"RULE_TEXT_SCOPE_LABEL");
     scopeLabel.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightMedium];
     scopeLabel.textColor = [UIColor secondaryLabelColor];
     scopeLabel.translatesAutoresizingMaskIntoConstraints = NO;
@@ -67,10 +68,10 @@
     [scopeContainer addSubview:scopeRow];
 
     NSArray<NSDictionary *> *scopeItems = @[
-        @{@"title": @"消息", @"scope": NFRuleScopeMessage},
-        @{@"title": @"标题", @"scope": NFRuleScopeTitle},
-        @{@"title": @"副标题", @"scope": NFRuleScopeSubtitle},
-        @{@"title": @"全部文本", @"scope": NFRuleScopeAll}
+        @{@"title": NFPLocalizedScopeName(NFRuleScopeMessage), @"scope": NFRuleScopeMessage},
+        @{@"title": NFPLocalizedScopeName(NFRuleScopeTitle), @"scope": NFRuleScopeTitle},
+        @{@"title": NFPLocalizedScopeName(NFRuleScopeSubtitle), @"scope": NFRuleScopeSubtitle},
+        @{@"title": NFPLocalizedScopeName(NFRuleScopeAll), @"scope": NFRuleScopeAll}
     ];
     NSMutableArray<UIButton *> *buttons = [NSMutableArray arrayWithCapacity:scopeItems.count];
     for (NSUInteger index = 0; index < scopeItems.count; index++) {
@@ -194,13 +195,14 @@
 - (void)saveTapped {
     NSString *normalizedRule = [self normalizedRuleFromText:self.textView.text];
     if (normalizedRule.length == 0) {
-        [self presentAlertWithTitle:@"规则为空" message:@"请输入一条规则。"];
+        [self presentAlertWithTitle:NFPLocalizedString(@"RULE_TEXT_EMPTY_TITLE")
+                            message:NFPLocalizedString(@"RULE_TEXT_EMPTY_MESSAGE")];
         return;
     }
 
     NSError *validationError = [self validateRule:normalizedRule];
     if (validationError) {
-        [self presentAlertWithTitle:@"规则无效" message:validationError.localizedDescription];
+        [self presentAlertWithTitle:NFPLocalizedString(@"RULE_TEXT_INVALID_TITLE") message:validationError.localizedDescription];
         return;
     }
 
@@ -240,7 +242,9 @@
     if (error) {
         return [NSError errorWithDomain:NFPreferencesIdentifier
                                    code:3
-                               userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:@"正则“%@”无法编译：%@", rule, error.localizedDescription ?: @"未知错误"]}];
+                               userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:NFPLocalizedString(@"REGEX_COMPILE_FAILED_FORMAT"),
+                                                                      rule,
+                                                                      error.localizedDescription ?: NFPLocalizedString(@"COMMON_UNKNOWN")]}];
     }
 
     return nil;
@@ -276,30 +280,30 @@
 - (void)updateScopeHint {
     NSString *scope = [self selectedScope];
     if ([scope isEqualToString:NFRuleScopeTitle]) {
-        self.hintTitleLabel.text = @"标题：只匹配通知主标题";
-        self.hintDetailLabel.text = @"例如标题是“付款成功”，你写“付款”就会命中；正文里就算没有“付款”，也会过滤。适合处理固定标题的系统通知。";
+        self.hintTitleLabel.text = NFPLocalizedString(@"RULE_TEXT_HINT_TITLE_TITLE");
+        self.hintDetailLabel.text = NFPLocalizedString(@"RULE_TEXT_HINT_TITLE_DETAIL");
         return;
     }
     if ([scope isEqualToString:NFRuleScopeSubtitle]) {
-        self.hintTitleLabel.text = @"副标题：只匹配通知副标题";
-        self.hintDetailLabel.text = @"例如副标题是“来自小王”，你写“小王”就会命中；正文里没有“小王”也不影响。适合筛选来源、会话名、发件人。";
+        self.hintTitleLabel.text = NFPLocalizedString(@"RULE_TEXT_HINT_SUBTITLE_TITLE");
+        self.hintDetailLabel.text = NFPLocalizedString(@"RULE_TEXT_HINT_SUBTITLE_DETAIL");
         return;
     }
     if ([scope isEqualToString:NFRuleScopeAll]) {
-        self.hintTitleLabel.text = @"全部文本：标题、副标题、header、正文、message 全都会匹配";
-        self.hintDetailLabel.text = @"例如你写“验证码”，只要标题、正文或副标题任意一处出现“验证码”都会命中。适合做兜底，但也最容易误伤。";
+        self.hintTitleLabel.text = NFPLocalizedString(@"RULE_TEXT_HINT_ALL_TITLE");
+        self.hintDetailLabel.text = NFPLocalizedString(@"RULE_TEXT_HINT_ALL_DETAIL");
         return;
     }
 
-    self.hintTitleLabel.text = @"消息：只匹配正文 / message";
-    self.hintDetailLabel.text = @"例如一条通知标题是“QQ”，正文是“你的验证码是 1234”，你写“验证码”会命中；只写“QQ”不会因为应用名或标题而误伤。最适合日常使用。";
+    self.hintTitleLabel.text = NFPLocalizedString(@"RULE_TEXT_HINT_MESSAGE_TITLE");
+    self.hintDetailLabel.text = NFPLocalizedString(@"RULE_TEXT_HINT_MESSAGE_DETAIL");
 }
 
 - (void)presentAlertWithTitle:(NSString *)title message:(NSString *)message {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:title
                                                                    message:message
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleDefault handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_OK") style:UIAlertActionStyleDefault handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 

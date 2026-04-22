@@ -1,4 +1,5 @@
 #import "NFPRuleCardCell.h"
+#import "NFPLocalization.h"
 #import "../Shared/NFPreferences.h"
 
 @interface NFPRuleCardCell ()
@@ -16,19 +17,6 @@
 @end
 
 @implementation NFPRuleCardCell
-
-static NSString *NFPRuleScopeDisplayName(NSString *scope) {
-    if ([scope isEqualToString:NFRuleScopeTitle]) {
-        return @"标题";
-    }
-    if ([scope isEqualToString:NFRuleScopeSubtitle]) {
-        return @"副标题";
-    }
-    if ([scope isEqualToString:NFRuleScopeAll]) {
-        return @"全部文本";
-    }
-    return @"消息";
-}
 
 - (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier {
     self = [super initWithStyle:style reuseIdentifier:reuseIdentifier];
@@ -145,17 +133,7 @@ static NSString *NFPRuleScopeDisplayName(NSString *scope) {
     [self.selectionButton setImage:selectionImage forState:UIControlStateNormal];
     self.titleLeadingConstraint.constant = editingMode ? 50.0 : 14.0;
 
-    switch (editorKind) {
-        case NFPRuleEditorKindContains:
-            self.subtitleLabel.text = NFPRuleScopeDisplayName(scope);
-            break;
-        case NFPRuleEditorKindExclude:
-            self.subtitleLabel.text = NFPRuleScopeDisplayName(scope);
-            break;
-        default:
-            self.subtitleLabel.text = NFPRuleScopeDisplayName(scope);
-            break;
-    }
+    self.subtitleLabel.text = NFPLocalizedScopeName(scope);
 
     self.titleLabel.textColor = enabled ? [UIColor labelColor] : [UIColor secondaryLabelColor];
     self.cardView.alpha = enabled ? 1.0 : 0.75;
@@ -166,11 +144,11 @@ static NSString *NFPRuleScopeDisplayName(NSString *scope) {
     } else {
         self.statusLabel.hidden = NO;
         if (validationState == NFPRuleValidationStateValid) {
-            self.statusLabel.text = @"有效";
+            self.statusLabel.text = NFPLocalizedString(@"RULE_CARD_VALID");
             self.statusLabel.textColor = [UIColor systemGreenColor];
             self.statusLabel.backgroundColor = [[UIColor systemGreenColor] colorWithAlphaComponent:0.14];
         } else {
-            self.statusLabel.text = @"无效";
+            self.statusLabel.text = NFPLocalizedString(@"RULE_CARD_INVALID");
             self.statusLabel.textColor = [UIColor systemRedColor];
             self.statusLabel.backgroundColor = [[UIColor systemRedColor] colorWithAlphaComponent:0.14];
         }

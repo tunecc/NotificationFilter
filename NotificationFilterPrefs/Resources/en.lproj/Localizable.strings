@@ -1,0 +1,164 @@
+"ROOT_TITLE" = "Notification Filter";
+"ROOT_TOGGLE_FOOTER" = "When the main switch is off, all notifications pass through directly.";
+"ROOT_ENABLE_FILTER" = "Enable Filtering";
+"ROOT_DELETE_FILTERED" = "Remove Filtered Notifications from Notification Center";
+"ROOT_RULES_FOOTER" = "Global and per-app rules are applied together. Exclude rules always allow a notification through first. When enabled, the tweak first tries to remove matched notifications from Notification Center, then performs a provider withdraw as a fallback. Behavior may vary across iOS versions.";
+"ROOT_GLOBAL_RULES" = "Global Rules";
+"ROOT_APP_RULES" = "App Rules";
+"ROOT_IMPORT_EXPORT" = "Import & Export";
+"ROOT_FILTERED_LOGS" = "Filtered Notifications";
+"ROOT_SAVE_FAILED_MESSAGE" = "Failed to write preferences.";
+
+"COMMON_SAVE_FAILED" = "Save Failed";
+"COMMON_OK" = "OK";
+"COMMON_IMPORT_FAILED" = "Import Failed";
+"COMMON_EXPORT_FAILED" = "Export Failed";
+"COMMON_IMPORT_SUCCEEDED" = "Import Completed";
+"COMMON_CANCEL" = "Cancel";
+"COMMON_DELETE" = "Delete";
+"COMMON_CLEAR" = "Clear";
+"COMMON_EDIT" = "Edit";
+"COMMON_DONE" = "Done";
+"COMMON_PASTE" = "Paste";
+"COMMON_UNKNOWN" = "Unknown";
+"COMMON_CONFIRM_DELETE" = "Confirm Delete";
+"COMMON_DELETE_FAILED" = "Delete Failed";
+
+"APP_UNKNOWN" = "Unknown App";
+
+"GLOBAL_RULES_TITLE" = "Global Rules";
+"GLOBAL_RULES_TOGGLE_FOOTER" = "When off, global rules will not participate in matching.";
+"GLOBAL_RULES_LIST_FOOTER" = "These rules apply to every app. Exclude rules always allow a notification through first.";
+"GLOBAL_RULES_ENABLE" = "Enable Global Rules";
+"GLOBAL_RULES_SAVE_FAILED_MESSAGE" = "Failed to save global rules.";
+
+"IMPORT_EXPORT_TITLE" = "Import & Export";
+"IMPORT_EXPORT_SECTION_EXPORT" = "Export";
+"IMPORT_EXPORT_SECTION_IMPORT" = "Import";
+"IMPORT_EXPORT_FOOTER_EXPORT" = "Export the current rule configuration as JSON for backup or sharing.";
+"IMPORT_EXPORT_FOOTER_IMPORT" = "Importing will overwrite the current rule configuration.";
+"IMPORT_EXPORT_EXPORT_JSON" = "Export to File";
+"IMPORT_EXPORT_EXPORT_JSON_DETAIL" = "Open the share sheet and save the JSON file.";
+"IMPORT_EXPORT_COPY_JSON" = "Copy JSON";
+"IMPORT_EXPORT_COPY_JSON_DETAIL" = "Copy the current configuration JSON to the clipboard.";
+"IMPORT_EXPORT_IMPORT_PASTEBOARD" = "Import from Clipboard";
+"IMPORT_EXPORT_IMPORT_PASTEBOARD_DETAIL" = "Read JSON directly from the clipboard and apply it.";
+"IMPORT_EXPORT_IMPORT_MANUAL" = "Paste JSON Manually";
+"IMPORT_EXPORT_IMPORT_MANUAL_DETAIL" = "Open an editor and paste the full configuration JSON.";
+"IMPORT_EXPORT_COPY_FAILED" = "Copy Failed";
+"IMPORT_EXPORT_COPIED" = "Copied";
+"IMPORT_EXPORT_COPIED_MESSAGE" = "The configuration JSON has been copied to the clipboard.";
+"IMPORT_EXPORT_EMPTY_PASTEBOARD_MESSAGE" = "There is no usable content in the clipboard.";
+"IMPORT_EXPORT_SAVE_FAILED_MESSAGE" = "Failed to save imported rules.";
+"IMPORT_EXPORT_IMPORT_SUCCEEDED_MESSAGE" = "The imported rule configuration has been applied.";
+"JSON_PARSE_FAILED_MESSAGE" = "Failed to parse JSON.";
+"JSON_GENERATE_FAILED_MESSAGE" = "Failed to generate JSON.";
+
+"RULE_CONTAINS_TITLE" = "Contains Rules";
+"RULE_EXCLUDE_TITLE" = "Exclude Rules";
+"RULE_REGEX_TITLE" = "Regex Rules";
+"SCOPE_MESSAGE" = "Message";
+"SCOPE_TITLE" = "Title";
+"SCOPE_SUBTITLE" = "Subtitle";
+"SCOPE_ALL" = "All Text";
+
+"APP_RULES_SEARCH_PLACEHOLDER" = "Search app name or bundle ID";
+"APP_RULES_LOADING" = "Loading app list...";
+"APP_RULES_FOOTER" = "Pull down to refresh the app list. Apps with configured rules stay pinned at the top.";
+"APP_RULES_COUNT_FORMAT" = "%lu rules";
+"APP_RULES_FILTER_ONLY_CONFIGURED" = "Configured Apps Only";
+"APP_RULES_FILTER_SHOW_SYSTEM" = "Show System Items";
+"APP_RULES_FILTER_SHOW_TROLL" = "Show Troll Apps";
+"APP_RULES_FILTER_RESET" = "Restore Defaults";
+"APP_RULES_TITLE" = "App Rules";
+"APP_RULES_SUBTITLE_CONFIGURED_ONLY" = "Configured Only";
+"APP_RULES_SUBTITLE_SHOW_ALL" = "Show All";
+"APP_RULES_SUBTITLE_HIDE_SYSTEM_ONLY" = "Hide System Items Only";
+"APP_RULES_SUBTITLE_REGULAR_ONLY" = "Regular Apps Only";
+
+"JSON_IMPORT_TITLE" = "Paste JSON";
+"JSON_IMPORT_PROMPT" = "Paste the full configuration JSON. Saving will overwrite current rules.";
+"JSON_IMPORT_UTF8_ERROR" = "The JSON text could not be encoded as UTF-8.";
+"JSON_IMPORT_ROOT_OBJECT_ERROR" = "The JSON root must be an object.";
+
+"MULTILINE_EDITOR_PROMPT_RULE" = "One rule per line";
+"MULTILINE_EDITOR_PROMPT_REGEX" = "One regular expression per line";
+"REGEX_INVALID_TITLE" = "Invalid Regular Expression";
+"REGEX_COMPILE_FAILED_FORMAT" = "The regular expression \"%@\" could not be compiled: %@";
+
+"LOGS_TITLE" = "Filtered Notifications";
+"LOGS_SEARCH_PLACEHOLDER" = "Search apps, bundle IDs, rules, or content";
+"LOGS_EMPTY" = "No filtered notifications yet";
+"LOGS_EMPTY_PREVIEW" = "No preview available";
+"LOGS_FOOTER" = "Only the most recent 500 blocked notifications are kept.";
+"LOGS_CLEAR_TITLE" = "Clear Logs";
+"LOGS_CLEAR_MESSAGE" = "This only removes filtered records and does not affect your rules.";
+
+"LOG_DETAIL_TITLE" = "Notification Details";
+"LOG_DETAIL_APP_FORMAT" = "App: %@";
+"LOG_DETAIL_BUNDLE_ID_FORMAT" = "Bundle ID: %@";
+"LOG_DETAIL_TIME_FORMAT" = "Time: %@";
+"LOG_DETAIL_SCOPE_FORMAT" = "Scope: %@";
+"LOG_DETAIL_MODE_FORMAT" = "Rule Type: %@";
+"LOG_DETAIL_PATTERN_FORMAT" = "Matched Rule: %@";
+"LOG_DETAIL_DELETE_STATUS_FORMAT" = "Delete Result: %@";
+"LOG_DETAIL_DELETE_METHOD_FORMAT" = "Delete Path: %@";
+"LOG_DETAIL_SECTION_ID_FORMAT" = "Section ID: %@";
+"LOG_DETAIL_BULLETIN_ID_FORMAT" = "Bulletin ID: %@";
+"LOG_DETAIL_RECORD_ID_FORMAT" = "Record ID: %@";
+"LOG_DETAIL_PUBLISHER_BULLETIN_ID_FORMAT" = "Publisher Bulletin ID: %@";
+"LOG_DETAIL_NOTIFICATION_TITLE_FORMAT" = "Title: %@";
+"LOG_DETAIL_NOTIFICATION_SUBTITLE_FORMAT" = "Subtitle: %@";
+"LOG_DETAIL_NOTIFICATION_HEADER_FORMAT" = "Header: %@";
+"LOG_DETAIL_NOTIFICATION_BODY_FORMAT" = "Body: %@";
+"LOG_DETAIL_NOTIFICATION_MESSAGE_FORMAT" = "Message: %@";
+"LOG_DETAIL_JOINED_TEXT_TITLE" = "Joined Text:";
+
+"DELETE_STATUS_SUCCESS" = "Success";
+"DELETE_STATUS_FAILED" = "Failed";
+"DELETE_STATUS_SKIPPED" = "Skipped";
+"DELETE_METHOD_CLEAR_BULLETIN_IDS" = "Clear Bulletin IDs";
+"DELETE_METHOD_WITHDRAW_PUBLISHER" = "Withdraw via Publisher ID";
+"DELETE_METHOD_WITHDRAW_RECORD" = "Withdraw via Record ID";
+"DELETE_METHOD_REMOVE_BULLETIN" = "Remove Bulletin";
+"DELETE_METHOD_REMOVE_BULLETIN_RESCHEDULE" = "Remove Bulletin (Reschedule)";
+"DELETE_METHOD_NONE" = "None";
+"DELETE_METHOD_INVALID_INPUT" = "Invalid Input";
+
+"PER_APP_RULES_ENABLED_FOOTER" = "When off, rules for this app will not participate in matching.";
+"PER_APP_RULES_LIST_FOOTER" = "Only notifications from this app use these rules, and they are evaluated together with global rules.";
+"PER_APP_RULES_ENABLE" = "Enable Rules for This App";
+"PER_APP_RULES_DELETE" = "Delete This App's Rules";
+"PER_APP_RULES_DELETE_TITLE" = "Delete Rules";
+"PER_APP_RULES_DELETE_MESSAGE" = "All filter settings for this app will be removed.";
+"PER_APP_RULES_DELETE_FAILED_MESSAGE" = "Failed to delete rules for this app.";
+"PER_APP_RULES_SAVE_FAILED_MESSAGE" = "Failed to save rules for this app.";
+
+"RULE_CARD_VALID" = "Valid";
+"RULE_CARD_INVALID" = "Invalid";
+
+"RULE_TEXT_SCOPE_LABEL" = "Scope";
+"RULE_TEXT_EMPTY_TITLE" = "Rule Required";
+"RULE_TEXT_EMPTY_MESSAGE" = "Please enter a rule.";
+"RULE_TEXT_INVALID_TITLE" = "Invalid Rule";
+"RULE_TEXT_HINT_MESSAGE_TITLE" = "Message: matches only the body / message";
+"RULE_TEXT_HINT_MESSAGE_DETAIL" = "For example, if the title is \"QQ\" and the body is \"Your code is 1234\", entering \"code\" will match. Entering only \"QQ\" will not accidentally match the app name or title. Best for everyday use.";
+"RULE_TEXT_HINT_TITLE_TITLE" = "Title: matches only the notification title";
+"RULE_TEXT_HINT_TITLE_DETAIL" = "For example, if the title is \"Payment Successful\", entering \"Payment\" will match. Even if the body does not contain \"Payment\", it will still be filtered. Good for fixed-title system notifications.";
+"RULE_TEXT_HINT_SUBTITLE_TITLE" = "Subtitle: matches only the notification subtitle";
+"RULE_TEXT_HINT_SUBTITLE_DETAIL" = "For example, if the subtitle is \"From Alex\", entering \"Alex\" will match. It will not matter whether the body contains \"Alex\". Good for senders, chat names, or sources.";
+"RULE_TEXT_HINT_ALL_TITLE" = "All Text: matches title, subtitle, header, body, and message";
+"RULE_TEXT_HINT_ALL_DETAIL" = "For example, entering \"verification code\" will match as long as it appears anywhere in the title, subtitle, or body. Useful as a fallback, but also the easiest to overmatch.";
+
+"RULES_LIST_CONTAINS_FOOTER" = "Each rule can target the message, title, subtitle, or all text.";
+"RULES_LIST_EXCLUDE_FOOTER" = "Exclude rules take priority and also support scoped matching.";
+"RULES_LIST_REGEX_FOOTER" = "Regex rules also support scopes and are validated before saving.";
+"RULES_LIST_EMPTY_TITLE" = "No Rules";
+"RULES_LIST_EMPTY_DETAIL" = "Tap + to add a rule directly, or import from the clipboard.";
+"RULES_LIST_CONTAINS_PLACEHOLDER" = "Enter text to match, for example: Payment Successful";
+"RULES_LIST_EXCLUDE_PLACEHOLDER" = "Enter text to always allow, for example: Verification Code";
+"RULES_LIST_REGEX_PLACEHOLDER" = "Enter a regular expression, for example: code\\d{4,6}";
+"RULES_LIST_IMPORT_EMPTY_PASTEBOARD_MESSAGE" = "There is no usable content in the clipboard.";
+"RULES_LIST_DELETE_CONFIRM_MESSAGE_FORMAT" = "Delete %lu selected rules.";
+"RULES_LIST_SELECTED_COUNT_TITLE_FORMAT" = "%lu selected";
+"RULES_LIST_DELETE_COUNT_BUTTON_FORMAT" = "Delete (%lu)";

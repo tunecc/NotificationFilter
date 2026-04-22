@@ -5,6 +5,7 @@ include $(THEOS_MAKE_PATH)/common.mk
 BUNDLE_NAME = NotificationFilterPrefs
 
 NotificationFilterPrefs_FILES = \
+	NFPLocalization.m \
 	NFPRootListController.m \
 	NFPAppInfoProvider.m \
 	NFPGlobalRulesController.m \

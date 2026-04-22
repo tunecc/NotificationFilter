@@ -1,4 +1,5 @@
 #import "NFPAppInfoProvider.h"
+#import "NFPLocalization.h"
 #import <MobileCoreServices/LSApplicationWorkspace.h>
 #import <MobileCoreServices/LSApplicationProxy.h>
 #import <UIKit/UIImage+Private.h>
@@ -134,7 +135,7 @@ static NSString * const NFPIsTrollApplicationKey = @"isTrollApplication";
 
 - (NSString *)displayNameForBundleIdentifier:(NSString *)bundleIdentifier {
     if (bundleIdentifier.length == 0) {
-        return @"未知应用";
+        return NFPLocalizedString(@"APP_UNKNOWN");
     }
 
     @synchronized (self) {

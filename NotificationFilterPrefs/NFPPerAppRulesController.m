@@ -1,5 +1,6 @@
 #import "NFPPerAppRulesController.h"
 #import "../Shared/NFPreferences.h"
+#import "NFPLocalization.h"
 #import "NFPRulesListEditorController.h"
 
 typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
@@ -56,10 +57,10 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     if (section == 0) {
-        return @"关闭后，该应用规则不会参与匹配。";
+        return NFPLocalizedString(@"PER_APP_RULES_ENABLED_FOOTER");
     }
     if (section == 1) {
-        return @"只有该应用的通知会使用这里的规则，并与全局规则一起参与判断。";
+        return NFPLocalizedString(@"PER_APP_RULES_LIST_FOOTER");
     }
     return nil;
 }
@@ -75,7 +76,7 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
         }
 
-        cell.textLabel.text = @"启用该应用规则";
+        cell.textLabel.text = NFPLocalizedString(@"PER_APP_RULES_ENABLE");
         ((UISwitch *)cell.accessoryView).on = [self.rules[NFRulesEnabledKey] boolValue];
         return cell;
     }
@@ -88,7 +89,7 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
             cell.textLabel.textColor = [UIColor systemRedColor];
         }
 
-        cell.textLabel.text = @"删除该应用规则";
+        cell.textLabel.text = NFPLocalizedString(@"PER_APP_RULES_DELETE");
         return cell;
     }
 
@@ -101,15 +102,15 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
     NSArray *values = nil;
     switch (indexPath.row) {
         case NFPPerAppRulesRowContains:
-            cell.textLabel.text = @"包含规则";
+            cell.textLabel.text = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindContains);
             values = self.rules[NFRulesContainsKey];
             break;
         case NFPPerAppRulesRowExclude:
-            cell.textLabel.text = @"排除规则";
+            cell.textLabel.text = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindExclude);
             values = self.rules[NFRulesExcludeKey];
             break;
         default:
-            cell.textLabel.text = @"正则规则";
+            cell.textLabel.text = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindRegex);
             values = self.rules[NFRulesRegexKey];
             break;
     }
@@ -128,17 +129,17 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
 
         switch (indexPath.row) {
             case NFPPerAppRulesRowContains:
-                title = @"包含规则";
+                title = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindContains);
                 rules = self.rules[NFRulesContainsKey];
                 editorKind = NFPRuleEditorKindContains;
                 break;
             case NFPPerAppRulesRowExclude:
-                title = @"排除规则";
+                title = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindExclude);
                 rules = self.rules[NFRulesExcludeKey];
                 editorKind = NFPRuleEditorKindExclude;
                 break;
             default:
-                title = @"正则规则";
+                title = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindRegex);
                 rules = self.rules[NFRulesRegexKey];
                 editorKind = NFPRuleEditorKindRegex;
                 break;
@@ -156,11 +157,11 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
     }
 
     if (indexPath.section == 2) {
-        UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"删除规则"
-                                                                       message:@"会移除该应用的所有过滤设置。"
+        UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"PER_APP_RULES_DELETE_TITLE")
+                                                                       message:NFPLocalizedString(@"PER_APP_RULES_DELETE_MESSAGE")
                                                                 preferredStyle:UIAlertControllerStyleAlert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
-        [alert addAction:[UIAlertAction actionWithTitle:@"删除"
+        [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_CANCEL") style:UIAlertActionStyleCancel handler:nil]];
+        [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_DELETE")
                                                   style:UIAlertActionStyleDestructive
                                                 handler:^(UIAlertAction *action) {
             [self deleteCurrentRules];
@@ -200,7 +201,8 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
 
     NSError *error = nil;
     if (![NFPreferences savePreferences:preferences error:&error]) {
-        [self presentAlertWithTitle:@"删除失败" message:error.localizedDescription ?: @"无法删除该应用规则。"];
+        [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_DELETE_FAILED")
+                            message:error.localizedDescription ?: NFPLocalizedString(@"PER_APP_RULES_DELETE_FAILED_MESSAGE")];
         return;
     }
 
@@ -216,7 +218,8 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
 
     NSError *error = nil;
     if (![NFPreferences savePreferences:preferences error:&error]) {
-        [self presentAlertWithTitle:@"保存失败" message:error.localizedDescription ?: @"无法保存应用规则。"];
+        [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_SAVE_FAILED")
+                            message:error.localizedDescription ?: NFPLocalizedString(@"PER_APP_RULES_SAVE_FAILED_MESSAGE")];
         return;
     }
 
@@ -230,7 +233,7 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:title
                                                                    message:message
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleDefault handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_OK") style:UIAlertActionStyleDefault handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 

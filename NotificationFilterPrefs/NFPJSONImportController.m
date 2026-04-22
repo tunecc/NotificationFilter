@@ -1,4 +1,5 @@
 #import "NFPJSONImportController.h"
+#import "NFPLocalization.h"
 
 @interface NFPJSONImportController ()
 
@@ -14,7 +15,7 @@
                       importHandler:(void (^)(NSDictionary * _Nullable, NSError * _Nullable))importHandler {
     self = [super initWithNibName:nil bundle:nil];
     if (self) {
-        self.title = @"粘贴 JSON";
+        self.title = NFPLocalizedString(@"JSON_IMPORT_TITLE");
         _initialText = [initialText copy] ?: @"";
         _importHandler = [importHandler copy];
     }
@@ -27,7 +28,7 @@
         if (error) {
             *error = [NSError errorWithDomain:@"com.tune.notificationfilter.import"
                                          code:1
-                                     userInfo:@{NSLocalizedDescriptionKey: @"JSON 文本无法编码为 UTF-8。"}];
+                                     userInfo:@{NSLocalizedDescriptionKey: NFPLocalizedString(@"JSON_IMPORT_UTF8_ERROR")}];
         }
         return nil;
     }
@@ -37,7 +38,7 @@
         if (error && !*error) {
             *error = [NSError errorWithDomain:@"com.tune.notificationfilter.import"
                                          code:2
-                                     userInfo:@{NSLocalizedDescriptionKey: @"JSON 顶层必须是对象。"}];
+                                     userInfo:@{NSLocalizedDescriptionKey: NFPLocalizedString(@"JSON_IMPORT_ROOT_OBJECT_ERROR")}];
         }
         return nil;
     }
@@ -52,7 +53,7 @@
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemSave
                                                                                             target:self
                                                                                             action:@selector(importTapped)];
-    self.navigationItem.prompt = @"粘贴完整配置 JSON，保存后会覆盖当前规则";
+    self.navigationItem.prompt = NFPLocalizedString(@"JSON_IMPORT_PROMPT");
 
     UITextView *textView = [[UITextView alloc] initWithFrame:self.view.bounds];
     textView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;

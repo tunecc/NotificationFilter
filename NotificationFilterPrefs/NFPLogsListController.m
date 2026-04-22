@@ -1,4 +1,5 @@
 #import "NFPLogsListController.h"
+#import "NFPLocalization.h"
 #import "../Shared/NFLogStore.h"
 #import "../Shared/NFPreferences.h"
 #import "NFPAppInfoProvider.h"
@@ -21,7 +22,7 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
         if ([matchedPattern isKindOfClass:[NSString class]] && matchedPattern.length > 0) {
             return matchedPattern;
         }
-        return @"无可预览内容";
+        return NFPLocalizedString(@"LOGS_EMPTY_PREVIEW");
     }
 
     NSMutableString *preview = [[joinedText stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] mutableCopy];
@@ -37,7 +38,7 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"已过滤通知";
+    self.title = NFPLocalizedString(@"LOGS_TITLE");
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash
                                                                                             target:self
                                                                                             action:@selector(clearTapped)];
@@ -45,7 +46,7 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
     UISearchController *searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
     searchController.obscuresBackgroundDuringPresentation = NO;
     searchController.searchResultsUpdater = self;
-    searchController.searchBar.placeholder = @"搜索应用、Bundle ID、规则或内容";
+    searchController.searchBar.placeholder = NFPLocalizedString(@"LOGS_SEARCH_PLACEHOLDER");
     self.navigationItem.searchController = searchController;
     self.navigationItem.hidesSearchBarWhenScrolling = NO;
     self.searchController = searchController;
@@ -65,7 +66,7 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
 
 - (UIView *)emptyStateView {
     UILabel *label = [[UILabel alloc] initWithFrame:self.tableView.bounds];
-    label.text = @"暂无过滤记录";
+    label.text = NFPLocalizedString(@"LOGS_EMPTY");
     label.textColor = [UIColor secondaryLabelColor];
     label.textAlignment = NSTextAlignmentCenter;
     label.numberOfLines = 0;
@@ -113,7 +114,7 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
-    return @"只保存最近 500 条被拦截的通知。";
+    return NFPLocalizedString(@"LOGS_FOOTER");
 }
 
 - (void)clearTapped {
@@ -121,11 +122,11 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
         return;
     }
 
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"清空日志"
-                                                                   message:@"该操作只会删除过滤记录，不会影响规则。"
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"LOGS_CLEAR_TITLE")
+                                                                   message:NFPLocalizedString(@"LOGS_CLEAR_MESSAGE")
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleCancel handler:nil]];
-    [alert addAction:[UIAlertAction actionWithTitle:@"清空"
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_CANCEL") style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_CLEAR")
                                               style:UIAlertActionStyleDestructive
                                             handler:^(UIAlertAction *action) {
         [NFLogStore clearEntries];

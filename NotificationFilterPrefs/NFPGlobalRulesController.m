@@ -1,5 +1,6 @@
 #import "NFPGlobalRulesController.h"
 #import "../Shared/NFPreferences.h"
+#import "NFPLocalization.h"
 #import "NFPRulesListEditorController.h"
 
 typedef NS_ENUM(NSInteger, NFPGlobalRulesRow) {
@@ -18,7 +19,7 @@ typedef NS_ENUM(NSInteger, NFPGlobalRulesRow) {
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"全局规则";
+    self.title = NFPLocalizedString(@"GLOBAL_RULES_TITLE");
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -37,9 +38,9 @@ typedef NS_ENUM(NSInteger, NFPGlobalRulesRow) {
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     if (section == 0) {
-        return @"关闭后，全局规则不会参与匹配。";
+        return NFPLocalizedString(@"GLOBAL_RULES_TOGGLE_FOOTER");
     }
-    return @"包含和正则命中会拦截通知；排除规则命中会优先放行。";
+    return NFPLocalizedString(@"GLOBAL_RULES_LIST_FOOTER");
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -53,7 +54,7 @@ typedef NS_ENUM(NSInteger, NFPGlobalRulesRow) {
             cell.selectionStyle = UITableViewCellSelectionStyleNone;
         }
 
-        cell.textLabel.text = @"启用全局规则";
+        cell.textLabel.text = NFPLocalizedString(@"GLOBAL_RULES_ENABLE");
         ((UISwitch *)cell.accessoryView).on = [self.rules[NFRulesEnabledKey] boolValue];
         return cell;
     }
@@ -67,15 +68,15 @@ typedef NS_ENUM(NSInteger, NFPGlobalRulesRow) {
     NSArray *values = nil;
     switch (indexPath.row) {
         case NFPGlobalRulesRowContains:
-            cell.textLabel.text = @"包含规则";
+            cell.textLabel.text = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindContains);
             values = self.rules[NFRulesContainsKey];
             break;
         case NFPGlobalRulesRowExclude:
-            cell.textLabel.text = @"排除规则";
+            cell.textLabel.text = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindExclude);
             values = self.rules[NFRulesExcludeKey];
             break;
         default:
-            cell.textLabel.text = @"正则规则";
+            cell.textLabel.text = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindRegex);
             values = self.rules[NFRulesRegexKey];
             break;
     }
@@ -96,17 +97,17 @@ typedef NS_ENUM(NSInteger, NFPGlobalRulesRow) {
 
     switch (indexPath.row) {
         case NFPGlobalRulesRowContains:
-            title = @"包含规则";
+            title = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindContains);
             rules = self.rules[NFRulesContainsKey];
             editorKind = NFPRuleEditorKindContains;
             break;
         case NFPGlobalRulesRowExclude:
-            title = @"排除规则";
+            title = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindExclude);
             rules = self.rules[NFRulesExcludeKey];
             editorKind = NFPRuleEditorKindExclude;
             break;
         default:
-            title = @"正则规则";
+            title = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindRegex);
             rules = self.rules[NFRulesRegexKey];
             editorKind = NFPRuleEditorKindRegex;
             break;
@@ -148,7 +149,8 @@ typedef NS_ENUM(NSInteger, NFPGlobalRulesRow) {
 - (void)persistPreferences:(NSMutableDictionary *)preferences {
     NSError *error = nil;
     if (![NFPreferences savePreferences:preferences error:&error]) {
-        [self presentAlertWithTitle:@"保存失败" message:error.localizedDescription ?: @"无法更新全局规则。"];
+        [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_SAVE_FAILED")
+                            message:error.localizedDescription ?: NFPLocalizedString(@"GLOBAL_RULES_SAVE_FAILED_MESSAGE")];
         return;
     }
 
@@ -161,7 +163,7 @@ typedef NS_ENUM(NSInteger, NFPGlobalRulesRow) {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:title
                                                                    message:message
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleDefault handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_OK") style:UIAlertActionStyleDefault handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 

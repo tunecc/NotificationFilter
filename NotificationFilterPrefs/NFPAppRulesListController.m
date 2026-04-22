@@ -1,5 +1,6 @@
 #import "NFPAppRulesListController.h"
 #import "../Shared/NFPreferences.h"
+#import "NFPLocalization.h"
 #import "NFPAppInfoProvider.h"
 #import "NFPPerAppRulesController.h"
 
@@ -44,7 +45,7 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
     UISearchController *searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
     searchController.obscuresBackgroundDuringPresentation = NO;
     searchController.searchResultsUpdater = self;
-    searchController.searchBar.placeholder = @"搜索应用名或 Bundle ID";
+    searchController.searchBar.placeholder = NFPLocalizedString(@"APP_RULES_SEARCH_PLACEHOLDER");
     self.navigationItem.searchController = searchController;
     self.navigationItem.hidesSearchBarWhenScrolling = NO;
     self.searchController = searchController;
@@ -98,7 +99,7 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
 
 - (void)beginInitialLoad {
     UILabel *loadingLabel = [[UILabel alloc] initWithFrame:self.tableView.bounds];
-    loadingLabel.text = @"正在加载应用列表…";
+    loadingLabel.text = NFPLocalizedString(@"APP_RULES_LOADING");
     loadingLabel.textColor = [UIColor secondaryLabelColor];
     loadingLabel.textAlignment = NSTextAlignmentCenter;
     self.tableView.backgroundView = loadingLabel;
@@ -143,7 +144,7 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
-    return @"已有规则的应用会固定排在顶部；下拉可刷新应用列表。";
+    return NFPLocalizedString(@"APP_RULES_FOOTER");
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -184,7 +185,7 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
     UILabel *countLabel = [[UILabel alloc] init];
     countLabel.font = [UIFont systemFontOfSize:14.0 weight:UIFontWeightMedium];
     countLabel.textColor = [UIColor secondaryLabelColor];
-    countLabel.text = [NSString stringWithFormat:@"%lu条", (unsigned long)ruleCount];
+    countLabel.text = [NSString stringWithFormat:NFPLocalizedString(@"APP_RULES_COUNT_FORMAT"), (unsigned long)ruleCount];
     [countLabel sizeToFit];
     return countLabel;
 }
@@ -199,7 +200,7 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
                                                                     action:nil];
 
     __weak typeof(self) weakSelf = self;
-    UIAction *toggleOnlyConfiguredApps = [UIAction actionWithTitle:@"只看已配置规则的应用"
+    UIAction *toggleOnlyConfiguredApps = [UIAction actionWithTitle:NFPLocalizedString(@"APP_RULES_FILTER_ONLY_CONFIGURED")
                                                              image:[UIImage systemImageNamed:@"checklist"]
                                                         identifier:nil
                                                            handler:^(__kindof UIAction *action) {
@@ -208,7 +209,7 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
     }];
     toggleOnlyConfiguredApps.state = self.onlyConfiguredApps ? UIMenuElementStateOn : UIMenuElementStateOff;
 
-    UIAction *toggleSystemApps = [UIAction actionWithTitle:@"显示系统项"
+    UIAction *toggleSystemApps = [UIAction actionWithTitle:NFPLocalizedString(@"APP_RULES_FILTER_SHOW_SYSTEM")
                                                      image:[UIImage systemImageNamed:@"apple.logo"]
                                                 identifier:nil
                                                    handler:^(__kindof UIAction *action) {
@@ -217,7 +218,7 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
     }];
     toggleSystemApps.state = self.showSystemApps ? UIMenuElementStateOn : UIMenuElementStateOff;
 
-    UIAction *toggleTrollApps = [UIAction actionWithTitle:@"显示 Troll 应用"
+    UIAction *toggleTrollApps = [UIAction actionWithTitle:NFPLocalizedString(@"APP_RULES_FILTER_SHOW_TROLL")
                                                     image:[UIImage systemImageNamed:@"shippingbox"]
                                                identifier:nil
                                                   handler:^(__kindof UIAction *action) {
@@ -226,7 +227,7 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
     }];
     toggleTrollApps.state = self.showTrollApps ? UIMenuElementStateOn : UIMenuElementStateOff;
 
-    UIAction *resetDefaults = [UIAction actionWithTitle:@"恢复默认"
+    UIAction *resetDefaults = [UIAction actionWithTitle:NFPLocalizedString(@"APP_RULES_FILTER_RESET")
                                                   image:[UIImage systemImageNamed:@"arrow.counterclockwise"]
                                              identifier:nil
                                                 handler:^(__kindof UIAction *action) {
@@ -249,7 +250,7 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
     UILabel *titleLabel = [[UILabel alloc] init];
     titleLabel.font = [UIFont systemFontOfSize:17.0 weight:UIFontWeightSemibold];
     titleLabel.textAlignment = NSTextAlignmentCenter;
-    titleLabel.text = @"应用规则";
+    titleLabel.text = NFPLocalizedString(@"APP_RULES_TITLE");
     self.titleLabel = titleLabel;
 
     UILabel *subtitleLabel = [[UILabel alloc] init];
@@ -269,21 +270,21 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
 - (void)updateTitleSubtitle {
     NSMutableArray<NSString *> *components = [NSMutableArray array];
     if (self.onlyConfiguredApps) {
-        [components addObject:@"仅已配置"];
+        [components addObject:NFPLocalizedString(@"APP_RULES_SUBTITLE_CONFIGURED_ONLY")];
     }
 
     if (self.showSystemApps && self.showTrollApps) {
-        [components addObject:@"显示所有"];
+        [components addObject:NFPLocalizedString(@"APP_RULES_SUBTITLE_SHOW_ALL")];
     } else if (!self.showSystemApps && self.showTrollApps) {
-        [components addObject:@"仅隐藏系统项"];
+        [components addObject:NFPLocalizedString(@"APP_RULES_SUBTITLE_HIDE_SYSTEM_ONLY")];
     } else if (!self.showSystemApps && !self.showTrollApps) {
-        [components addObject:@"仅显示普通应用"];
+        [components addObject:NFPLocalizedString(@"APP_RULES_SUBTITLE_REGULAR_ONLY")];
     } else {
         if (self.showSystemApps) {
-            [components addObject:@"显示系统项"];
+            [components addObject:NFPLocalizedString(@"APP_RULES_FILTER_SHOW_SYSTEM")];
         }
         if (self.showTrollApps) {
-            [components addObject:@"显示 Troll 应用"];
+            [components addObject:NFPLocalizedString(@"APP_RULES_FILTER_SHOW_TROLL")];
         }
     }
 

@@ -1,5 +1,6 @@
 #import "NFPImportExportController.h"
 #import "../Shared/NFPreferences.h"
+#import "NFPLocalization.h"
 #import "NFPJSONImportController.h"
 
 typedef NS_ENUM(NSInteger, NFPImportExportSection) {
@@ -11,7 +12,7 @@ typedef NS_ENUM(NSInteger, NFPImportExportSection) {
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.title = @"规则导入导出";
+    self.title = NFPLocalizedString(@"IMPORT_EXPORT_TITLE");
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -23,14 +24,14 @@ typedef NS_ENUM(NSInteger, NFPImportExportSection) {
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
-    return section == NFPImportExportSectionExport ? @"导出" : @"导入";
+    return section == NFPImportExportSectionExport ? NFPLocalizedString(@"IMPORT_EXPORT_SECTION_EXPORT") : NFPLocalizedString(@"IMPORT_EXPORT_SECTION_IMPORT");
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     if (section == NFPImportExportSectionExport) {
-        return @"导出的 JSON 只包含过滤规则配置，不包含过滤日志。";
+        return NFPLocalizedString(@"IMPORT_EXPORT_FOOTER_EXPORT");
     }
-    return @"导入会覆盖当前全部规则配置。";
+    return NFPLocalizedString(@"IMPORT_EXPORT_FOOTER_IMPORT");
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -42,19 +43,19 @@ typedef NS_ENUM(NSInteger, NFPImportExportSection) {
 
     if (indexPath.section == NFPImportExportSectionExport) {
         if (indexPath.row == 0) {
-            cell.textLabel.text = @"导出为 JSON";
-            cell.detailTextLabel.text = @"使用系统分享面板导出当前规则";
+            cell.textLabel.text = NFPLocalizedString(@"IMPORT_EXPORT_EXPORT_JSON");
+            cell.detailTextLabel.text = NFPLocalizedString(@"IMPORT_EXPORT_EXPORT_JSON_DETAIL");
         } else {
-            cell.textLabel.text = @"复制 JSON 到剪贴板";
-            cell.detailTextLabel.text = @"便于手动备份或跨设备传递";
+            cell.textLabel.text = NFPLocalizedString(@"IMPORT_EXPORT_COPY_JSON");
+            cell.detailTextLabel.text = NFPLocalizedString(@"IMPORT_EXPORT_COPY_JSON_DETAIL");
         }
     } else {
         if (indexPath.row == 0) {
-            cell.textLabel.text = @"从剪贴板导入";
-            cell.detailTextLabel.text = @"读取剪贴板中的 JSON 并覆盖当前规则";
+            cell.textLabel.text = NFPLocalizedString(@"IMPORT_EXPORT_IMPORT_PASTEBOARD");
+            cell.detailTextLabel.text = NFPLocalizedString(@"IMPORT_EXPORT_IMPORT_PASTEBOARD_DETAIL");
         } else {
-            cell.textLabel.text = @"手动粘贴导入";
-            cell.detailTextLabel.text = @"打开编辑器，粘贴 JSON 后导入";
+            cell.textLabel.text = NFPLocalizedString(@"IMPORT_EXPORT_IMPORT_MANUAL");
+            cell.detailTextLabel.text = NFPLocalizedString(@"IMPORT_EXPORT_IMPORT_MANUAL_DETAIL");
         }
     }
 
@@ -80,7 +81,8 @@ typedef NS_ENUM(NSInteger, NFPImportExportSection) {
         NFPJSONImportController *controller = [[NFPJSONImportController alloc] initWithInitialText:@""
                                                                                         importHandler:^(NSDictionary *payload, NSError *error) {
             if (error) {
-                [weakSelf presentAlertWithTitle:@"导入失败" message:error.localizedDescription ?: @"JSON 无法解析。"];
+                [weakSelf presentAlertWithTitle:NFPLocalizedString(@"COMMON_IMPORT_FAILED")
+                                        message:error.localizedDescription ?: NFPLocalizedString(@"JSON_PARSE_FAILED_MESSAGE")];
                 return;
             }
 
@@ -104,7 +106,8 @@ typedef NS_ENUM(NSInteger, NFPImportExportSection) {
     NSError *error = nil;
     NSData *jsonData = [self exportJSONData:&error];
     if (!jsonData) {
-        [self presentAlertWithTitle:@"导出失败" message:error.localizedDescription ?: @"无法生成 JSON。"];
+        [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_EXPORT_FAILED")
+                            message:error.localizedDescription ?: NFPLocalizedString(@"JSON_GENERATE_FAILED_MESSAGE")];
         return;
     }
 
@@ -118,25 +121,29 @@ typedef NS_ENUM(NSInteger, NFPImportExportSection) {
     NSError *error = nil;
     NSData *jsonData = [self exportJSONData:&error];
     if (!jsonData) {
-        [self presentAlertWithTitle:@"复制失败" message:error.localizedDescription ?: @"无法生成 JSON。"];
+        [self presentAlertWithTitle:NFPLocalizedString(@"IMPORT_EXPORT_COPY_FAILED")
+                            message:error.localizedDescription ?: NFPLocalizedString(@"JSON_GENERATE_FAILED_MESSAGE")];
         return;
     }
 
     [UIPasteboard generalPasteboard].string = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-    [self presentAlertWithTitle:@"已复制" message:@"当前规则 JSON 已复制到剪贴板。"];
+    [self presentAlertWithTitle:NFPLocalizedString(@"IMPORT_EXPORT_COPIED")
+                        message:NFPLocalizedString(@"IMPORT_EXPORT_COPIED_MESSAGE")];
 }
 
 - (void)importFromPasteboard {
     NSString *clipboardText = [UIPasteboard generalPasteboard].string;
     if (clipboardText.length == 0) {
-        [self presentAlertWithTitle:@"导入失败" message:@"剪贴板中没有可用的 JSON 文本。"];
+        [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_IMPORT_FAILED")
+                            message:NFPLocalizedString(@"IMPORT_EXPORT_EMPTY_PASTEBOARD_MESSAGE")];
         return;
     }
 
     NSError *error = nil;
     NSDictionary *payload = [NFPJSONImportController payloadFromJSONString:clipboardText error:&error];
     if (!payload) {
-        [self presentAlertWithTitle:@"导入失败" message:error.localizedDescription ?: @"JSON 无法解析。"];
+        [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_IMPORT_FAILED")
+                            message:error.localizedDescription ?: NFPLocalizedString(@"JSON_PARSE_FAILED_MESSAGE")];
         return;
     }
 
@@ -147,19 +154,21 @@ typedef NS_ENUM(NSInteger, NFPImportExportSection) {
     NSDictionary *normalizedPreferences = [NFPreferences normalizedPreferencesFromDictionary:payload];
     NSError *error = nil;
     if (![NFPreferences savePreferences:normalizedPreferences error:&error]) {
-        [self presentAlertWithTitle:@"导入失败" message:error.localizedDescription ?: @"无法写入偏好配置。"];
+        [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_IMPORT_FAILED")
+                            message:error.localizedDescription ?: NFPLocalizedString(@"IMPORT_EXPORT_SAVE_FAILED_MESSAGE")];
         return;
     }
 
     [NFPreferences postPreferencesChangedNotification];
-    [self presentAlertWithTitle:@"导入成功" message:@"过滤规则已覆盖为导入内容。"];
+    [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_IMPORT_SUCCEEDED")
+                        message:NFPLocalizedString(@"IMPORT_EXPORT_IMPORT_SUCCEEDED_MESSAGE")];
 }
 
 - (void)presentAlertWithTitle:(NSString *)title message:(NSString *)message {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:title
                                                                    message:message
                                                             preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:@"好" style:UIAlertActionStyleDefault handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_OK") style:UIAlertActionStyleDefault handler:nil]];
     [self presentViewController:alert animated:YES completion:nil];
 }
 

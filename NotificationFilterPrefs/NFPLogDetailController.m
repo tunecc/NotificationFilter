@@ -1,4 +1,5 @@
 #import "NFPLogDetailController.h"
+#import "NFPLocalization.h"
 #import "../Shared/NFPreferences.h"
 
 @interface NFPLogDetailController ()
@@ -15,7 +16,7 @@
     if (self) {
         _entry = [entry copy];
         _displayName = [displayName copy];
-        self.title = @"通知详情";
+        self.title = NFPLocalizedString(@"LOG_DETAIL_TITLE");
     }
     return self;
 }
@@ -35,42 +36,50 @@
 }
 
 - (NSString *)formattedText {
+    NSString *unknown = NFPLocalizedString(@"COMMON_UNKNOWN");
     NSDate *date = [NSDate dateWithTimeIntervalSince1970:[self.entry[NFLogTimestampKey] doubleValue]];
     NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
     formatter.dateStyle = NSDateFormatterMediumStyle;
     formatter.timeStyle = NSDateFormatterMediumStyle;
 
+    NSString *bundleIdentifier = [self.entry[NFLogBundleIdentifierKey] isKindOfClass:[NSString class]] ? self.entry[NFLogBundleIdentifierKey] : nil;
+    NSString *matchedScope = [self.entry[NFLogMatchedScopeKey] isKindOfClass:[NSString class]] ? self.entry[NFLogMatchedScopeKey] : nil;
+    NSString *matchedMode = [self.entry[NFLogMatchedModeKey] isKindOfClass:[NSString class]] ? self.entry[NFLogMatchedModeKey] : nil;
+    NSString *matchedPattern = [self.entry[NFLogMatchedPatternKey] isKindOfClass:[NSString class]] ? self.entry[NFLogMatchedPatternKey] : nil;
+    NSString *deleteStatus = [self.entry[NFLogDeleteStatusKey] isKindOfClass:[NSString class]] ? self.entry[NFLogDeleteStatusKey] : nil;
+    NSString *deleteMethod = [self.entry[NFLogDeleteMethodKey] isKindOfClass:[NSString class]] ? self.entry[NFLogDeleteMethodKey] : nil;
+
     NSMutableArray<NSString *> *lines = [NSMutableArray array];
-    [lines addObject:[NSString stringWithFormat:@"应用: %@", self.displayName]];
-    [lines addObject:[NSString stringWithFormat:@"Bundle ID: %@", self.entry[NFLogBundleIdentifierKey] ?: @"未知"]];
-    [lines addObject:[NSString stringWithFormat:@"时间: %@", [formatter stringFromDate:date]]];
-    [lines addObject:[NSString stringWithFormat:@"作用域: %@", self.entry[NFLogMatchedScopeKey] ?: @"未知"]];
-    [lines addObject:[NSString stringWithFormat:@"规则类型: %@", self.entry[NFLogMatchedModeKey] ?: @"未知"]];
-    [lines addObject:[NSString stringWithFormat:@"命中规则: %@", self.entry[NFLogMatchedPatternKey] ?: @"未知"]];
+    [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_APP_FORMAT"), self.displayName ?: unknown]];
+    [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_BUNDLE_ID_FORMAT"), bundleIdentifier ?: unknown]];
+    [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_TIME_FORMAT"), [formatter stringFromDate:date]]];
+    [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_SCOPE_FORMAT"), matchedScope.length > 0 ? NFPLocalizedScopeName(matchedScope) : unknown]];
+    [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_MODE_FORMAT"), matchedMode.length > 0 ? NFPLocalizedMatchModeName(matchedMode) : unknown]];
+    [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_PATTERN_FORMAT"), matchedPattern ?: unknown]];
     if ([self.entry[NFLogDeleteRequestedKey] boolValue]) {
-        [lines addObject:[NSString stringWithFormat:@"删除结果: %@", self.entry[NFLogDeleteStatusKey] ?: @"未知"]];
-        [lines addObject:[NSString stringWithFormat:@"删除路径: %@", self.entry[NFLogDeleteMethodKey] ?: @"未知"]];
+        [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_DELETE_STATUS_FORMAT"), deleteStatus.length > 0 ? NFPLocalizedDeleteStatusName(deleteStatus) : unknown]];
+        [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_DELETE_METHOD_FORMAT"), deleteMethod.length > 0 ? NFPLocalizedDeleteMethodSummary(deleteMethod) : unknown]];
     }
     if ([self.entry[NFLogSectionIDKey] length] > 0) {
-        [lines addObject:[NSString stringWithFormat:@"Section ID: %@", self.entry[NFLogSectionIDKey]]];
+        [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_SECTION_ID_FORMAT"), self.entry[NFLogSectionIDKey]]];
     }
     if ([self.entry[NFLogBulletinIDKey] length] > 0) {
-        [lines addObject:[NSString stringWithFormat:@"Bulletin ID: %@", self.entry[NFLogBulletinIDKey]]];
+        [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_BULLETIN_ID_FORMAT"), self.entry[NFLogBulletinIDKey]]];
     }
     if ([self.entry[NFLogRecordIDKey] length] > 0) {
-        [lines addObject:[NSString stringWithFormat:@"Record ID: %@", self.entry[NFLogRecordIDKey]]];
+        [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_RECORD_ID_FORMAT"), self.entry[NFLogRecordIDKey]]];
     }
     if ([self.entry[NFLogPublisherBulletinIDKey] length] > 0) {
-        [lines addObject:[NSString stringWithFormat:@"Publisher Bulletin ID: %@", self.entry[NFLogPublisherBulletinIDKey]]];
+        [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_PUBLISHER_BULLETIN_ID_FORMAT"), self.entry[NFLogPublisherBulletinIDKey]]];
     }
     [lines addObject:@""];
-    [lines addObject:[NSString stringWithFormat:@"Title: %@", self.entry[NFLogTitleKey] ?: @""]];
-    [lines addObject:[NSString stringWithFormat:@"Subtitle: %@", self.entry[NFLogSubtitleKey] ?: @""]];
-    [lines addObject:[NSString stringWithFormat:@"Header: %@", self.entry[NFLogHeaderKey] ?: @""]];
-    [lines addObject:[NSString stringWithFormat:@"Body: %@", self.entry[NFLogBodyKey] ?: @""]];
-    [lines addObject:[NSString stringWithFormat:@"Message: %@", self.entry[NFLogMessageKey] ?: @""]];
+    [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_NOTIFICATION_TITLE_FORMAT"), self.entry[NFLogTitleKey] ?: @""]];
+    [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_NOTIFICATION_SUBTITLE_FORMAT"), self.entry[NFLogSubtitleKey] ?: @""]];
+    [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_NOTIFICATION_HEADER_FORMAT"), self.entry[NFLogHeaderKey] ?: @""]];
+    [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_NOTIFICATION_BODY_FORMAT"), self.entry[NFLogBodyKey] ?: @""]];
+    [lines addObject:[NSString stringWithFormat:NFPLocalizedString(@"LOG_DETAIL_NOTIFICATION_MESSAGE_FORMAT"), self.entry[NFLogMessageKey] ?: @""]];
     [lines addObject:@""];
-    [lines addObject:@"Joined Text:"];
+    [lines addObject:NFPLocalizedString(@"LOG_DETAIL_JOINED_TEXT_TITLE")];
     [lines addObject:self.entry[NFLogJoinedTextKey] ?: @""];
 
     return [lines componentsJoinedByString:@"\n"];
