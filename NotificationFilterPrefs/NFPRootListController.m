@@ -36,6 +36,10 @@
     [enabledSpecifier setProperty:@YES forKey:PSDefaultValueKey];
     [specifiers addObject:enabledSpecifier];
 
+    PSSpecifier *deleteGroup = [PSSpecifier emptyGroupSpecifier];
+    [deleteGroup setProperty:NFPLocalizedString(@"ROOT_DELETE_FOOTER") forKey:PSFooterTextGroupKey];
+    [specifiers addObject:deleteGroup];
+
     PSSpecifier *deleteSpecifier = [PSSpecifier preferenceSpecifierNamed:NFPLocalizedString(@"ROOT_DELETE_FILTERED")
                                                                   target:self
                                                                      set:@selector(setPreferenceValue:specifier:)
