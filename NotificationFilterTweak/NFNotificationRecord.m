@@ -70,6 +70,13 @@ static NSString *NFJoinedText(NSArray<NSString *> *values) {
 
     NFNotificationRecord *record = [[self alloc] init];
     record.bundleIdentifier = NFSectionIdentifier(request);
+    record.sectionID = NFValueForSelectorName(request, nil, @"sectionID");
+    if (record.sectionID.length == 0) {
+        record.sectionID = NFValueForSelectorName(request, nil, @"section");
+    }
+    record.bulletinID = NFValueForSelectorName(request, nil, @"bulletinID");
+    record.recordID = NFValueForSelectorName(request, nil, @"recordID");
+    record.publisherBulletinID = NFValueForSelectorName(request, nil, @"publisherBulletinID");
     record.title = NFValueForSelectorName(content, request, @"title");
     record.subtitle = NFValueForSelectorName(content, request, @"subtitle");
     record.header = NFValueForSelectorName(content, request, @"header");
