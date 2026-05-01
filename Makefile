@@ -1,6 +1,5 @@
 ARCHS = arm64 arm64e
 TARGET = iphone:clang:latest:15.0
-THEOS_PACKAGE_SCHEME ?= roothide
 INSTALL_TARGET_PROCESSES = SpringBoard Preferences
 
 THEOS_DEVICE_IP = localhost
@@ -11,22 +10,32 @@ SUBPROJECTS += NotificationFilterTweak NotificationFilterPrefs
 
 include $(THEOS_MAKE_PATH)/aggregate.mk
 
-.PHONY: package-roothide install-roothide package-debug-roothide install-debug-roothide package-rootless install-rootless
+.PHONY: package-rootful install-rootful package-debug-rootful install-debug-rootful package-rootless install-rootless package-debug-rootless install-debug-rootless package-all
 
-package-roothide:
-	$(MAKE) clean package THEOS_PACKAGE_SCHEME=roothide FINALPACKAGE=1
+package-rootful:
+	$(MAKE) FINALPACKAGE=1 clean all package
 
-install-roothide:
-	$(MAKE) clean do THEOS_PACKAGE_SCHEME=roothide FINALPACKAGE=1
+install-rootful:
+	$(MAKE) FINALPACKAGE=1 clean all do
 
-package-debug-roothide:
-	$(MAKE) clean package THEOS_PACKAGE_SCHEME=roothide
+package-debug-rootful:
+	$(MAKE) clean all package
 
-install-debug-roothide:
-	$(MAKE) clean do THEOS_PACKAGE_SCHEME=roothide
+install-debug-rootful:
+	$(MAKE) clean all do
 
 package-rootless:
-	$(MAKE) clean package THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1
+	$(MAKE) THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 clean all package
 
 install-rootless:
-	$(MAKE) clean do THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1
+	$(MAKE) THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 clean all do
+
+package-debug-rootless:
+	$(MAKE) THEOS_PACKAGE_SCHEME=rootless clean all package
+
+install-debug-rootless:
+	$(MAKE) THEOS_PACKAGE_SCHEME=rootless clean all do
+
+package-all:
+	$(MAKE) package-rootful
+	$(MAKE) package-rootless

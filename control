@@ -1,9 +1,8 @@
 Package: com.tune.notificationfilter
 Name: Notification Filter
 Depends: mobilesubstrate, preferenceloader
-Architecture: iphoneos-arm64
-Description: Filter notifications by global and per-app rules.
-Maintainer: tune
-Author: tune
+Architecture: iphoneos-arm
+Description: Powerful notification filtering for jailbroken iOS
+Author: Tune
 Section: Tweaks
-Version: 0.1.0
+Version: 1.0.0

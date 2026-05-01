@@ -1,98 +1,69 @@
-# Notification Filter
+[中文](./README.md) | [English](./README_EN.md)
 
-一个基于 Theos / Logos 的 iOS 越狱插件，用来在 `SpringBoard` 中按规则过滤通知，并在系统“设置”中提供完整配置界面。
+`Notification Filter` 是一个面向越狱设备的通知过滤插件。  
 
-## 功能概览
+适合这类场景：
 
-- 全局开关
-- 全局规则：包含 / 排除 / 正则
-- 单应用规则：对指定应用单独配置包含 / 排除 / 正则
-- 规则组合：全局规则与单应用规则叠加，排除规则优先放行
-- 过滤日志：持久化最近 500 条被拦截通知，可在设置中查看和清空
+- 禁用某些TG群组Pin消息的通知
+- 含有某些关键字的通知
+- 一些软件无法关闭的推广通知
 
-## 工程结构
+---
 
-- `NotificationFilterTweak/`
-  - 运行时 hook
-  - 通知抽取
-  - 规则引擎
-  - 过滤日志写入
-- `NotificationFilterPrefs/`
-  - 设置页入口
-  - 全局规则页
-  - 应用规则列表与单应用规则页
-  - 日志查看页
-- `Shared/`
-  - 偏好读写
-  - 日志存储
-- `layout/Library/PreferenceLoader/Preferences/`
-  - PreferenceLoader 入口 plist
+## 特性
 
-## 运行时行为
+### 1. 全局规则 + 单应用规则
 
-当前实现继续覆盖两条通知入口：
+- 匹配顺序为：
 
-1. `NCNotificationDispatcher::postNotificationWithRequest:`
-2. `BBServer::publishBulletin:destinations:` 及兼容签名
+  **全局规则**    --> **单应用规则**
 
-通知会被抽取为统一模型，再按以下顺序处理：
+  命中**排除规则**时会直接放行
 
-1. 主开关关闭 -> 直接放行
-2. 收集全局规则和当前应用规则
-3. 任一作用域命中排除规则 -> 放行
-4. 任一作用域命中包含或正则 -> 拦截并写日志
-5. 否则放行
+### 2. 规则类型
 
-## 构建
+- **包含规则**
+- **排除规则**
+- **正则规则**
 
-默认构建 scheme：
+### 3. 匹配范围
 
-- `roothide`
+每条规则都可以指定匹配范围：
 
-默认构建架构：
+- 正文 / `message`
+- 标题 / `title`
+- 副标题 / `subtitle`
+- 全部文本
 
-- `arm64`
-- `arm64e`
+下面是邮件通知的示例
 
-打包命令：
+![Notification Filter Example](./resources/photo/NotifEx.jpg)
 
-```bash
-cd /Users/tune/Documents/Scripts/Jailbreak/通知过滤/NotificationFilter
-make clean package THEOS='/Users/tune/Develop/theos-roothide' THEOS_PACKAGE_SCHEME=roothide
-```
+### 4. 通知中心清理
 
-生成的包位于：
+可选开启“从通知中心删除过滤通知”：
 
-- `packages/com.tune.notificationfilter_*_iphoneos-arm64e.deb`（roothide 优先）
+- 开启后，已过滤通知会从通知中心移除
+- 未开启时，禁用插件，注销后，历史过滤通知会在通知中心恢复显示
 
-常用命令：
+### 5. 已过滤通知日志
 
-```bash
-# roothide 调试包
-make package-debug-roothide THEOS='/Users/tune/Develop/theos-roothide'
+内置“已过滤通知”页面，支持：
 
-# roothide 调试安装
-make install-debug-roothide THEOS='/Users/tune/Develop/theos-roothide'
+- 搜索应用、规则和通知内容
+- 查看命中的规则、时间、应用和通知详情
 
-# roothide 正式包
-make package-roothide THEOS='/Users/tune/Develop/theos-roothide'
+### 6. 规则导入导出
 
-# roothide 正式安装
-make install-roothide THEOS='/Users/tune/Develop/theos-roothide'
-```
+支持将当前配置导出为 JSON，也支持从 JSON 导入：
 
-## 依赖
+- 导出到文件
+- 复制配置 JSON
+- 从剪贴板导入
+- 手动粘贴 JSON 导入
 
-运行依赖：
+适合备份、迁移和分享规则。
 
-- `mobilesubstrate`
-- `preferenceloader`
+---
 
-设置页中的应用检测当前使用私有 `LSApplicationWorkspace` / `LSApplicationProxy`，不依赖 `Cephei Tweak Support`。
-日志路径使用 roothide 的 `jbroot(...)` 路径转换，在非 roothide 构建下会自动回退到 rootless 路径转换。
-
-## 已知边界
-
-- 本项目只做了本地编译和打包验证，未做设备实机验证
-- 设置 bundle 当前通过动态解析 `Preferences` 相关符号完成链接，构建会出现 `dynamic_lookup` 警告
-- 私有类、私有方法和私有图标 API 在未来 iOS 版本可能变化
+插件能做到通知过滤，那么短信、邮件验证码识别后快捷复制的也能做

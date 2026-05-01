@@ -3,7 +3,7 @@
 "ROOT_ENABLE_FILTER" = "Enable Filtering";
 "ROOT_DELETE_FILTERED" = "Remove Filtered Notifications from Notification Center";
 "ROOT_DELETE_FOOTER" = "When enabled, filtered notifications are removed from Notification Center. If disabled, previously filtered notifications will reappear in Notification Center after the tweak is turned off.";
-"ROOT_RULES_FOOTER" = "Rule order: Global Rules → App Rules. Exclude rules allow the notification through immediately.";
+"ROOT_RULES_FOOTER" = "Rule order: Global Rules → App Rules. Exclude rules allow the notification through immediately.\n\nProject: https://github.com/tunecc/NotificationFilter";
 "ROOT_GLOBAL_RULES" = "Global Rules";
 "ROOT_APP_RULES" = "App Rules";
 "ROOT_IMPORT_EXPORT" = "Import & Export";
