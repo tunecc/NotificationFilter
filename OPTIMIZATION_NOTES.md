@@ -4,7 +4,7 @@
 
 目的：
 
-- 记录 `ShortcutsTimeoutBlocker` 后续可能继续做的轻量化方向
+- 记录 `NotificationFilter` 后续可能继续做的轻量化方向
 - 说明每个方向的收益、风险、优先级
 - 避免以后重复讨论同一轮取舍
 
@@ -72,9 +72,9 @@
 当前可见的瘦身点：
 
 1. 去掉通用 helper
-   - `STBCallObject`
-   - `STBStringValue`
-   - `STBFirstString`
+   - `NFCallObject`
+   - `NFNormalizedStringValue`
+   - `NFSectionIdentifierCandidate`
 
 2. 少用运行时动态拼装
    - 少用 `NSArray`

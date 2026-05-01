@@ -1,9 +1,9 @@
 "ROOT_TITLE" = "Notification Filter";
-"ROOT_TOGGLE_FOOTER" = "When the main switch is off, all notifications pass through directly.";
+"ROOT_TOGGLE_FOOTER" = "";
 "ROOT_ENABLE_FILTER" = "Enable Filtering";
 "ROOT_DELETE_FILTERED" = "Remove Filtered Notifications from Notification Center";
-"ROOT_DELETE_FOOTER" = "When enabled, matched notifications are first removed from Notification Center. The tweak may also perform a provider withdraw as a fallback.\nBehavior can vary slightly across iOS versions.";
-"ROOT_RULES_FOOTER" = "Global rules and per-app rules are matched together.\nIf a notification hits an exclude rule first, it is allowed through immediately.";
+"ROOT_DELETE_FOOTER" = "When enabled, filtered notifications are removed from Notification Center. If this is not enabled, Notification Center will show all notifications filtered in the past after the tweak is disabled.";
+"ROOT_RULES_FOOTER" = "Both global rules and per-app rules participate in matching, with global rules evaluated first and then per-app rules.\nIn both scopes, exclude rules take priority and immediately allow the notification through.";
 "ROOT_GLOBAL_RULES" = "Global Rules";
 "ROOT_APP_RULES" = "App Rules";
 "ROOT_IMPORT_EXPORT" = "Import & Export";

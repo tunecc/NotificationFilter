@@ -57,7 +57,7 @@
 打包命令：
 
 ```bash
-cd /Users/tune/Documents/Scripts/Jailbreak/通知过滤/ShortcutsTimeoutBlocker
+cd /Users/tune/Documents/Scripts/Jailbreak/通知过滤/NotificationFilter
 make clean package THEOS='/Users/tune/Develop/theos-roothide' THEOS_PACKAGE_SCHEME=roothide
 ```
 

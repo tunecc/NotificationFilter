@@ -2,7 +2,7 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 
-static id STBCallObject(id obj, SEL selector) {
+static id NFCallObject(id obj, SEL selector) {
     if (!obj || !selector || ![obj respondsToSelector:selector]) {
         return nil;
     }
@@ -10,35 +10,35 @@ static id STBCallObject(id obj, SEL selector) {
     return ((id (*)(id, SEL))objc_msgSend)(obj, selector);
 }
 
-static NSString *STBNormalizedString(NSString *value) {
+static NSString *NFNormalizedString(NSString *value) {
     return [value stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
 }
 
-static NSString *STBStringValue(id value) {
+static NSString *NFStringValue(id value) {
     if (!value) {
         return nil;
     }
 
     if ([value isKindOfClass:[NSString class]]) {
-        return STBNormalizedString(value);
+        return NFNormalizedString(value);
     }
 
     if ([value respondsToSelector:@selector(stringValue)]) {
         id stringValue = ((id (*)(id, SEL))objc_msgSend)(value, @selector(stringValue));
         if ([stringValue isKindOfClass:[NSString class]]) {
-            return STBNormalizedString(stringValue);
+            return NFNormalizedString(stringValue);
         }
     }
 
     return nil;
 }
 
-static NSArray<NSString *> *STBCollectStrings(id obj, NSArray<NSString *> *selectorNames) {
+static NSArray<NSString *> *NFCollectStrings(id obj, NSArray<NSString *> *selectorNames) {
     NSMutableArray<NSString *> *values = [NSMutableArray array];
     NSMutableSet<NSString *> *seen = [NSMutableSet set];
 
     for (NSString *selectorName in selectorNames) {
-        NSString *value = STBStringValue(STBCallObject(obj, NSSelectorFromString(selectorName)));
+        NSString *value = NFStringValue(NFCallObject(obj, NSSelectorFromString(selectorName)));
         if (value.length > 0 && ![seen containsObject:value]) {
             [seen addObject:value];
             [values addObject:value];
@@ -48,16 +48,16 @@ static NSArray<NSString *> *STBCollectStrings(id obj, NSArray<NSString *> *selec
     return values;
 }
 
-static NSString *STBSectionIdentifier(id obj) {
-    NSArray<NSString *> *sections = STBCollectStrings(obj, @[@"sectionIdentifier", @"sectionID"]);
+static NSString *NFSectionIdentifier(id obj) {
+    NSArray<NSString *> *sections = NFCollectStrings(obj, @[@"sectionIdentifier", @"sectionID"]);
     return sections.firstObject;
 }
 
-static NSArray<NSString *> *STBNotificationTexts(id obj) {
-    return STBCollectStrings(obj, @[@"title", @"header", @"body", @"message", @"subtitle"]);
+static NSArray<NSString *> *NFNotificationTexts(id obj) {
+    return NFCollectStrings(obj, @[@"title", @"header", @"body", @"message", @"subtitle"]);
 }
 
-static BOOL STBShouldBlockTexts(NSArray<NSString *> *texts) {
+static BOOL NFShouldBlockTexts(NSArray<NSString *> *texts) {
     for (NSString *text in texts) {
         if ([text caseInsensitiveCompare:@"Automation failed"] == NSOrderedSame) {
             return YES;
@@ -67,37 +67,37 @@ static BOOL STBShouldBlockTexts(NSArray<NSString *> *texts) {
     return NO;
 }
 
-static BOOL STBShouldBlockRequest(id request) {
-    if (![[STBSectionIdentifier(request) lowercaseString] isEqualToString:@"com.apple.shortcuts"]) {
+static BOOL NFShouldBlockRequest(id request) {
+    if (![[NFSectionIdentifier(request) lowercaseString] isEqualToString:@"com.apple.shortcuts"]) {
         return NO;
     }
 
     NSMutableArray<NSString *> *texts = [NSMutableArray array];
 
-    id content = STBCallObject(request, @selector(content));
+    id content = NFCallObject(request, @selector(content));
     if (content) {
-        [texts addObjectsFromArray:STBNotificationTexts(content)];
+        [texts addObjectsFromArray:NFNotificationTexts(content)];
     }
 
-    [texts addObjectsFromArray:STBNotificationTexts(request)];
+    [texts addObjectsFromArray:NFNotificationTexts(request)];
 
-    return STBShouldBlockTexts(texts);
+    return NFShouldBlockTexts(texts);
 }
 
-static BOOL STBShouldBlockBulletin(id bulletin) {
-    if (![[STBSectionIdentifier(bulletin) lowercaseString] isEqualToString:@"com.apple.shortcuts"]) {
+static BOOL NFShouldBlockBulletin(id bulletin) {
+    if (![[NFSectionIdentifier(bulletin) lowercaseString] isEqualToString:@"com.apple.shortcuts"]) {
         return NO;
     }
 
-    return STBShouldBlockTexts(STBNotificationTexts(bulletin));
+    return NFShouldBlockTexts(NFNotificationTexts(bulletin));
 }
 
-%group STBDispatcherHooks
+%group NFDispatcherHooks
 
 %hook NCNotificationDispatcher
 
 - (void)postNotificationWithRequest:(id)request {
-    if (STBShouldBlockRequest(request)) {
+    if (NFShouldBlockRequest(request)) {
         return;
     }
 
@@ -108,12 +108,12 @@ static BOOL STBShouldBlockBulletin(id bulletin) {
 
 %end
 
-%group STBBulletinHooks
+%group NFBulletinHooks
 
 %hook BBServer
 
 - (void)publishBulletin:(id)bulletin destinations:(unsigned long long)destinations {
-    if (STBShouldBlockBulletin(bulletin)) {
+    if (NFShouldBlockBulletin(bulletin)) {
         return;
     }
 
@@ -121,7 +121,7 @@ static BOOL STBShouldBlockBulletin(id bulletin) {
 }
 
 - (void)publishBulletin:(id)bulletin destinations:(unsigned long long)destinations alwaysToLockScreen:(BOOL)alwaysToLockScreen {
-    if (STBShouldBlockBulletin(bulletin)) {
+    if (NFShouldBlockBulletin(bulletin)) {
         return;
     }
 
@@ -134,10 +134,10 @@ static BOOL STBShouldBlockBulletin(id bulletin) {
 
 %ctor {
     if (objc_getClass("NCNotificationDispatcher")) {
-        %init(STBDispatcherHooks);
+        %init(NFDispatcherHooks);
     }
 
     if (objc_getClass("BBServer")) {
-        %init(STBBulletinHooks);
+        %init(NFBulletinHooks);
     }
 }

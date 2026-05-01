@@ -1,9 +1,9 @@
 "ROOT_TITLE" = "通知过滤";
-"ROOT_TOGGLE_FOOTER" = "关闭主开关后，所有通知都会直接放行。";
+"ROOT_TOGGLE_FOOTER" = "";
 "ROOT_ENABLE_FILTER" = "启用过滤";
 "ROOT_DELETE_FILTERED" = "从通知中心删除过滤通知";
-"ROOT_DELETE_FOOTER" = "开启后，命中过滤的通知会先尝试从通知中心移除；必要时还会补做一次 provider 撤回。\n不同 iOS 版本的实际表现可能会有一点差异。";
-"ROOT_RULES_FOOTER" = "全局规则和单应用规则会一起参与匹配。\n如果通知先命中排除规则，就会直接放行。";
+"ROOT_DELETE_FOOTER" = "开启后会在通知中心删去通知，不开启的话，禁用插件过后通知中心会出现历史上被过滤的所有通知。";
+"ROOT_RULES_FOOTER" = "全局规则和单应用规则都会参与匹配，优先按全局规则，再按单应用规则。\n两者里都是排除规则优先，命中排除规则后会直接放行。";
 "ROOT_GLOBAL_RULES" = "全局规则";
 "ROOT_APP_RULES" = "应用规则";
 "ROOT_IMPORT_EXPORT" = "规则导入导出";
