@@ -2,8 +2,8 @@
 "ROOT_TOGGLE_FOOTER" = "";
 "ROOT_ENABLE_FILTER" = "Enable Filtering";
 "ROOT_DELETE_FILTERED" = "Remove Filtered Notifications from Notification Center";
-"ROOT_DELETE_FOOTER" = "When enabled, filtered notifications are removed from Notification Center. If this is not enabled, Notification Center will show all notifications filtered in the past after the tweak is disabled.";
-"ROOT_RULES_FOOTER" = "Both global rules and per-app rules participate in matching, with global rules evaluated first and then per-app rules.\nIn both scopes, exclude rules take priority and immediately allow the notification through.";
+"ROOT_DELETE_FOOTER" = "When enabled, filtered notifications are removed from Notification Center. If disabled, previously filtered notifications will reappear in Notification Center after the tweak is turned off.";
+"ROOT_RULES_FOOTER" = "Rule order: Global Rules → App Rules. Exclude rules allow the notification through immediately.";
 "ROOT_GLOBAL_RULES" = "Global Rules";
 "ROOT_APP_RULES" = "App Rules";
 "ROOT_IMPORT_EXPORT" = "Import & Export";
@@ -11,6 +11,7 @@
 "ROOT_SAVE_FAILED_MESSAGE" = "Failed to write preferences.";
 
 "COMMON_SAVE_FAILED" = "Save Failed";
+"COMMON_SAVE" = "Save";
 "COMMON_OK" = "OK";
 "COMMON_IMPORT_FAILED" = "Import Failed";
 "COMMON_EXPORT_FAILED" = "Export Failed";
@@ -91,7 +92,13 @@
 "LOGS_SEARCH_PLACEHOLDER" = "Search apps, bundle IDs, rules, or content";
 "LOGS_EMPTY" = "No filtered notifications yet";
 "LOGS_EMPTY_PREVIEW" = "No preview available";
-"LOGS_FOOTER" = "Only the most recent 500 blocked notifications are kept.";
+"LOGS_SEARCH_RESULT_DETAIL_FORMAT" = "Matched Rule: %@\n%@";
+"LOGS_FOOTER_FORMAT" = "Only the most recent %ld blocked notifications are kept.";
+"LOGS_LIMIT_BUTTON" = "Limit";
+"LOGS_LIMIT_TITLE" = "Set Log Limit";
+"LOGS_LIMIT_MESSAGE_FORMAT" = "Enter how many filtered notifications to keep. Default: %ld.";
+"LOGS_LIMIT_INVALID_MESSAGE" = "Please enter a number greater than 0.";
+"LOGS_LIMIT_SAVE_FAILED" = "Failed to save the log limit.";
 "LOGS_CLEAR_TITLE" = "Clear Logs";
 "LOGS_CLEAR_MESSAGE" = "This only removes filtered records and does not affect your rules.";
 

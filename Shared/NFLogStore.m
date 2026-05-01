@@ -25,6 +25,11 @@ static NSString *NFNormalizedLogString(id value) {
     return 2.0;
 }
 
++ (NSUInteger)_currentEntryLimit {
+    NSDictionary *preferences = [NFPreferences loadPreferences];
+    return (NSUInteger)[NFPreferences normalizedLogEntryLimit:preferences[NFLogEntryLimitKey]];
+}
+
 + (NSString *)_dedupeSignatureForEntry:(NSDictionary *)entry {
     NSString *bulletinID = NFNormalizedLogString(entry[NFLogBulletinIDKey]);
     NSString *recordID = NFNormalizedLogString(entry[NFLogRecordIDKey]);
@@ -122,8 +127,9 @@ static NSString *NFNormalizedLogString(id value) {
         } else {
             [entries insertObject:[mutableEntry copy] atIndex:0];
         }
-        if (entries.count > 500) {
-            [entries removeObjectsInRange:NSMakeRange(500, entries.count - 500)];
+        NSUInteger entryLimit = [self _currentEntryLimit];
+        if (entries.count > entryLimit) {
+            [entries removeObjectsInRange:NSMakeRange(entryLimit, entries.count - entryLimit)];
         }
 
         NSString *logPath = [NFPreferences logsFilePath];
@@ -140,6 +146,20 @@ static NSString *NFNormalizedLogString(id value) {
     dispatch_sync([self _logQueue], ^{
         NSString *logPath = [NFPreferences logsFilePath];
         [[NSFileManager defaultManager] removeItemAtPath:logPath error:nil];
+    });
+}
+
++ (void)trimEntriesToCurrentLimit {
+    dispatch_sync([self _logQueue], ^{
+        NSUInteger entryLimit = [self _currentEntryLimit];
+        NSString *logPath = [NFPreferences logsFilePath];
+        NSArray *existingEntries = [NSArray arrayWithContentsOfFile:logPath];
+        if (![existingEntries isKindOfClass:[NSArray class]] || existingEntries.count <= entryLimit) {
+            return;
+        }
+
+        NSArray *trimmedEntries = [existingEntries subarrayWithRange:NSMakeRange(0, entryLimit)];
+        [trimmedEntries writeToFile:logPath atomically:YES];
     });
 }
 

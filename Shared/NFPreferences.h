@@ -12,6 +12,7 @@ extern NSString * const NFGlobalExcludeKey;
 extern NSString * const NFGlobalRegexKey;
 extern NSString * const NFAppRulesKey;
 extern NSString * const NFDeleteFilteredNotificationsKey;
+extern NSString * const NFLogEntryLimitKey;
 extern NSString * const NFPrefOnlyConfiguredAppsKey;
 extern NSString * const NFPrefShowSystemAppsKey;
 extern NSString * const NFPrefShowTrollAppsKey;
@@ -62,6 +63,8 @@ extern NSString * const NFMatchModeRegex;
 + (NSDictionary *)normalizedPreferencesFromDictionary:(NSDictionary * _Nullable)rawPreferences;
 + (BOOL)savePreferences:(NSDictionary *)preferences error:(NSError * _Nullable * _Nullable)error;
 + (void)postPreferencesChangedNotification;
++ (NSInteger)defaultLogEntryLimit;
++ (NSInteger)normalizedLogEntryLimit:(id _Nullable)value;
 
 + (NSDictionary *)globalRulesFromPreferences:(NSDictionary *)preferences;
 + (NSDictionary * _Nullable)rulesForBundleIdentifier:(NSString *)bundleIdentifier

@@ -7,6 +7,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSArray<NSDictionary *> *)loadEntries;
 + (void)appendBlockedEntry:(NSDictionary *)entry;
 + (void)clearEntries;
++ (void)trimEntriesToCurrentLimit;
 
 @end
 

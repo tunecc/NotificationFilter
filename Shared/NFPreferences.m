@@ -12,6 +12,7 @@ NSString * const NFGlobalExcludeKey = @"GlobalExclude";
 NSString * const NFGlobalRegexKey = @"GlobalRegex";
 NSString * const NFAppRulesKey = @"AppRules";
 NSString * const NFDeleteFilteredNotificationsKey = @"DeleteFilteredNotifications";
+NSString * const NFLogEntryLimitKey = @"LogEntryLimit";
 NSString * const NFPrefOnlyConfiguredAppsKey = @"PrefOnlyConfiguredApps";
 NSString * const NFPrefShowSystemAppsKey = @"PrefShowSystemApps";
 NSString * const NFPrefShowTrollAppsKey = @"PrefShowTrollApps";
@@ -65,6 +66,7 @@ NSString * const NFMatchModeRegex = @"regex";
         NFGlobalRegexKey,
         NFAppRulesKey,
         NFDeleteFilteredNotificationsKey,
+        NFLogEntryLimitKey,
         NFPrefOnlyConfiguredAppsKey,
         NFPrefShowSystemAppsKey,
         NFPrefShowTrollAppsKey
@@ -80,6 +82,7 @@ NSString * const NFMatchModeRegex = @"regex";
         NFGlobalRegexKey: @[],
         NFAppRulesKey: @{},
         NFDeleteFilteredNotificationsKey: @NO,
+        NFLogEntryLimitKey: @([self defaultLogEntryLimit]),
         NFPrefOnlyConfiguredAppsKey: @NO,
         NFPrefShowSystemAppsKey: @YES,
         NFPrefShowTrollAppsKey: @YES
@@ -129,6 +132,24 @@ NSString * const NFMatchModeRegex = @"regex";
                                          NULL,
                                          NULL,
                                          YES);
+}
+
++ (NSInteger)defaultLogEntryLimit {
+    return 500;
+}
+
++ (NSInteger)normalizedLogEntryLimit:(id)value {
+    NSInteger defaultLimit = [self defaultLogEntryLimit];
+    if (![value respondsToSelector:@selector(integerValue)]) {
+        return defaultLimit;
+    }
+
+    NSInteger limit = [value integerValue];
+    if (limit <= 0) {
+        return defaultLimit;
+    }
+
+    return limit;
 }
 
 + (NSDictionary *)globalRulesFromPreferences:(NSDictionary *)preferences {
@@ -368,6 +389,7 @@ NSString * const NFMatchModeRegex = @"regex";
     if ([rawPreferences[NFDeleteFilteredNotificationsKey] respondsToSelector:@selector(boolValue)]) {
         normalizedPreferences[NFDeleteFilteredNotificationsKey] = @([rawPreferences[NFDeleteFilteredNotificationsKey] boolValue]);
     }
+    normalizedPreferences[NFLogEntryLimitKey] = @([self normalizedLogEntryLimit:rawPreferences[NFLogEntryLimitKey]]);
     if ([rawPreferences[NFPrefOnlyConfiguredAppsKey] respondsToSelector:@selector(boolValue)]) {
         normalizedPreferences[NFPrefOnlyConfiguredAppsKey] = @([rawPreferences[NFPrefOnlyConfiguredAppsKey] boolValue]);
     }
