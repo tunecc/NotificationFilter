@@ -3,6 +3,7 @@ Name: Notification Filter
 Depends: mobilesubstrate, preferenceloader
 Architecture: iphoneos-arm
 Description: Powerful notification filtering for jailbroken iOS
+Maintainer: Tune
 Author: Tune
 Section: Tweaks
-Version: 1.0.0
+Version: 1.0.1

@@ -7,7 +7,13 @@
 #import "NFPImportExportController.h"
 #import "NFPLogsListController.h"
 
+@interface NFPRootListController () <UITextViewDelegate>
+@end
+
 @implementation NFPRootListController
+
+static NSString * const NFPRulesGroupSpecifierID = @"ROOT_RULES_GROUP";
+static NSString * const NFPProjectPageURLString = @"https://github.com/tunecc/NotificationFilter";
 
 - (void)viewDidLoad {
     [super viewDidLoad];
@@ -51,7 +57,7 @@
     [deleteSpecifier setProperty:@NO forKey:PSDefaultValueKey];
     [specifiers addObject:deleteSpecifier];
 
-    PSSpecifier *pagesGroup = [PSSpecifier emptyGroupSpecifier];
+    PSSpecifier *pagesGroup = [PSSpecifier groupSpecifierWithID:NFPRulesGroupSpecifierID];
     [pagesGroup setProperty:NFPLocalizedString(@"ROOT_RULES_FOOTER") forKey:PSFooterTextGroupKey];
     [specifiers addObject:pagesGroup];
 
@@ -123,6 +129,118 @@
 - (void)openImportExport:(PSSpecifier *)specifier {
     NFPImportExportController *controller = [[NFPImportExportController alloc] initWithStyle:UITableViewStyleInsetGrouped];
     [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (BOOL)openProjectPageURL {
+    NSURL *projectURL = [NSURL URLWithString:NFPProjectPageURLString];
+    if (projectURL == nil) {
+        return NO;
+    }
+
+    UIApplication *application = [UIApplication sharedApplication];
+    if (@available(iOS 10.0, *)) {
+        [application openURL:projectURL options:@{} completionHandler:nil];
+        return YES;
+    }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    [application openURL:projectURL];
+#pragma clang diagnostic pop
+    return YES;
+}
+
+- (BOOL)isRulesFooterSection:(NSInteger)section {
+    NSInteger group = NSNotFound;
+    NSInteger row = NSNotFound;
+    if (![self getGroup:&group row:&row ofSpecifierID:NFPRulesGroupSpecifierID]) {
+        return NO;
+    }
+    return group == section;
+}
+
+- (NSAttributedString *)rulesFooterAttributedText {
+    NSString *footerText = NFPLocalizedString(@"ROOT_RULES_FOOTER") ?: @"";
+    NSMutableAttributedString *attributedText = [[NSMutableAttributedString alloc] initWithString:footerText
+                                                                                        attributes:@{
+        NSFontAttributeName: [UIFont systemFontOfSize:13.0],
+        NSForegroundColorAttributeName: [UIColor secondaryLabelColor]
+    }];
+
+    NSString *linkText = NFPLocalizedString(@"ROOT_PROJECT_LINK_TEXT");
+    NSRange linkRange = [footerText rangeOfString:linkText];
+    if (linkRange.location != NSNotFound) {
+        [attributedText addAttribute:NSLinkAttributeName value:NFPProjectPageURLString range:linkRange];
+    }
+
+    return attributedText;
+}
+
+- (UITextView *)rulesFooterTextViewWithWidth:(CGFloat)width {
+    UITextView *textView = [[UITextView alloc] initWithFrame:CGRectMake(0.0, 0.0, width, 1.0)];
+    textView.backgroundColor = [UIColor clearColor];
+    textView.delegate = self;
+    textView.editable = NO;
+    textView.scrollEnabled = NO;
+    textView.selectable = YES;
+    textView.attributedText = [self rulesFooterAttributedText];
+    textView.linkTextAttributes = @{
+        NSForegroundColorAttributeName: self.footerHyperlinkColor ?: [UIColor linkColor],
+        NSUnderlineStyleAttributeName: @(NSUnderlineStyleSingle)
+    };
+    textView.textContainerInset = UIEdgeInsetsZero;
+    textView.textContainer.lineFragmentPadding = 0.0;
+    return textView;
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForFooterInSection:(NSInteger)section {
+    if (![self isRulesFooterSection:section]) {
+        return nil;
+    }
+
+    UIView *containerView = [[UIView alloc] initWithFrame:CGRectZero];
+    containerView.backgroundColor = [UIColor clearColor];
+
+    UITextView *textView = [self rulesFooterTextViewWithWidth:CGRectGetWidth(tableView.bounds) - 32.0];
+    textView.translatesAutoresizingMaskIntoConstraints = NO;
+    [containerView addSubview:textView];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [textView.topAnchor constraintEqualToAnchor:containerView.topAnchor constant:4.0],
+        [textView.leadingAnchor constraintEqualToAnchor:containerView.leadingAnchor constant:20.0],
+        [textView.trailingAnchor constraintEqualToAnchor:containerView.trailingAnchor constant:-20.0],
+        [textView.bottomAnchor constraintEqualToAnchor:containerView.bottomAnchor constant:-8.0]
+    ]];
+
+    return containerView;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section {
+    if (![self isRulesFooterSection:section]) {
+        return UITableViewAutomaticDimension;
+    }
+
+    CGFloat availableWidth = MAX(CGRectGetWidth(tableView.bounds) - 40.0, 0.0);
+    UITextView *textView = [self rulesFooterTextViewWithWidth:availableWidth];
+    CGSize fittingSize = [textView sizeThatFits:CGSizeMake(availableWidth, CGFLOAT_MAX)];
+    return ceil(fittingSize.height) + 12.0;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView estimatedHeightForFooterInSection:(NSInteger)section {
+    if (![self isRulesFooterSection:section]) {
+        return UITableViewAutomaticDimension;
+    }
+    return 60.0;
+}
+
+- (BOOL)textView:(UITextView *)textView shouldInteractWithURL:(NSURL *)URL inRange:(NSRange)characterRange interaction:(UITextItemInteraction)interaction API_AVAILABLE(ios(10.0)) {
+    [self openProjectPageURL];
+    return NO;
+}
+
+- (BOOL)textView:(UITextView *)textView shouldInteractWithURL:(NSURL *)URL inRange:(NSRange)characterRange {
+    [self openProjectPageURL];
+    return NO;
 }
 
 - (void)presentError:(NSError *)error {

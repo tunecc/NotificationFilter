@@ -10,10 +10,13 @@ SUBPROJECTS += NotificationFilterTweak NotificationFilterPrefs
 
 include $(THEOS_MAKE_PATH)/aggregate.mk
 
-.PHONY: package-rootful install-rootful package-debug-rootful install-debug-rootful package-rootless install-rootless package-debug-rootless install-debug-rootless package-all
+.PHONY: build-packages package-rootful install-rootful package-debug-rootful install-debug-rootful package-rootless install-rootless package-debug-rootless install-debug-rootless package-roothide package-all
+
+build-packages:
+	bash scripts/build_packages.sh
 
 package-rootful:
-	$(MAKE) FINALPACKAGE=1 clean all package
+	bash scripts/build_packages.sh rootful
 
 install-rootful:
 	$(MAKE) FINALPACKAGE=1 clean all do
@@ -25,7 +28,7 @@ install-debug-rootful:
 	$(MAKE) clean all do
 
 package-rootless:
-	$(MAKE) THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 clean all package
+	bash scripts/build_packages.sh rootless
 
 install-rootless:
 	$(MAKE) THEOS_PACKAGE_SCHEME=rootless FINALPACKAGE=1 clean all do
@@ -36,6 +39,7 @@ package-debug-rootless:
 install-debug-rootless:
 	$(MAKE) THEOS_PACKAGE_SCHEME=rootless clean all do
 
-package-all:
-	$(MAKE) package-rootful
-	$(MAKE) package-rootless
+package-roothide:
+	bash scripts/build_packages.sh roothide
+
+package-all: build-packages

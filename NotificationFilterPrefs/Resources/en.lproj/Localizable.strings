@@ -3,7 +3,8 @@
 "ROOT_ENABLE_FILTER" = "Enable Filtering";
 "ROOT_DELETE_FILTERED" = "Remove Filtered Notifications from Notification Center";
 "ROOT_DELETE_FOOTER" = "When enabled, filtered notifications are removed from Notification Center. If disabled, previously filtered notifications will reappear in Notification Center after the tweak is turned off.";
-"ROOT_RULES_FOOTER" = "Rule order: Global Rules → App Rules. Exclude rules allow the notification through immediately.\n\nProject: https://github.com/tunecc/NotificationFilter";
+"ROOT_RULES_FOOTER" = "Rule order: Global Rules → App Rules. Exclude rules allow the notification through immediately.\n\nGitHub";
+"ROOT_PROJECT_LINK_TEXT" = "GitHub";
 "ROOT_GLOBAL_RULES" = "Global Rules";
 "ROOT_APP_RULES" = "App Rules";
 "ROOT_IMPORT_EXPORT" = "Import & Export";
@@ -146,6 +147,7 @@
 "RULE_CARD_INVALID" = "Invalid";
 
 "RULE_TEXT_SCOPE_LABEL" = "Scope";
+"RULE_TEXT_HINT_IMAGE_ACCESSIBILITY_LABEL" = "Notification example showing the title, subtitle, and message positions.";
 "RULE_TEXT_EMPTY_TITLE" = "Rule Required";
 "RULE_TEXT_EMPTY_MESSAGE" = "Please enter a rule.";
 "RULE_TEXT_INVALID_TITLE" = "Invalid Rule";

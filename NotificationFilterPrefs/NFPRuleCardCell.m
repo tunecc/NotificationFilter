@@ -11,6 +11,7 @@
 @property (nonatomic, strong) UISwitch *enabledSwitch;
 @property (nonatomic, strong) UIButton *selectionButton;
 @property (nonatomic, strong) NSLayoutConstraint *titleLeadingConstraint;
+@property (nonatomic, strong) NSLayoutConstraint *subtitleLeadingConstraint;
 @property (nonatomic, copy) void (^toggleHandler)(BOOL enabled);
 @property (nonatomic, copy) void (^selectionHandler)(void);
 
@@ -69,6 +70,7 @@
         self.enabledSwitch = enabledSwitch;
 
         self.titleLeadingConstraint = [titleLabel.leadingAnchor constraintEqualToAnchor:cardView.leadingAnchor constant:14.0];
+        self.subtitleLeadingConstraint = [subtitleLabel.leadingAnchor constraintEqualToAnchor:cardView.leadingAnchor constant:14.0];
         [NSLayoutConstraint activateConstraints:@[
             [cardView.topAnchor constraintEqualToAnchor:self.contentView.topAnchor constant:6.0],
             [cardView.bottomAnchor constraintEqualToAnchor:self.contentView.bottomAnchor constant:-6.0],
@@ -88,7 +90,7 @@
             [enabledSwitch.trailingAnchor constraintEqualToAnchor:cardView.trailingAnchor constant:-14.0],
 
             [subtitleLabel.topAnchor constraintEqualToAnchor:titleLabel.bottomAnchor constant:8.0],
-            [subtitleLabel.leadingAnchor constraintEqualToAnchor:cardView.leadingAnchor constant:14.0],
+            self.subtitleLeadingConstraint,
             [subtitleLabel.trailingAnchor constraintLessThanOrEqualToAnchor:statusLabel.leadingAnchor constant:-10.0],
             [subtitleLabel.bottomAnchor constraintEqualToAnchor:cardView.bottomAnchor constant:-14.0],
 
@@ -132,6 +134,7 @@
     UIImage *selectionImage = [UIImage systemImageNamed:selected ? @"checkmark.circle.fill" : @"circle"];
     [self.selectionButton setImage:selectionImage forState:UIControlStateNormal];
     self.titleLeadingConstraint.constant = editingMode ? 50.0 : 14.0;
+    self.subtitleLeadingConstraint.constant = editingMode ? 50.0 : 14.0;
 
     self.subtitleLabel.text = NFPLocalizedScopeName(scope);
 

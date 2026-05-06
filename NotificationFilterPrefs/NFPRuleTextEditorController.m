@@ -14,6 +14,7 @@
 @property (nonatomic, copy) NSString *selectedScopeValue;
 @property (nonatomic, strong) NSArray<UIButton *> *scopeButtons;
 @property (nonatomic, strong) UIView *hintCardView;
+@property (nonatomic, strong) UIImageView *hintImageView;
 @property (nonatomic, strong) UILabel *hintTitleLabel;
 @property (nonatomic, strong) UILabel *hintDetailLabel;
 
@@ -101,11 +102,17 @@
     self.scopeButtons = buttons;
 
     UITextView *textView = [[UITextView alloc] init];
-    textView.alwaysBounceVertical = YES;
+    textView.alwaysBounceVertical = NO;
     textView.backgroundColor = [UIColor secondarySystemBackgroundColor];
+    textView.bounces = NO;
     textView.font = [UIFont systemFontOfSize:17.0];
     textView.delegate = self;
     textView.textContainerInset = UIEdgeInsetsMake(16.0, 16.0, 16.0, 16.0);
+    textView.layer.cornerRadius = 16.0;
+    textView.layer.cornerCurve = kCACornerCurveContinuous;
+    textView.layer.borderWidth = 1.0 / [UIScreen mainScreen].scale;
+    textView.layer.borderColor = [UIColor separatorColor].CGColor;
+    textView.showsVerticalScrollIndicator = NO;
     textView.text = self.initialRule;
     textView.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:textView];
@@ -113,25 +120,42 @@
 
     UIView *hintCardView = [[UIView alloc] init];
     hintCardView.translatesAutoresizingMaskIntoConstraints = NO;
-    hintCardView.backgroundColor = [UIColor tertiarySystemBackgroundColor];
     hintCardView.layer.cornerRadius = 14.0;
     [self.view addSubview:hintCardView];
     self.hintCardView = hintCardView;
 
-    UILabel *hintTitleLabel = [[UILabel alloc] init];
-    hintTitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    hintTitleLabel.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightSemibold];
-    hintTitleLabel.textColor = [UIColor labelColor];
-    [hintCardView addSubview:hintTitleLabel];
-    self.hintTitleLabel = hintTitleLabel;
+    UIImage *scopeHintImage = [self scopeHintImage];
+    if (scopeHintImage) {
+        UIImageView *hintImageView = [[UIImageView alloc] initWithImage:scopeHintImage];
+        hintImageView.translatesAutoresizingMaskIntoConstraints = NO;
+        hintImageView.backgroundColor = [UIColor secondarySystemBackgroundColor];
+        hintImageView.contentMode = UIViewContentModeScaleAspectFit;
+        hintImageView.layer.cornerRadius = 14.0;
+        hintImageView.layer.borderWidth = 1.0 / [UIScreen mainScreen].scale;
+        hintImageView.layer.borderColor = [UIColor separatorColor].CGColor;
+        hintImageView.clipsToBounds = YES;
+        hintImageView.isAccessibilityElement = YES;
+        hintImageView.accessibilityLabel = NFPLocalizedString(@"RULE_TEXT_HINT_IMAGE_ACCESSIBILITY_LABEL");
+        [hintCardView addSubview:hintImageView];
+        self.hintImageView = hintImageView;
+    } else {
+        hintCardView.backgroundColor = [UIColor tertiarySystemBackgroundColor];
 
-    UILabel *hintDetailLabel = [[UILabel alloc] init];
-    hintDetailLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    hintDetailLabel.font = [UIFont systemFontOfSize:12.0];
-    hintDetailLabel.textColor = [UIColor secondaryLabelColor];
-    hintDetailLabel.numberOfLines = 0;
-    [hintCardView addSubview:hintDetailLabel];
-    self.hintDetailLabel = hintDetailLabel;
+        UILabel *hintTitleLabel = [[UILabel alloc] init];
+        hintTitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        hintTitleLabel.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightSemibold];
+        hintTitleLabel.textColor = [UIColor labelColor];
+        [hintCardView addSubview:hintTitleLabel];
+        self.hintTitleLabel = hintTitleLabel;
+
+        UILabel *hintDetailLabel = [[UILabel alloc] init];
+        hintDetailLabel.translatesAutoresizingMaskIntoConstraints = NO;
+        hintDetailLabel.font = [UIFont systemFontOfSize:12.0];
+        hintDetailLabel.textColor = [UIColor secondaryLabelColor];
+        hintDetailLabel.numberOfLines = 0;
+        [hintCardView addSubview:hintDetailLabel];
+        self.hintDetailLabel = hintDetailLabel;
+    }
 
     UILabel *placeholderLabel = [[UILabel alloc] initWithFrame:CGRectZero];
     placeholderLabel.text = self.placeholder;
@@ -141,6 +165,10 @@
     placeholderLabel.translatesAutoresizingMaskIntoConstraints = NO;
     [textView addSubview:placeholderLabel];
     self.placeholderLabel = placeholderLabel;
+
+    CGFloat placeholderTopInset = textView.textContainerInset.top;
+    CGFloat placeholderLeadingInset = textView.textContainerInset.left + textView.textContainer.lineFragmentPadding;
+    CGFloat placeholderTrailingInset = textView.textContainerInset.right + textView.textContainer.lineFragmentPadding;
 
     [NSLayoutConstraint activateConstraints:@[
         [scopeContainer.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:12.0],
@@ -161,27 +189,49 @@
         [hintCardView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16.0],
 
         [textView.topAnchor constraintEqualToAnchor:hintCardView.bottomAnchor constant:12.0],
-        [textView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor],
-        [textView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor],
-        [textView.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
+        [textView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:16.0],
+        [textView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-16.0],
+        [textView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-16.0],
 
-        [hintTitleLabel.topAnchor constraintEqualToAnchor:hintCardView.topAnchor constant:12.0],
-        [hintTitleLabel.leadingAnchor constraintEqualToAnchor:hintCardView.leadingAnchor constant:12.0],
-        [hintTitleLabel.trailingAnchor constraintEqualToAnchor:hintCardView.trailingAnchor constant:-12.0],
-
-        [hintDetailLabel.topAnchor constraintEqualToAnchor:hintTitleLabel.bottomAnchor constant:6.0],
-        [hintDetailLabel.leadingAnchor constraintEqualToAnchor:hintCardView.leadingAnchor constant:12.0],
-        [hintDetailLabel.trailingAnchor constraintEqualToAnchor:hintCardView.trailingAnchor constant:-12.0],
-        [hintDetailLabel.bottomAnchor constraintEqualToAnchor:hintCardView.bottomAnchor constant:-12.0],
-
-        [placeholderLabel.topAnchor constraintEqualToAnchor:textView.topAnchor constant:24.0],
-        [placeholderLabel.leadingAnchor constraintEqualToAnchor:textView.leadingAnchor constant:21.0],
-        [placeholderLabel.trailingAnchor constraintLessThanOrEqualToAnchor:textView.trailingAnchor constant:-21.0]
+        [placeholderLabel.topAnchor constraintEqualToAnchor:textView.topAnchor constant:placeholderTopInset],
+        [placeholderLabel.leadingAnchor constraintEqualToAnchor:textView.leadingAnchor constant:placeholderLeadingInset],
+        [placeholderLabel.trailingAnchor constraintLessThanOrEqualToAnchor:textView.trailingAnchor constant:-placeholderTrailingInset]
     ]];
+
+    if (self.hintImageView) {
+        CGFloat aspectRatio = scopeHintImage.size.width > 0.0 ? (scopeHintImage.size.height / scopeHintImage.size.width) : (312.0 / 1290.0);
+        [NSLayoutConstraint activateConstraints:@[
+            [self.hintImageView.topAnchor constraintEqualToAnchor:hintCardView.topAnchor],
+            [self.hintImageView.leadingAnchor constraintEqualToAnchor:hintCardView.leadingAnchor],
+            [self.hintImageView.trailingAnchor constraintEqualToAnchor:hintCardView.trailingAnchor],
+            [self.hintImageView.bottomAnchor constraintEqualToAnchor:hintCardView.bottomAnchor],
+            [self.hintImageView.heightAnchor constraintEqualToAnchor:self.hintImageView.widthAnchor multiplier:aspectRatio]
+        ]];
+    } else {
+        [NSLayoutConstraint activateConstraints:@[
+            [self.hintTitleLabel.topAnchor constraintEqualToAnchor:hintCardView.topAnchor constant:12.0],
+            [self.hintTitleLabel.leadingAnchor constraintEqualToAnchor:hintCardView.leadingAnchor constant:12.0],
+            [self.hintTitleLabel.trailingAnchor constraintEqualToAnchor:hintCardView.trailingAnchor constant:-12.0],
+
+            [self.hintDetailLabel.topAnchor constraintEqualToAnchor:self.hintTitleLabel.bottomAnchor constant:6.0],
+            [self.hintDetailLabel.leadingAnchor constraintEqualToAnchor:hintCardView.leadingAnchor constant:12.0],
+            [self.hintDetailLabel.trailingAnchor constraintEqualToAnchor:hintCardView.trailingAnchor constant:-12.0],
+            [self.hintDetailLabel.bottomAnchor constraintEqualToAnchor:hintCardView.bottomAnchor constant:-12.0]
+        ]];
+    }
 
     [self updatePlaceholderVisibility];
     [self updateScopeButtons];
     [self updateScopeHint];
+}
+
+- (UIImage *)scopeHintImage {
+    NSBundle *bundle = [NSBundle bundleForClass:[self class]];
+    NSString *imagePath = [bundle pathForResource:@"NotifEx" ofType:@"jpg"];
+    if (imagePath.length == 0) {
+        return nil;
+    }
+    return [UIImage imageWithContentsOfFile:imagePath];
 }
 
 - (void)textViewDidChange:(UITextView *)textView {
@@ -278,6 +328,10 @@
 }
 
 - (void)updateScopeHint {
+    if (self.hintImageView) {
+        return;
+    }
+
     NSString *scope = [self selectedScope];
     if ([scope isEqualToString:NFRuleScopeTitle]) {
         self.hintTitleLabel.text = NFPLocalizedString(@"RULE_TEXT_HINT_TITLE_TITLE");

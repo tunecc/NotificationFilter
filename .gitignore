@@ -6,3 +6,5 @@ outputs
 docs
 .vibeskills
 .theos-rootful
+.theos-roothide
+.theos-rootless

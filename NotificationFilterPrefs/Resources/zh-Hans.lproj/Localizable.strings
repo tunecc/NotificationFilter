@@ -3,7 +3,8 @@
 "ROOT_ENABLE_FILTER" = "启用过滤";
 "ROOT_DELETE_FILTERED" = "从通知中心删除过滤通知";
 "ROOT_DELETE_FOOTER" = "开启后，已过滤通知会从通知中心移除；未开启时，禁用插件后，历史过滤通知会在通知中心恢复显示。";
-"ROOT_RULES_FOOTER" = "规则匹配顺序：全局规则 → 单应用规则。命中排除规则直接放行。\n\n项目地址：https://github.com/tunecc/NotificationFilter";
+"ROOT_RULES_FOOTER" = "规则匹配顺序：全局规则 → 单应用规则。命中排除规则直接放行。\n\nGitHub";
+"ROOT_PROJECT_LINK_TEXT" = "GitHub";
 "ROOT_GLOBAL_RULES" = "全局规则";
 "ROOT_APP_RULES" = "应用规则";
 "ROOT_IMPORT_EXPORT" = "规则导入导出";
@@ -146,6 +147,7 @@
 "RULE_CARD_INVALID" = "无效";
 
 "RULE_TEXT_SCOPE_LABEL" = "作用域";
+"RULE_TEXT_HINT_IMAGE_ACCESSIBILITY_LABEL" = "通知示意图：展示标题、副标题与正文在通知中的位置。";
 "RULE_TEXT_EMPTY_TITLE" = "规则为空";
 "RULE_TEXT_EMPTY_MESSAGE" = "请输入一条规则。";
 "RULE_TEXT_INVALID_TITLE" = "规则无效";
