@@ -1,6 +1,7 @@
 #import "NFPRulesListEditorController.h"
 #import "../Shared/NFPreferences.h"
 #import "NFPLocalization.h"
+#import "NFPNotificationRuleScannerController.h"
 #import "NFPRuleTextEditorController.h"
 #import "NFPRuleCardCell.h"
 
@@ -8,11 +9,15 @@
 
 @property (nonatomic, assign) NFPRuleEditorKind editorKind;
 @property (nonatomic, copy) void (^saveHandler)(NSArray *rules);
+@property (nonatomic, copy, nullable) NSString *bundleIdentifier;
+@property (nonatomic, copy, nullable) NSString *displayName;
+@property (nonatomic, copy, nullable) NFPScannedRuleMergeHandler scannedRuleMergeHandler;
+@property (nonatomic, copy, nullable) NFPRulesReloadHandler rulesReloadHandler;
 @property (nonatomic, strong) NSMutableArray<NSDictionary *> *rules;
 @property (nonatomic, assign) BOOL editingRules;
 @property (nonatomic, strong) NSMutableSet<NSString *> *selectedRuleIdentifiers;
 @property (nonatomic, strong) UIBarButtonItem *editRulesButton;
-@property (nonatomic, strong) UIBarButtonItem *pasteButton;
+@property (nonatomic, strong, nullable) UIBarButtonItem *scanButton;
 @property (nonatomic, strong) UIBarButtonItem *addButton;
 @property (nonatomic, strong) UIBarButtonItem *deleteButton;
 
@@ -28,12 +33,35 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
                    editorKind:(NFPRuleEditorKind)editorKind
                         rules:(NSArray *)rules
                   saveHandler:(void (^)(NSArray *))saveHandler {
+    return [self initWithTitle:title
+                    editorKind:editorKind
+                         rules:rules
+              bundleIdentifier:nil
+                   displayName:nil
+                   saveHandler:saveHandler
+        scannedRuleMergeHandler:nil
+              rulesReloadHandler:nil];
+}
+
+- (instancetype)initWithTitle:(NSString *)title
+                   editorKind:(NFPRuleEditorKind)editorKind
+                        rules:(NSArray *)rules
+             bundleIdentifier:(NSString *)bundleIdentifier
+                  displayName:(NSString *)displayName
+                  saveHandler:(void (^)(NSArray *))saveHandler
+       scannedRuleMergeHandler:(NFPScannedRuleMergeHandler)scannedRuleMergeHandler
+             rulesReloadHandler:(NFPRulesReloadHandler)rulesReloadHandler {
     self = [super initWithStyle:UITableViewStyleInsetGrouped];
     if (self) {
         self.title = title;
         _editorKind = editorKind;
-        _rules = [[NFPreferences normalizedRuleEntriesFromArray:rules] mutableCopy];
+        _rules = [[NFPreferences normalizedRuleEntriesFromArray:rules
+                                                  defaultScope:NFPRuleDefaultScopeForEditorKind(editorKind)] mutableCopy];
+        _bundleIdentifier = [bundleIdentifier copy];
+        _displayName = [displayName copy];
         _saveHandler = [saveHandler copy];
+        _scannedRuleMergeHandler = [scannedRuleMergeHandler copy];
+        _rulesReloadHandler = [rulesReloadHandler copy];
         _selectedRuleIdentifiers = [NSMutableSet set];
     }
     return self;
@@ -54,10 +82,12 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
                                                            action:@selector(toggleEditingRules)];
     self.navigationItem.leftBarButtonItem = self.editRulesButton;
 
-    self.pasteButton = [[UIBarButtonItem alloc] initWithTitle:NFPLocalizedString(@"COMMON_PASTE")
-                                                        style:UIBarButtonItemStylePlain
-                                                       target:self
-                                                       action:@selector(importFromPasteboardButtonTapped:)];
+    if ([self shouldShowScanButton]) {
+        self.scanButton = [[UIBarButtonItem alloc] initWithTitle:NFPLocalizedString(@"COMMON_SCAN")
+                                                           style:UIBarButtonItemStylePlain
+                                                          target:self
+                                                          action:@selector(scanButtonTapped:)];
+    }
     self.addButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd
                                                                     target:self
                                                                     action:@selector(addButtonTapped:)];
@@ -163,8 +193,30 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     [self pushEditorForRuleEntry:nil atIndex:NSNotFound];
 }
 
-- (void)importFromPasteboardButtonTapped:(UIBarButtonItem *)sender {
-    [self importRulesFromPasteboard];
+- (void)scanButtonTapped:(UIBarButtonItem *)sender {
+    if (![self shouldShowScanButton]) {
+        return;
+    }
+
+    __weak typeof(self) weakSelf = self;
+    NFPNotificationRuleScannerController *controller = [[NFPNotificationRuleScannerController alloc] initWithBundleIdentifier:self.bundleIdentifier
+                                                                                                                    displayName:self.displayName ?: self.bundleIdentifier
+                                                                                                                initialRuleKind:self.editorKind
+                                                                                                             returnViewController:self
+                                                                                                                   commitHandler:^BOOL(NFPRuleEditorKind targetKind, NSArray<NSDictionary *> *entries, NSError **error) {
+        if (!weakSelf.scannedRuleMergeHandler) {
+            return NO;
+        }
+
+        BOOL merged = weakSelf.scannedRuleMergeHandler(targetKind, entries, error);
+        if (!merged) {
+            return NO;
+        }
+
+        [weakSelf reloadCurrentRules];
+        return YES;
+    }];
+    [self.navigationController pushViewController:controller animated:YES];
 }
 
 - (void)setEditing:(BOOL)editing animated:(BOOL)animated {
@@ -215,37 +267,6 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
 
     self.rules = [[NFPreferences normalizedRuleEntriesFromArray:updatedRules
                                                    defaultScope:NFPRuleDefaultScopeForEditorKind(self.editorKind)] mutableCopy];
-    [self persistRules];
-    [self.tableView reloadData];
-}
-
-- (void)importRulesFromPasteboard {
-    NSString *clipboardText = [UIPasteboard generalPasteboard].string;
-    if (clipboardText.length == 0) {
-        [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_IMPORT_FAILED")
-                            message:NFPLocalizedString(@"RULES_LIST_IMPORT_EMPTY_PASTEBOARD_MESSAGE")];
-        return;
-    }
-
-    NSMutableArray<NSDictionary *> *combinedRules = [self.rules mutableCopy];
-    for (NSString *ruleText in [NFPreferences normalizedRuleLinesFromMultilineString:clipboardText]) {
-        [combinedRules addObject:[NFPreferences ruleEntryWithText:ruleText
-                                                         enabled:YES
-                                                       identifier:nil
-                                                            scope:NFPRuleDefaultScopeForEditorKind(self.editorKind)]];
-    }
-
-    NSArray<NSDictionary *> *normalizedRules = [NFPreferences normalizedRuleEntriesFromArray:combinedRules
-                                                                                 defaultScope:NFPRuleDefaultScopeForEditorKind(self.editorKind)];
-    if (self.editorKind == NFPRuleEditorKindRegex) {
-        NSError *error = [self validateRegexRules:normalizedRules];
-        if (error) {
-            [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_IMPORT_FAILED") message:error.localizedDescription];
-            return;
-        }
-    }
-
-    self.rules = [normalizedRules mutableCopy];
     [self persistRules];
     [self.tableView reloadData];
 }
@@ -367,7 +388,11 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
         self.navigationItem.rightBarButtonItems = @[self.deleteButton];
     } else {
         self.title = NFPLocalizedRuleEditorTitle(self.editorKind);
-        self.navigationItem.rightBarButtonItems = @[self.addButton, self.pasteButton];
+        if (self.scanButton) {
+            self.navigationItem.rightBarButtonItems = @[self.addButton, self.scanButton];
+        } else {
+            self.navigationItem.rightBarButtonItems = @[self.addButton];
+        }
     }
 }
 
@@ -375,6 +400,23 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     if (self.saveHandler) {
         self.saveHandler([self.rules copy]);
     }
+}
+
+- (BOOL)shouldShowScanButton {
+    return self.bundleIdentifier.length > 0 &&
+           self.editorKind != NFPRuleEditorKindRegex &&
+           self.scannedRuleMergeHandler != nil;
+}
+
+- (void)reloadCurrentRules {
+    if (!self.rulesReloadHandler) {
+        return;
+    }
+
+    NSArray<NSDictionary *> *reloadedRules = self.rulesReloadHandler(self.editorKind);
+    self.rules = [[NFPreferences normalizedRuleEntriesFromArray:reloadedRules
+                                                   defaultScope:NFPRuleDefaultScopeForEditorKind(self.editorKind)] mutableCopy];
+    [self.tableView reloadData];
 }
 
 - (void)presentAlertWithTitle:(NSString *)title message:(NSString *)message {

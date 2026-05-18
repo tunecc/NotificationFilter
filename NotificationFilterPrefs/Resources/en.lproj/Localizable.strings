@@ -23,6 +23,7 @@
 "COMMON_EDIT" = "Edit";
 "COMMON_DONE" = "Done";
 "COMMON_PASTE" = "Paste";
+"COMMON_SCAN" = "Scan";
 "COMMON_UNKNOWN" = "Unknown";
 "COMMON_CONFIRM_DELETE" = "Confirm Delete";
 "COMMON_DELETE_FAILED" = "Delete Failed";
@@ -164,7 +165,7 @@
 "RULES_LIST_EXCLUDE_FOOTER" = "Exclude rules take priority and also support scoped matching.";
 "RULES_LIST_REGEX_FOOTER" = "Regex rules also support scopes and are validated before saving.";
 "RULES_LIST_EMPTY_TITLE" = "No Rules";
-"RULES_LIST_EMPTY_DETAIL" = "Tap + to add a rule directly, or import from the clipboard.";
+"RULES_LIST_EMPTY_DETAIL" = "Tap + to add a rule directly.";
 "RULES_LIST_CONTAINS_PLACEHOLDER" = "Enter text to match, for example: Payment Successful";
 "RULES_LIST_EXCLUDE_PLACEHOLDER" = "Enter text to always allow, for example: Verification Code";
 "RULES_LIST_REGEX_PLACEHOLDER" = "Enter a regular expression, for example: code\\d{4,6}";
@@ -172,3 +173,17 @@
 "RULES_LIST_DELETE_CONFIRM_MESSAGE_FORMAT" = "Delete %lu selected rules.";
 "RULES_LIST_SELECTED_COUNT_TITLE_FORMAT" = "%lu selected";
 "RULES_LIST_DELETE_COUNT_BUTTON_FORMAT" = "Delete (%lu)";
+"RULE_SCAN_TITLE" = "Scan History";
+"RULE_SCAN_EMPTY" = "No usable notification history for this app yet.";
+"RULE_SCAN_EMPTY_PREVIEW" = "No scannable text";
+"RULE_SCAN_FOOTER" = "History is fetched from the current Notification Center entries held by SpringBoard.";
+"RULE_SCAN_FOOTER_MIRROR" = "Showing the in-memory mirror captured by Notification Filter because a live Notification Center snapshot was unavailable.";
+"RULE_SCAN_SOURCE_FAILED" = "Failed to read notification history from SpringBoard.";
+"RULE_SCAN_SOURCE_NO_REPLY" = "SpringBoard did not reply. Respring once and try scanning again.";
+"RULE_SCAN_PICKER_TITLE" = "Create Rule";
+"RULE_SCAN_NOTIFICATION_LABEL" = "Notification";
+"RULE_SCAN_RULE_TYPE_LABEL" = "Rule Type";
+"RULE_SCAN_TOKENS_LABEL" = "Pick Tokens";
+"RULE_SCAN_NO_TOKENS" = "No selectable words were found in this notification.";
+"RULE_SCAN_EMPTY_SELECTION_TITLE" = "Select Content";
+"RULE_SCAN_EMPTY_SELECTION_MESSAGE" = "Pick at least one word before saving.";

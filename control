@@ -1,6 +1,6 @@
 Package: com.tune.notificationfilter
 Name: Notification Filter
-Depends: mobilesubstrate, preferenceloader
+Depends: mobilesubstrate, preferenceloader, com.rpetrich.rocketbootstrap
 Architecture: iphoneos-arm
 Description: Powerful notification filtering for jailbroken iOS
 Maintainer: Tune

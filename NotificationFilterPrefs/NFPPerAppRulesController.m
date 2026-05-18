@@ -19,6 +19,17 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
 
 @implementation NFPPerAppRulesController
 
+- (NSArray<NSDictionary *> *)rulesForEditorKind:(NFPRuleEditorKind)editorKind fromRules:(NSDictionary *)rules {
+    switch (editorKind) {
+        case NFPRuleEditorKindContains:
+            return rules[NFRulesContainsKey] ?: @[];
+        case NFPRuleEditorKindExclude:
+            return rules[NFRulesExcludeKey] ?: @[];
+        default:
+            return rules[NFRulesRegexKey] ?: @[];
+    }
+}
+
 - (instancetype)initWithBundleIdentifier:(NSString *)bundleIdentifier displayName:(NSString *)displayName {
     self = [super initWithStyle:UITableViewStyleInsetGrouped];
     if (self) {
@@ -146,12 +157,29 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
         }
 
         __weak typeof(self) weakSelf = self;
+        NFPScannedRuleMergeHandler mergeHandler = nil;
+        NFPRulesReloadHandler reloadHandler = nil;
+        if (editorKind != NFPRuleEditorKindRegex) {
+            mergeHandler = ^BOOL(NFPRuleEditorKind targetKind, NSArray<NSDictionary *> *entries, NSError **error) {
+                return [weakSelf appendScannedRuleEntries:entries toEditorKind:targetKind error:error];
+            };
+            reloadHandler = ^NSArray<NSDictionary *> * (NFPRuleEditorKind targetKind) {
+                NSDictionary *latestRules = [NFPreferences rulesForBundleIdentifier:weakSelf.bundleIdentifier
+                                                                     fromPreferences:[NFPreferences loadPreferences]];
+                return [weakSelf rulesForEditorKind:targetKind fromRules:latestRules];
+            };
+        }
+
         NFPRulesListEditorController *controller = [[NFPRulesListEditorController alloc] initWithTitle:title
                                                                                              editorKind:editorKind
                                                                                                   rules:rules ?: @[]
+                                                                                       bundleIdentifier:self.bundleIdentifier
+                                                                                            displayName:self.displayName
                                                                                             saveHandler:^(NSArray<NSString *> *rules) {
             [weakSelf updateRules:rules forRow:indexPath.row];
-        }];
+        }
+                                                                                 scannedRuleMergeHandler:mergeHandler
+                                                                                       rulesReloadHandler:reloadHandler];
         [self.navigationController pushViewController:controller animated:YES];
         return;
     }
@@ -227,6 +255,50 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
     self.rules = [NFPreferences rulesForBundleIdentifier:self.bundleIdentifier
                                          fromPreferences:[NFPreferences loadPreferences]];
     [self.tableView reloadData];
+}
+
+- (BOOL)appendScannedRuleEntries:(NSArray<NSDictionary *> *)entries
+                    toEditorKind:(NFPRuleEditorKind)editorKind
+                           error:(NSError **)error {
+    if (entries.count == 0) {
+        return YES;
+    }
+
+    NSMutableDictionary *mutableRules = [self.rules mutableCopy];
+    NSString *rulesKey = nil;
+    NSString *defaultScope = NFRuleScopeAll;
+    switch (editorKind) {
+        case NFPRuleEditorKindContains:
+            rulesKey = NFRulesContainsKey;
+            defaultScope = NFRuleScopeMessage;
+            break;
+        case NFPRuleEditorKindExclude:
+            rulesKey = NFRulesExcludeKey;
+            defaultScope = NFRuleScopeAll;
+            break;
+        default:
+            return NO;
+    }
+
+    NSMutableArray *combinedEntries = [NSMutableArray arrayWithArray:mutableRules[rulesKey] ?: @[]];
+    [combinedEntries addObjectsFromArray:entries];
+    mutableRules[rulesKey] = [NFPreferences normalizedRuleEntriesFromArray:combinedEntries
+                                                              defaultScope:defaultScope];
+
+    NSMutableDictionary *preferences = [NFPreferences loadMutablePreferences];
+    NSMutableDictionary *appRules = [preferences[NFAppRulesKey] mutableCopy] ?: [NSMutableDictionary dictionary];
+    appRules[self.bundleIdentifier] = [NFPreferences normalizedRulesDictionaryFromRawDictionary:mutableRules];
+    preferences[NFAppRulesKey] = appRules;
+
+    BOOL saved = [NFPreferences savePreferences:preferences error:error];
+    if (!saved) {
+        return NO;
+    }
+
+    [NFPreferences postPreferencesChangedNotification];
+    self.rules = [NFPreferences rulesForBundleIdentifier:self.bundleIdentifier
+                                         fromPreferences:[NFPreferences loadPreferences]];
+    return YES;
 }
 
 - (void)presentAlertWithTitle:(NSString *)title message:(NSString *)message {

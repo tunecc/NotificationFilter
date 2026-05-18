@@ -63,6 +63,20 @@ static NSString *NFJoinedText(NSArray<NSString *> *values) {
     return [components componentsJoinedByString:@"\n"];
 }
 
+static NSDate *NFDateForSelectorName(id primaryObject, id fallbackObject, NSString *selectorName) {
+    SEL selector = NSSelectorFromString(selectorName);
+    id value = NFCallObject(primaryObject, selector);
+    if ([value isKindOfClass:[NSDate class]]) {
+        return value;
+    }
+
+    value = NFCallObject(fallbackObject, selector);
+    if ([value isKindOfClass:[NSDate class]]) {
+        return value;
+    }
+    return nil;
+}
+
 @implementation NFNotificationRecord
 
 + (instancetype)recordFromNotificationRequest:(id)request {
@@ -93,7 +107,10 @@ static NSString *NFJoinedText(NSArray<NSString *> *values) {
         record.body ?: @"",
         record.message ?: @""
     ]);
-    record.timestamp = [NSDate date];
+    record.timestamp = NFDateForSelectorName(request, content, @"date") ?:
+        NFDateForSelectorName(request, content, @"publicationDate") ?:
+        NFDateForSelectorName(request, content, @"lastInterruptDate") ?:
+        [NSDate date];
     return record;
 }
 
@@ -123,7 +140,10 @@ static NSString *NFJoinedText(NSArray<NSString *> *values) {
         record.body ?: @"",
         record.message ?: @""
     ]);
-    record.timestamp = [NSDate date];
+    record.timestamp = NFDateForSelectorName(bulletin, nil, @"date") ?:
+        NFDateForSelectorName(bulletin, nil, @"publicationDate") ?:
+        NFDateForSelectorName(bulletin, nil, @"lastInterruptDate") ?:
+        [NSDate date];
     return record;
 }
 

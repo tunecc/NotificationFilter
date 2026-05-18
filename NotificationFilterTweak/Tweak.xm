@@ -1,12 +1,15 @@
 #import <Foundation/Foundation.h>
 #import <dlfcn.h>
 #import <string.h>
+#import <BulletinBoard/BulletinBoard.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
+#import <rocketbootstrap/rocketbootstrap.h>
 #import "NFNotificationRecord.h"
 #import "NFRuleEngine.h"
 #import "../Shared/NFPreferences.h"
 #import "../Shared/NFLogStore.h"
+#import "../Shared/NFNotificationHistoryBridge.h"
 
 static NSDictionary *NFCurrentPreferences = nil;
 static dispatch_queue_t NFPreferencesQueue = nil;
@@ -15,6 +18,12 @@ static dispatch_queue_t NFBlockedActionQueue = nil;
 static NSMutableDictionary<NSString *, NSNumber *> *NFBlockedActionTimestamps = nil;
 static dispatch_queue_t NFBlockedIdentityQueue = nil;
 static NSMutableDictionary<NSString *, NSDictionary *> *NFBlockedIdentityCache = nil;
+static dispatch_queue_t NFNotificationHistoryQueue = nil;
+static NSMutableDictionary<NSString *, NSDictionary *> *NFNotificationHistoryEntriesByKey = nil;
+static NSMutableDictionary<NSString *, id> *NFNotificationHistoryDataProviders = nil;
+static id NFNotificationHistoryCenter = nil;
+static id NFNotificationHistoryServerTarget = nil;
+static __unsafe_unretained id NFCurrentBBServer = nil;
 typedef void (*NFWithdrawByRecordIDFunction)(id dataProvider, NSString *recordID);
 typedef void (*NFWithdrawByPublisherBulletinIDFunction)(id dataProvider, NSString *publisherBulletinID);
 typedef void (^NFBooleanCompletionBlock)(BOOL value);
@@ -24,6 +33,15 @@ static void NFAttemptDeleteFilteredBulletin(id server,
                                             NFNotificationRecord *record,
                                             NFMatchResult *result);
 static void NFClearTransientBlockedCaches(void);
+static NSDictionary *NFHandleNotificationHistoryFetchMessage(NSString *name, NSDictionary *userInfo);
+static void NFPerformSyncOrInlineOnBBServerQueue(dispatch_block_t block);
+static void NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier(NSString *bundleIdentifier,
+                                                                         NSArray<NSDictionary *> *entries);
+static void NFPersistNotificationHistoryMirrorEntriesLocked(void);
+
+@interface NFNotificationHistoryMessageServer : NSObject
+- (NSDictionary *)handleMessageNamed:(NSString *)name withUserInfo:(NSDictionary *)userInfo;
+@end
 
 static NSDictionary *NFCopyPreferencesSnapshot(void) {
     __block NSDictionary *snapshot = nil;
@@ -31,6 +49,16 @@ static NSDictionary *NFCopyPreferencesSnapshot(void) {
         snapshot = NFCurrentPreferences ?: [NFPreferences defaultPreferences];
     });
     return snapshot;
+}
+
+static BOOL NFEnsureAppSupportLoaded(void) {
+    static BOOL attempted = NO;
+    static BOOL loaded = NO;
+    if (!attempted) {
+        attempted = YES;
+        loaded = dlopen("/System/Library/PrivateFrameworks/AppSupport.framework/AppSupport", RTLD_LAZY) != NULL;
+    }
+    return loaded;
 }
 
 static BOOL NFShouldDeleteFilteredNotifications(void) {
@@ -256,6 +284,331 @@ static void NFClearTransientBlockedCaches(void) {
         });
     }
 }
+
+static NSString *NFNotificationHistoryRecordKeyFromRecord(NFNotificationRecord *record) {
+    if (!record) {
+        return nil;
+    }
+
+    NSString *bundleIdentifier = NFNormalizedStringValue(record.bundleIdentifier);
+    NSString *bulletinID = NFNormalizedStringValue(record.bulletinID);
+    NSString *recordID = NFNormalizedStringValue(record.recordID);
+    NSString *publisherBulletinID = NFNormalizedStringValue(record.publisherBulletinID);
+    NSString *title = NFNormalizedStringValue(record.title);
+    NSString *message = NFNormalizedStringValue(record.messageText.length > 0 ? record.messageText : record.joinedText);
+
+    if (bulletinID.length > 0) {
+        return [NSString stringWithFormat:@"%@|bulletin|%@", bundleIdentifier ?: @"", bulletinID];
+    }
+    if (recordID.length > 0) {
+        return [NSString stringWithFormat:@"%@|record|%@", bundleIdentifier ?: @"", recordID];
+    }
+    if (publisherBulletinID.length > 0) {
+        return [NSString stringWithFormat:@"%@|publisher|%@", bundleIdentifier ?: @"", publisherBulletinID];
+    }
+    if (bundleIdentifier.length == 0 || (title.length == 0 && message.length == 0)) {
+        return nil;
+    }
+    return [NSString stringWithFormat:@"%@|content|%@|%@", bundleIdentifier, title ?: @"", message ?: @""];
+}
+
+static NSDictionary *NFNotificationHistoryDictionaryFromRecord(NFNotificationRecord *record) {
+    if (!record) {
+        return nil;
+    }
+
+    NSMutableDictionary *entry = [[record dictionaryRepresentation] mutableCopy] ?: [NSMutableDictionary dictionary];
+    if (record.timestamp) {
+        entry[NFLogTimestampKey] = @([record.timestamp timeIntervalSince1970]);
+    }
+    return [entry copy];
+}
+
+static void NFStoreNotificationHistoryRecord(NFNotificationRecord *record) {
+    NSString *recordKey = NFNotificationHistoryRecordKeyFromRecord(record);
+    NSDictionary *entry = NFNotificationHistoryDictionaryFromRecord(record);
+    if (recordKey.length == 0 || !entry) {
+        return;
+    }
+
+    dispatch_sync(NFNotificationHistoryQueue, ^{
+        NFNotificationHistoryEntriesByKey[recordKey] = entry;
+        NFPersistNotificationHistoryMirrorEntriesLocked();
+    });
+}
+
+static NSArray<NSDictionary *> *NFSortedNotificationHistoryEntriesFromDictionaryEntries(NSArray<NSDictionary *> *entries) {
+    return [entries sortedArrayUsingComparator:^NSComparisonResult(NSDictionary *lhs, NSDictionary *rhs) {
+        NSTimeInterval lhsTimestamp = [lhs[NFLogTimestampKey] respondsToSelector:@selector(doubleValue)] ? [lhs[NFLogTimestampKey] doubleValue] : 0;
+        NSTimeInterval rhsTimestamp = [rhs[NFLogTimestampKey] respondsToSelector:@selector(doubleValue)] ? [rhs[NFLogTimestampKey] doubleValue] : 0;
+        if (lhsTimestamp > rhsTimestamp) {
+            return NSOrderedAscending;
+        }
+        if (lhsTimestamp < rhsTimestamp) {
+            return NSOrderedDescending;
+        }
+        return NSOrderedSame;
+    }];
+}
+
+static void NFPersistNotificationHistoryMirrorEntriesLocked(void) {
+    NSArray<NSDictionary *> *entries = NFSortedNotificationHistoryEntriesFromDictionaryEntries([NFNotificationHistoryEntriesByKey allValues]);
+    NSString *snapshotPath = NFNotificationHistorySnapshotFilePath();
+    NSString *directoryPath = [snapshotPath stringByDeletingLastPathComponent];
+    [[NSFileManager defaultManager] createDirectoryAtPath:directoryPath
+                              withIntermediateDirectories:YES
+                                               attributes:nil
+                                                    error:nil];
+    [entries writeToFile:snapshotPath atomically:YES];
+}
+
+static void NFRememberNotificationHistoryDataProvider(id dataProvider) {
+    NSString *sectionIdentifier = NFNormalizedStringValue(NFCallObject(dataProvider, @"sectionIdentifier"));
+    if (sectionIdentifier.length == 0) {
+        sectionIdentifier = NFNormalizedStringValue(NFCallObject(dataProvider, @"sectionID"));
+    }
+    if (sectionIdentifier.length == 0) {
+        return;
+    }
+
+    dispatch_sync(NFNotificationHistoryQueue, ^{
+        NFNotificationHistoryDataProviders[sectionIdentifier] = dataProvider;
+    });
+}
+
+static void NFPrimeNotificationHistoryForDataProvider(id dataProvider) {
+    NSString *bundleIdentifier = NFNormalizedStringValue(NFCallObject(dataProvider, @"sectionIdentifier"));
+    if (bundleIdentifier.length == 0) {
+        bundleIdentifier = NFNormalizedStringValue(NFCallObject(dataProvider, @"sectionID"));
+    }
+    if (bundleIdentifier.length == 0) {
+        return;
+    }
+
+    NSSet *bulletins = nil;
+    if ([dataProvider respondsToSelector:@selector(bulletinsFilteredBy:count:lastCleared:)]) {
+        bulletins = ((id (*)(id, SEL, NSUInteger, NSUInteger, id))objc_msgSend)(dataProvider,
+                                                                                 @selector(bulletinsFilteredBy:count:lastCleared:),
+                                                                                 0,
+                                                                                 200,
+                                                                                 nil);
+    }
+    if (![bulletins isKindOfClass:[NSSet class]]) {
+        return;
+    }
+
+    NSMutableArray<NSDictionary *> *entries = [NSMutableArray arrayWithCapacity:bulletins.count];
+    for (id bulletin in bulletins) {
+        NFNotificationRecord *record = [NFNotificationRecord recordFromBulletin:bulletin];
+        if (record.bundleIdentifier.length == 0) {
+            record.bundleIdentifier = bundleIdentifier;
+        }
+        NSDictionary *entry = NFNotificationHistoryDictionaryFromRecord(record);
+        if (entry) {
+            [entries addObject:entry];
+        }
+    }
+
+    NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier(bundleIdentifier,
+                                                                 NFSortedNotificationHistoryEntriesFromDictionaryEntries(entries));
+}
+
+static void NFRememberNotificationHistoryDataProviderForSectionFromServer(id server, NSString *sectionIdentifier) {
+    if (!server || sectionIdentifier.length == 0) {
+        return;
+    }
+
+    SEL selector = NSSelectorFromString(@"dataProviderForSectionID:");
+    if (![server respondsToSelector:selector]) {
+        return;
+    }
+
+    id dataProvider = ((id (*)(id, SEL, id))objc_msgSend)(server, selector, sectionIdentifier);
+    if (dataProvider) {
+        NFRememberNotificationHistoryDataProvider(dataProvider);
+        NFPrimeNotificationHistoryForDataProvider(dataProvider);
+    }
+}
+
+static NSArray<NSDictionary *> *NFNotificationHistoryMirrorEntriesForBundleIdentifier(NSString *bundleIdentifier, NSUInteger limit) {
+    __block NSArray<NSDictionary *> *entries = nil;
+    dispatch_sync(NFNotificationHistoryQueue, ^{
+        NSMutableArray<NSDictionary *> *matches = [NSMutableArray array];
+        [NFNotificationHistoryEntriesByKey enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSDictionary *entry, BOOL *stop) {
+            NSString *entryBundleIdentifier = [entry[NFLogBundleIdentifierKey] isKindOfClass:[NSString class]] ? entry[NFLogBundleIdentifierKey] : @"";
+            if (![entryBundleIdentifier isEqualToString:bundleIdentifier]) {
+                return;
+            }
+            [matches addObject:entry];
+        }];
+        NSArray<NSDictionary *> *sortedEntries = NFSortedNotificationHistoryEntriesFromDictionaryEntries(matches);
+        if (limit > 0 && sortedEntries.count > limit) {
+            sortedEntries = [sortedEntries subarrayWithRange:NSMakeRange(0, limit)];
+        }
+        entries = sortedEntries;
+    });
+    return entries ?: @[];
+}
+
+static void NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier(NSString *bundleIdentifier,
+                                                                         NSArray<NSDictionary *> *entries) {
+    if (bundleIdentifier.length == 0) {
+        return;
+    }
+
+    dispatch_sync(NFNotificationHistoryQueue, ^{
+        NSMutableArray<NSString *> *keysToRemove = [NSMutableArray array];
+        [NFNotificationHistoryEntriesByKey enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSDictionary *entry, BOOL *stop) {
+            NSString *entryBundleIdentifier = [entry[NFLogBundleIdentifierKey] isKindOfClass:[NSString class]] ? entry[NFLogBundleIdentifierKey] : @"";
+            if ([entryBundleIdentifier isEqualToString:bundleIdentifier]) {
+                [keysToRemove addObject:key];
+            }
+        }];
+        if (keysToRemove.count > 0) {
+            [NFNotificationHistoryEntriesByKey removeObjectsForKeys:keysToRemove];
+        }
+
+        for (NSDictionary *entry in entries) {
+            if (![entry isKindOfClass:[NSDictionary class]]) {
+                continue;
+            }
+            NFNotificationRecord *record = [[NFNotificationRecord alloc] init];
+            record.bundleIdentifier = [entry[NFLogBundleIdentifierKey] isKindOfClass:[NSString class]] ? entry[NFLogBundleIdentifierKey] : bundleIdentifier;
+            record.sectionID = [entry[NFLogSectionIDKey] isKindOfClass:[NSString class]] ? entry[NFLogSectionIDKey] : nil;
+            record.bulletinID = [entry[NFLogBulletinIDKey] isKindOfClass:[NSString class]] ? entry[NFLogBulletinIDKey] : nil;
+            record.recordID = [entry[NFLogRecordIDKey] isKindOfClass:[NSString class]] ? entry[NFLogRecordIDKey] : nil;
+            record.publisherBulletinID = [entry[NFLogPublisherBulletinIDKey] isKindOfClass:[NSString class]] ? entry[NFLogPublisherBulletinIDKey] : nil;
+            record.title = [entry[NFLogTitleKey] isKindOfClass:[NSString class]] ? entry[NFLogTitleKey] : nil;
+            record.subtitle = [entry[NFLogSubtitleKey] isKindOfClass:[NSString class]] ? entry[NFLogSubtitleKey] : nil;
+            record.header = [entry[NFLogHeaderKey] isKindOfClass:[NSString class]] ? entry[NFLogHeaderKey] : nil;
+            record.body = [entry[NFLogBodyKey] isKindOfClass:[NSString class]] ? entry[NFLogBodyKey] : nil;
+            record.message = [entry[NFLogMessageKey] isKindOfClass:[NSString class]] ? entry[NFLogMessageKey] : nil;
+            record.messageText = NFNormalizedStringValue(entry[NFLogMessageKey]) ?: NFNormalizedStringValue(entry[NFLogBodyKey]) ?: @"";
+            record.joinedText = [entry[NFLogJoinedTextKey] isKindOfClass:[NSString class]] ? entry[NFLogJoinedTextKey] : @"";
+            NSTimeInterval timestamp = [entry[NFLogTimestampKey] respondsToSelector:@selector(doubleValue)] ? [entry[NFLogTimestampKey] doubleValue] : [[NSDate date] timeIntervalSince1970];
+            record.timestamp = [NSDate dateWithTimeIntervalSince1970:timestamp];
+
+            NSString *recordKey = NFNotificationHistoryRecordKeyFromRecord(record);
+            if (recordKey.length > 0) {
+                NFNotificationHistoryEntriesByKey[recordKey] = entry;
+            }
+        }
+        NFPersistNotificationHistoryMirrorEntriesLocked();
+    });
+}
+
+static NSArray<NSDictionary *> *NFNotificationHistoryLiveEntriesForBundleIdentifier(NSString *bundleIdentifier, NSUInteger limit) {
+    __block NSArray<NSDictionary *> *resultEntries = nil;
+    NFPerformSyncOrInlineOnBBServerQueue(^{
+        __block id dataProvider = nil;
+        dispatch_sync(NFNotificationHistoryQueue, ^{
+            dataProvider = NFNotificationHistoryDataProviders[bundleIdentifier];
+        });
+        if (!dataProvider && NFCurrentBBServer) {
+            NFRememberNotificationHistoryDataProviderForSectionFromServer(NFCurrentBBServer, bundleIdentifier);
+            dispatch_sync(NFNotificationHistoryQueue, ^{
+                dataProvider = NFNotificationHistoryDataProviders[bundleIdentifier];
+            });
+        }
+        if (!dataProvider) {
+            return;
+        }
+
+        NSSet *bulletins = nil;
+        if ([dataProvider respondsToSelector:@selector(bulletinsFilteredBy:count:lastCleared:)]) {
+            NSUInteger count = limit > 0 ? limit : 200;
+            bulletins = ((id (*)(id, SEL, NSUInteger, NSUInteger, id))objc_msgSend)(dataProvider,
+                                                                                     @selector(bulletinsFilteredBy:count:lastCleared:),
+                                                                                     0,
+                                                                                     count,
+                                                                                     nil);
+        }
+        if (![bulletins isKindOfClass:[NSSet class]]) {
+            return;
+        }
+
+        NSMutableArray<NSDictionary *> *entries = [NSMutableArray arrayWithCapacity:bulletins.count];
+        for (id bulletin in bulletins) {
+            NFNotificationRecord *record = [NFNotificationRecord recordFromBulletin:bulletin];
+            if (record.bundleIdentifier.length == 0) {
+                record.bundleIdentifier = bundleIdentifier;
+            }
+            NSDictionary *entry = NFNotificationHistoryDictionaryFromRecord(record);
+            if (entry) {
+                [entries addObject:entry];
+            }
+        }
+
+        NSArray<NSDictionary *> *sortedEntries = NFSortedNotificationHistoryEntriesFromDictionaryEntries(entries);
+        NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier(bundleIdentifier, sortedEntries);
+        if (limit > 0 && sortedEntries.count > limit) {
+            sortedEntries = [sortedEntries subarrayWithRange:NSMakeRange(0, limit)];
+        }
+        resultEntries = sortedEntries;
+    });
+    return resultEntries;
+}
+
+static NSDictionary *NFHandleNotificationHistoryFetchMessage(NSString *name, NSDictionary *userInfo) {
+    NSString *bundleIdentifier = NFNormalizedStringValue(userInfo[NFNotificationHistoryBundleIdentifierKey]);
+    NSUInteger limit = [userInfo[NFNotificationHistoryLimitKey] respondsToSelector:@selector(unsignedIntegerValue)] ?
+        [userInfo[NFNotificationHistoryLimitKey] unsignedIntegerValue] :
+        200;
+    if (bundleIdentifier.length == 0) {
+        return @{
+            NFNotificationHistoryEntriesKey: @[],
+            NFNotificationHistoryErrorKey: @"Missing bundle identifier."
+        };
+    }
+
+    NSArray<NSDictionary *> *entries = NFNotificationHistoryLiveEntriesForBundleIdentifier(bundleIdentifier, limit);
+    if (entries) {
+        return @{
+            NFNotificationHistoryEntriesKey: entries,
+            NFNotificationHistorySourceKey: NFNotificationHistorySourceLive
+        };
+    }
+
+    return @{
+        NFNotificationHistoryEntriesKey: NFNotificationHistoryMirrorEntriesForBundleIdentifier(bundleIdentifier, limit) ?: @[],
+        NFNotificationHistorySourceKey: NFNotificationHistorySourceMirror
+    };
+}
+
+static void NFStartNotificationHistoryServerIfNeeded(void) {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NFEnsureAppSupportLoaded();
+        Class centerClass = NSClassFromString(@"CPDistributedMessagingCenter");
+        if (!centerClass) {
+            return;
+        }
+
+        NFNotificationHistoryCenter = ((id (*)(id, SEL, id))objc_msgSend)(centerClass,
+                                                                           @selector(centerNamed:),
+                                                                           NFNotificationHistoryMessagingCenterName);
+        if (!NFNotificationHistoryCenter) {
+            return;
+        }
+        rocketbootstrap_distributedmessagingcenter_apply(NFNotificationHistoryCenter);
+        NFNotificationHistoryServerTarget = [[NFNotificationHistoryMessageServer alloc] init];
+        ((void (*)(id, SEL, id, id, SEL))objc_msgSend)(NFNotificationHistoryCenter,
+                                                       @selector(registerForMessageName:target:selector:),
+                                                       NFNotificationHistoryFetchMessageName,
+                                                       NFNotificationHistoryServerTarget,
+                                                       @selector(handleMessageNamed:withUserInfo:));
+        ((void (*)(id, SEL))objc_msgSend)(NFNotificationHistoryCenter,
+                                          @selector(runServerOnCurrentThread));
+    });
+}
+
+@implementation NFNotificationHistoryMessageServer
+
+- (NSDictionary *)handleMessageNamed:(NSString *)name withUserInfo:(NSDictionary *)userInfo {
+    return NFHandleNotificationHistoryFetchMessage(name, userInfo ?: @{});
+}
+
+@end
 
 static NFMatchResult *NFEvaluateRecord(NFNotificationRecord *record) {
     NSDictionary *preferences = NFCopyPreferencesSnapshot();
@@ -483,6 +836,25 @@ static void NFHandleBlockedNotificationObject(id server,
     NFAppendBlockedLog(record, result);
 }
 
+static void NFTrackNotificationHistoryObject(id server,
+                                             id notificationObject,
+                                             id fallbackSectionIdentifier) {
+    if (!notificationObject) {
+        return;
+    }
+
+    NFNotificationRecord *record = NFBestRecordFromNotificationObject(notificationObject, fallbackSectionIdentifier);
+    if (record.bundleIdentifier.length == 0) {
+        return;
+    }
+
+    if (server) {
+        NFCurrentBBServer = server;
+        NFRememberNotificationHistoryDataProviderForSectionFromServer(server, record.bundleIdentifier);
+    }
+    NFStoreNotificationHistoryRecord(record);
+}
+
 static BOOL NFShouldBlockNotificationObject(id server,
                                             id notificationObject,
                                             id fallbackSectionIdentifier) {
@@ -490,6 +862,7 @@ static BOOL NFShouldBlockNotificationObject(id server,
         return NO;
     }
 
+    NFTrackNotificationHistoryObject(server, notificationObject, fallbackSectionIdentifier);
     NFNotificationRecord *record = NFBestRecordFromNotificationObject(notificationObject,
                                                                       fallbackSectionIdentifier);
     NFMatchResult *result = NFEvaluateRecord(record);
@@ -726,6 +1099,14 @@ static void NFAttemptDeleteFilteredBulletin(id server,
 
 %hook BBServer
 
+- (void)_addDataProvider:(id)dataProvider sortSectionsNow:(BOOL)sortSections {
+    if (dataProvider) {
+        NFRememberNotificationHistoryDataProvider(dataProvider);
+        NFPrimeNotificationHistoryForDataProvider(dataProvider);
+    }
+    %orig;
+}
+
 - (void)publishBulletinRequest:(id)request destinations:(unsigned long long)destinations {
     NFNotificationRecord *record = [NFNotificationRecord recordFromNotificationRequest:request];
     NFMatchResult *result = NFEvaluateRecord(record);
@@ -932,7 +1313,11 @@ static void NFAttemptDeleteFilteredBulletin(id server,
         NFBlockedActionTimestamps = [NSMutableDictionary dictionary];
         NFBlockedIdentityQueue = dispatch_queue_create("com.tune.notificationfilter.blocked-identities", DISPATCH_QUEUE_SERIAL);
         NFBlockedIdentityCache = [NSMutableDictionary dictionary];
+        NFNotificationHistoryQueue = dispatch_queue_create("com.tune.notificationfilter.history", DISPATCH_QUEUE_SERIAL);
+        NFNotificationHistoryEntriesByKey = [NSMutableDictionary dictionary];
+        NFNotificationHistoryDataProviders = [NSMutableDictionary dictionary];
         NFReloadPreferences();
+        NFStartNotificationHistoryServerIfNeeded();
 
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                         NULL,
