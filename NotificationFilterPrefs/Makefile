@@ -29,9 +29,8 @@ NotificationFilterPrefs_FILES = \
 NotificationFilterPrefs_FRAMEWORKS = UIKit Foundation MobileCoreServices
 NotificationFilterPrefs_INSTALL_PATH = /Library/PreferenceBundles
 NotificationFilterPrefs_CFLAGS = -fobjc-arc -fmodules-cache-path=$(MODULE_CACHE_DIR) -Wno-error=deprecated-declarations
-NotificationFilterPrefs_LIBRARIES = rocketbootstrap
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
-NotificationFilterPrefs_LIBRARIES += roothide
+NotificationFilterPrefs_LIBRARIES = roothide
 endif
 NotificationFilterPrefs_LDFLAGS = -Wl,-undefined,dynamic_lookup
 

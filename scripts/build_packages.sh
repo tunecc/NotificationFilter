@@ -102,11 +102,11 @@ native_build_workaround_vars() {
     printf '%s\n' "NotificationFilterPrefs_CFLAGS=-fobjc-arc -Wno-error=deprecated-declarations"
 
     if [ "$scheme" = "roothide" ]; then
-        printf '%s\n' "NotificationFilter_LIBRARIES=rocketbootstrap roothide"
-        printf '%s\n' "NotificationFilterPrefs_LIBRARIES=rocketbootstrap roothide"
+        printf '%s\n' "NotificationFilter_LIBRARIES=roothide"
+        printf '%s\n' "NotificationFilterPrefs_LIBRARIES=roothide"
     else
-        printf '%s\n' "NotificationFilter_LIBRARIES=rocketbootstrap"
-        printf '%s\n' "NotificationFilterPrefs_LIBRARIES=rocketbootstrap"
+        printf '%s\n' "NotificationFilter_LIBRARIES="
+        printf '%s\n' "NotificationFilterPrefs_LIBRARIES="
     fi
 }
 
@@ -298,6 +298,7 @@ main() {
     [ -n "$rootful_out" ] && printf '%s\n' "$rootful_out"
     [ -n "$rootless_out" ] && printf '%s\n' "$rootless_out"
     [ -n "$roothide_out" ] && printf '%s\n' "$roothide_out"
+    return 0
 }
 
 main "$@"

@@ -14,9 +14,8 @@ NotificationFilter_FILES = \
 
 NotificationFilter_CFLAGS = -fobjc-arc -fmodules-cache-path=$(MODULE_CACHE_DIR)
 NotificationFilter_FRAMEWORKS = Foundation
-NotificationFilter_LIBRARIES = rocketbootstrap
 ifeq ($(THEOS_PACKAGE_SCHEME),roothide)
-NotificationFilter_LIBRARIES += roothide
+NotificationFilter_LIBRARIES = roothide
 endif
 
 include $(THEOS_MAKE_PATH)/tweak.mk

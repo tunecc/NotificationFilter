@@ -4,7 +4,6 @@
 #import <BulletinBoard/BulletinBoard.h>
 #import <objc/message.h>
 #import <objc/runtime.h>
-#import <rocketbootstrap/rocketbootstrap.h>
 #import "NFNotificationRecord.h"
 #import "NFRuleEngine.h"
 #import "../Shared/NFPreferences.h"
@@ -21,8 +20,6 @@ static NSMutableDictionary<NSString *, NSDictionary *> *NFBlockedIdentityCache =
 static dispatch_queue_t NFNotificationHistoryQueue = nil;
 static NSMutableDictionary<NSString *, NSDictionary *> *NFNotificationHistoryEntriesByKey = nil;
 static NSMutableDictionary<NSString *, id> *NFNotificationHistoryDataProviders = nil;
-static id NFNotificationHistoryCenter = nil;
-static id NFNotificationHistoryServerTarget = nil;
 static __unsafe_unretained id NFCurrentBBServer = nil;
 typedef void (*NFWithdrawByRecordIDFunction)(id dataProvider, NSString *recordID);
 typedef void (*NFWithdrawByPublisherBulletinIDFunction)(id dataProvider, NSString *publisherBulletinID);
@@ -33,15 +30,10 @@ static void NFAttemptDeleteFilteredBulletin(id server,
                                             NFNotificationRecord *record,
                                             NFMatchResult *result);
 static void NFClearTransientBlockedCaches(void);
-static NSDictionary *NFHandleNotificationHistoryFetchMessage(NSDictionary *userInfo);
 static void NFPerformSyncOrInlineOnBBServerQueue(dispatch_block_t block);
 static void NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier(NSString *bundleIdentifier,
                                                                          NSArray<NSDictionary *> *entries);
 static void NFPersistNotificationHistoryMirrorEntriesLocked(void);
-
-@interface NFNotificationHistoryMessageServer : NSObject
-- (NSDictionary *)handleMessageNamed:(NSString *)name withUserInfo:(NSDictionary *)userInfo;
-@end
 
 static NSDictionary *NFCopyPreferencesSnapshot(void) {
     __block NSDictionary *snapshot = nil;
@@ -49,14 +41,6 @@ static NSDictionary *NFCopyPreferencesSnapshot(void) {
         snapshot = NFCurrentPreferences ?: [NFPreferences defaultPreferences];
     });
     return snapshot;
-}
-
-static void NFEnsureAppSupportLoaded(void) {
-    static BOOL attempted = NO;
-    if (!attempted) {
-        attempted = YES;
-        dlopen("/System/Library/PrivateFrameworks/AppSupport.framework/AppSupport", RTLD_LAZY);
-    }
 }
 
 static BOOL NFShouldDeleteFilteredNotifications(void) {
@@ -547,66 +531,72 @@ static NSArray<NSDictionary *> *NFNotificationHistoryLiveEntriesForBundleIdentif
     return resultEntries;
 }
 
-static NSDictionary *NFHandleNotificationHistoryFetchMessage(NSDictionary *userInfo) {
-    NSString *bundleIdentifier = NFNormalizedStringValue(userInfo[NFNotificationHistoryBundleIdentifierKey]);
-    NSUInteger limit = [userInfo[NFNotificationHistoryLimitKey] respondsToSelector:@selector(unsignedIntegerValue)] ?
-        [userInfo[NFNotificationHistoryLimitKey] unsignedIntegerValue] :
-        200;
-    if (bundleIdentifier.length == 0) {
-        return @{
-            NFNotificationHistoryEntriesKey: @[],
-            NFNotificationHistoryErrorKey: @"Missing bundle identifier."
-        };
+static void NFPostNotificationHistoryRefreshStatus(NSString *requestIdentifier,
+                                                   NSString *bundleIdentifier,
+                                                   NSString *source,
+                                                   NSString *errorMessage) {
+    if (requestIdentifier.length == 0 || bundleIdentifier.length == 0) {
+        return;
     }
 
-    NSArray<NSDictionary *> *entries = NFNotificationHistoryLiveEntriesForBundleIdentifier(bundleIdentifier, limit);
-    if (entries) {
-        return @{
-            NFNotificationHistoryEntriesKey: entries,
-            NFNotificationHistorySourceKey: NFNotificationHistorySourceLive
-        };
+    NSMutableDictionary *status = [NSMutableDictionary dictionary];
+    status[NFNotificationHistoryRequestIdentifierKey] = requestIdentifier;
+    status[NFNotificationHistoryBundleIdentifierKey] = bundleIdentifier;
+    status[NFNotificationHistorySourceKey] = source.length > 0 ? source : NFNotificationHistorySourceMirror;
+    status[NFNotificationHistoryUpdatedAtKey] = @([[NSDate date] timeIntervalSince1970]);
+    if (errorMessage.length > 0) {
+        status[NFNotificationHistoryErrorKey] = errorMessage;
     }
 
-    return @{
-        NFNotificationHistoryEntriesKey: NFNotificationHistoryMirrorEntriesForBundleIdentifier(bundleIdentifier, limit) ?: @[],
-        NFNotificationHistorySourceKey: NFNotificationHistorySourceMirror
-    };
+    NSString *statusPath = NFNotificationHistoryRefreshStatusFilePath();
+    NSString *directoryPath = [statusPath stringByDeletingLastPathComponent];
+    [[NSFileManager defaultManager] createDirectoryAtPath:directoryPath
+                              withIntermediateDirectories:YES
+                                               attributes:nil
+                                                    error:nil];
+    [status writeToFile:statusPath atomically:YES];
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                         (CFStringRef)NFNotificationHistoryRefreshCompletedNotification,
+                                         NULL,
+                                         NULL,
+                                         YES);
 }
 
-static void NFStartNotificationHistoryServerIfNeeded(void) {
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        NFEnsureAppSupportLoaded();
-        Class centerClass = NSClassFromString(@"CPDistributedMessagingCenter");
-        if (!centerClass) {
-            return;
-        }
+static void NFProcessNotificationHistoryRefreshRequest(void) {
+    NSDictionary *request = [NSDictionary dictionaryWithContentsOfFile:NFNotificationHistoryRefreshRequestFilePath()];
+    if (![request isKindOfClass:[NSDictionary class]]) {
+        return;
+    }
 
-        NFNotificationHistoryCenter = ((id (*)(id, SEL, id))objc_msgSend)(centerClass,
-                                                                           @selector(centerNamed:),
-                                                                           NFNotificationHistoryMessagingCenterName);
-        if (!NFNotificationHistoryCenter) {
-            return;
+    NSString *requestIdentifier = NFNormalizedStringValue(request[NFNotificationHistoryRequestIdentifierKey]);
+    NSString *bundleIdentifier = NFNormalizedStringValue(request[NFNotificationHistoryBundleIdentifierKey]);
+    NSUInteger limit = [request[NFNotificationHistoryLimitKey] respondsToSelector:@selector(unsignedIntegerValue)] ?
+        [request[NFNotificationHistoryLimitKey] unsignedIntegerValue] :
+        200;
+    if (requestIdentifier.length == 0 || bundleIdentifier.length == 0) {
+        return;
+    }
+
+    NSArray<NSDictionary *> *liveEntries = NFNotificationHistoryLiveEntriesForBundleIdentifier(bundleIdentifier, limit);
+    NSString *source = liveEntries ? NFNotificationHistorySourceLive : NFNotificationHistorySourceMirror;
+    if (!liveEntries) {
+        (void)NFNotificationHistoryMirrorEntriesForBundleIdentifier(bundleIdentifier, limit);
+    }
+
+    NFPostNotificationHistoryRefreshStatus(requestIdentifier, bundleIdentifier, source, nil);
+}
+
+static void NFNotificationHistoryRefreshRequestCallback(CFNotificationCenterRef center,
+                                                        void *observer,
+                                                        CFStringRef name,
+                                                        const void *object,
+                                                        CFDictionaryRef userInfo) {
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+        @autoreleasepool {
+            NFProcessNotificationHistoryRefreshRequest();
         }
-        rocketbootstrap_distributedmessagingcenter_apply(NFNotificationHistoryCenter);
-        NFNotificationHistoryServerTarget = [[NFNotificationHistoryMessageServer alloc] init];
-        ((void (*)(id, SEL, id, id, SEL))objc_msgSend)(NFNotificationHistoryCenter,
-                                                       @selector(registerForMessageName:target:selector:),
-                                                       NFNotificationHistoryFetchMessageName,
-                                                       NFNotificationHistoryServerTarget,
-                                                       @selector(handleMessageNamed:withUserInfo:));
-        ((void (*)(id, SEL))objc_msgSend)(NFNotificationHistoryCenter,
-                                          @selector(runServerOnCurrentThread));
     });
 }
-
-@implementation NFNotificationHistoryMessageServer
-
-- (NSDictionary *)handleMessageNamed:(NSString *)name withUserInfo:(NSDictionary *)userInfo {
-    return NFHandleNotificationHistoryFetchMessage(userInfo ?: @{});
-}
-
-@end
 
 static NFMatchResult *NFEvaluateRecord(NFNotificationRecord *record) {
     NSDictionary *preferences = NFCopyPreferencesSnapshot();
@@ -1315,12 +1305,17 @@ static void NFAttemptDeleteFilteredBulletin(id server,
         NFNotificationHistoryEntriesByKey = [NSMutableDictionary dictionary];
         NFNotificationHistoryDataProviders = [NSMutableDictionary dictionary];
         NFReloadPreferences();
-        NFStartNotificationHistoryServerIfNeeded();
 
         CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                         NULL,
                                         NFPreferencesChangedCallback,
                                         (CFStringRef)NFPreferencesChangedDarwinNotification,
+                                        NULL,
+                                        CFNotificationSuspensionBehaviorDeliverImmediately);
+        CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
+                                        NULL,
+                                        NFNotificationHistoryRefreshRequestCallback,
+                                        (CFStringRef)NFNotificationHistoryRefreshRequestNotification,
                                         NULL,
                                         CFNotificationSuspensionBehaviorDeliverImmediately);
 

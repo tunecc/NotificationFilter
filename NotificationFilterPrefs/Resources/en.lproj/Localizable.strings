@@ -172,11 +172,10 @@
 "RULES_LIST_SELECTED_COUNT_TITLE_FORMAT" = "%lu selected";
 "RULES_LIST_DELETE_COUNT_BUTTON_FORMAT" = "Delete (%lu)";
 "RULE_SCAN_TITLE" = "Scan History";
-"RULE_SCAN_EMPTY" = "No usable notification history for this app yet.";
-"RULE_SCAN_FOOTER" = "History is fetched from the current Notification Center entries held by SpringBoard.";
-"RULE_SCAN_FOOTER_MIRROR" = "Showing the in-memory mirror captured by Notification Filter because a live Notification Center snapshot was unavailable.";
-"RULE_SCAN_SOURCE_FAILED" = "Failed to read notification history from SpringBoard.";
-"RULE_SCAN_SOURCE_NO_REPLY" = "SpringBoard did not reply. Respring once and try scanning again.";
+"RULE_SCAN_EMPTY" = "No usable notification history for this app yet. Receive a notification from this app, then scan again.";
+"RULE_SCAN_FOOTER" = "History is refreshed from SpringBoard when this page opens.";
+"RULE_SCAN_FOOTER_MIRROR" = "Showing the recent history mirror captured by Notification Filter because a live refresh was unavailable.";
+"RULE_SCAN_SOURCE_FAILED" = "Failed to request a notification history refresh.";
 "RULE_SCAN_PICKER_TITLE" = "Create Rule";
 "RULE_SCAN_NOTIFICATION_LABEL" = "Notification";
 "RULE_SCAN_RULE_TYPE_LABEL" = "Rule Type";

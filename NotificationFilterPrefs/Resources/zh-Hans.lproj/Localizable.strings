@@ -173,11 +173,10 @@
 "RULES_LIST_SELECTED_COUNT_TITLE_FORMAT" = "已选 %lu 条";
 "RULES_LIST_DELETE_COUNT_BUTTON_FORMAT" = "删除(%lu)";
 "RULE_SCAN_TITLE" = "扫描历史";
-"RULE_SCAN_EMPTY" = "当前应用还没有可用的通知历史记录。";
-"RULE_SCAN_FOOTER" = "这里读取的是 SpringBoard 当前持有的通知中心历史记录。";
-"RULE_SCAN_FOOTER_MIRROR" = "实时通知中心快照不可用，当前显示的是 Notification Filter 在内存里维护的镜像。";
-"RULE_SCAN_SOURCE_FAILED" = "无法从 SpringBoard 读取通知中心历史。";
-"RULE_SCAN_SOURCE_NO_REPLY" = "SpringBoard 没有回包。请先 respring 一次，再重新扫描。";
+"RULE_SCAN_EMPTY" = "当前应用还没有可用的通知历史记录。请先让这个应用收到一条通知，再重新扫描。";
+"RULE_SCAN_FOOTER" = "进入本页面时会从 SpringBoard 按需刷新通知历史。";
+"RULE_SCAN_FOOTER_MIRROR" = "实时刷新不可用，当前显示的是 Notification Filter 记录的最近通知历史镜像。";
+"RULE_SCAN_SOURCE_FAILED" = "无法请求刷新通知历史。";
 "RULE_SCAN_PICKER_TITLE" = "生成规则";
 "RULE_SCAN_NOTIFICATION_LABEL" = "通知内容";
 "RULE_SCAN_RULE_TYPE_LABEL" = "规则类型";
