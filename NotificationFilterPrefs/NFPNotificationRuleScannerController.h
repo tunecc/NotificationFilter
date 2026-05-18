@@ -1,5 +1,6 @@
 #import <UIKit/UIKit.h>
 #import "NFPMultilineRulesEditorController.h"
+#import "NFPNotificationRuleTokenPickerController.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -11,6 +12,13 @@ typedef BOOL (^NFPNotificationRuleScannerCommitHandler)(NFPRuleEditorKind target
                              displayName:(NSString *)displayName
                          initialRuleKind:(NFPRuleEditorKind)initialRuleKind
                     returnViewController:(UIViewController * _Nullable)returnViewController
+                           commitHandler:(NFPNotificationRuleScannerCommitHandler)commitHandler;
+
+- (instancetype)initWithBundleIdentifier:(NSString *)bundleIdentifier
+                             displayName:(NSString *)displayName
+                         initialRuleKind:(NFPRuleEditorKind)initialRuleKind
+                    returnViewController:(UIViewController * _Nullable)returnViewController
+                              returnMode:(NFPNotificationRuleTokenReturnMode)returnMode
                            commitHandler:(NFPNotificationRuleScannerCommitHandler)commitHandler;
 
 @end

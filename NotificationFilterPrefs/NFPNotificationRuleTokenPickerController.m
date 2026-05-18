@@ -13,6 +13,7 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
 @property (nonatomic, assign) NFPRuleEditorKind initialRuleKind;
 @property (nonatomic, assign) NFPRuleEditorKind selectedRuleKind;
 @property (nonatomic, weak, nullable) UIViewController *returnViewController;
+@property (nonatomic, assign) NFPNotificationRuleTokenReturnMode returnMode;
 @property (nonatomic, copy) NFPNotificationRuleTokenCommitHandler commitHandler;
 @property (nonatomic, copy) NSArray<NSDictionary *> *tokenSections;
 @property (nonatomic, strong) NSMutableSet<NSString *> *selectedTokenKeys;
@@ -27,6 +28,20 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
                           initialRuleKind:(NFPRuleEditorKind)initialRuleKind
                      returnViewController:(UIViewController *)returnViewController
                             commitHandler:(NFPNotificationRuleTokenCommitHandler)commitHandler {
+    return [self initWithNotificationEntry:entry
+                            appDisplayName:appDisplayName
+                            initialRuleKind:initialRuleKind
+                       returnViewController:returnViewController
+                                 returnMode:NFPNotificationRuleTokenReturnModeRulesList
+                              commitHandler:commitHandler];
+}
+
+- (instancetype)initWithNotificationEntry:(NSDictionary *)entry
+                          appDisplayName:(NSString *)appDisplayName
+                          initialRuleKind:(NFPRuleEditorKind)initialRuleKind
+                     returnViewController:(UIViewController *)returnViewController
+                               returnMode:(NFPNotificationRuleTokenReturnMode)returnMode
+                            commitHandler:(NFPNotificationRuleTokenCommitHandler)commitHandler {
     self = [super initWithNibName:nil bundle:nil];
     if (self) {
         _entry = [entry copy] ?: @{};
@@ -34,6 +49,7 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
         _initialRuleKind = initialRuleKind == NFPRuleEditorKindExclude ? NFPRuleEditorKindExclude : NFPRuleEditorKindContains;
         _selectedRuleKind = initialRuleKind == NFPRuleEditorKindExclude ? NFPRuleEditorKindExclude : NFPRuleEditorKindContains;
         _returnViewController = returnViewController;
+        _returnMode = returnMode;
         _commitHandler = [commitHandler copy];
         _selectedTokenKeys = [NSMutableSet set];
         _tokenSections = [self buildTokenSectionsFromEntry:_entry];
@@ -403,6 +419,11 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
 
     NSArray<UIViewController *> *controllers = self.navigationController.viewControllers ?: @[];
     if (self.returnViewController) {
+        if (self.returnMode == NFPNotificationRuleTokenReturnModeTargetViewController) {
+            [self.navigationController popToViewController:self.returnViewController animated:YES];
+            return;
+        }
+
         if (self.selectedRuleKind == self.initialRuleKind) {
             [self.navigationController popToViewController:self.returnViewController animated:YES];
             return;

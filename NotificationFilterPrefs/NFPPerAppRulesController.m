@@ -1,6 +1,7 @@
 #import "NFPPerAppRulesController.h"
 #import "../Shared/NFPreferences.h"
 #import "NFPLocalization.h"
+#import "NFPNotificationRuleScannerController.h"
 #import "NFPRulesListEditorController.h"
 
 typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
@@ -43,6 +44,10 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
     [super viewDidLoad];
     self.title = self.displayName;
     self.navigationItem.prompt = self.bundleIdentifier;
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:NFPLocalizedString(@"COMMON_SCAN")
+                                                                              style:UIBarButtonItemStylePlain
+                                                                             target:self
+                                                                             action:@selector(scanButtonTapped:)];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -202,6 +207,19 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
     NSMutableDictionary *mutableRules = [self.rules mutableCopy];
     mutableRules[NFRulesEnabledKey] = @(sender.on);
     [self persistRules:mutableRules];
+}
+
+- (void)scanButtonTapped:(UIBarButtonItem *)sender {
+    __weak typeof(self) weakSelf = self;
+    NFPNotificationRuleScannerController *controller = [[NFPNotificationRuleScannerController alloc] initWithBundleIdentifier:self.bundleIdentifier
+                                                                                                                  displayName:self.displayName
+                                                                                                              initialRuleKind:NFPRuleEditorKindContains
+                                                                                                         returnViewController:self
+                                                                                                                   returnMode:NFPNotificationRuleTokenReturnModeTargetViewController
+                                                                                                                commitHandler:^BOOL(NFPRuleEditorKind targetKind, NSArray<NSDictionary *> *entries, NSError **error) {
+        return [weakSelf appendScannedRuleEntries:entries toEditorKind:targetKind error:error];
+    }];
+    [self.navigationController pushViewController:controller animated:YES];
 }
 
 - (void)updateRules:(NSArray<NSString *> *)rules forRow:(NSInteger)row {

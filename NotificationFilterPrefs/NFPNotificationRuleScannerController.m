@@ -12,6 +12,7 @@
 @property (nonatomic, copy) NSString *displayName;
 @property (nonatomic, assign) NFPRuleEditorKind initialRuleKind;
 @property (nonatomic, weak, nullable) UIViewController *returnViewController;
+@property (nonatomic, assign) NFPNotificationRuleTokenReturnMode returnMode;
 @property (nonatomic, copy) NFPNotificationRuleScannerCommitHandler commitHandler;
 @property (nonatomic, copy) NSArray<NSDictionary *> *entries;
 @property (nonatomic, copy, nullable) NSString *historySource;
@@ -67,12 +68,27 @@ static NSString *NFPScannerPreviewText(NSDictionary *entry) {
                          initialRuleKind:(NFPRuleEditorKind)initialRuleKind
                     returnViewController:(UIViewController *)returnViewController
                            commitHandler:(NFPNotificationRuleScannerCommitHandler)commitHandler {
+    return [self initWithBundleIdentifier:bundleIdentifier
+                              displayName:displayName
+                          initialRuleKind:initialRuleKind
+                     returnViewController:returnViewController
+                               returnMode:NFPNotificationRuleTokenReturnModeRulesList
+                            commitHandler:commitHandler];
+}
+
+- (instancetype)initWithBundleIdentifier:(NSString *)bundleIdentifier
+                             displayName:(NSString *)displayName
+                         initialRuleKind:(NFPRuleEditorKind)initialRuleKind
+                    returnViewController:(UIViewController *)returnViewController
+                              returnMode:(NFPNotificationRuleTokenReturnMode)returnMode
+                           commitHandler:(NFPNotificationRuleScannerCommitHandler)commitHandler {
     self = [super initWithStyle:UITableViewStyleInsetGrouped];
     if (self) {
         _bundleIdentifier = [bundleIdentifier copy] ?: @"";
         _displayName = [displayName copy] ?: _bundleIdentifier;
         _initialRuleKind = initialRuleKind;
         _returnViewController = returnViewController;
+        _returnMode = returnMode;
         _commitHandler = [commitHandler copy];
         _entries = @[];
         self.title = NFPLocalizedString(@"RULE_SCAN_TITLE");
@@ -300,6 +316,7 @@ static NSString *NFPScannerPreviewText(NSDictionary *entry) {
                                                                                                                            appDisplayName:self.displayName
                                                                                                                            initialRuleKind:self.initialRuleKind
                                                                                                                       returnViewController:self.returnViewController
+                                                                                                                                returnMode:self.returnMode
                                                                                                                              commitHandler:self.commitHandler];
     [self.navigationController pushViewController:controller animated:YES];
 }
