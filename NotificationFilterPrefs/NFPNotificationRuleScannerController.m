@@ -42,7 +42,7 @@ static NSString *NFPScannerPreviewText(NSDictionary *entry) {
         return preview;
     }
 
-    return NFPLocalizedString(@"RULE_SCAN_EMPTY_PREVIEW");
+    return @"";
 }
 
 - (instancetype)initWithBundleIdentifier:(NSString *)bundleIdentifier
@@ -176,11 +176,8 @@ static NSString *NFPScannerPreviewText(NSDictionary *entry) {
     NSDictionary *entry = self.entries[indexPath.row];
     NSTimeInterval timestamp = [entry[NFLogTimestampKey] respondsToSelector:@selector(doubleValue)] ? [entry[NFLogTimestampKey] doubleValue] : 0;
     NSString *preview = NFPScannerPreviewText(entry);
-    NSString *matchedPattern = [entry[NFLogMatchedPatternKey] isKindOfClass:[NSString class]] ? entry[NFLogMatchedPatternKey] : @"";
     cell.textLabel.text = preview;
-    cell.detailTextLabel.text = matchedPattern.length > 0 ?
-        [NSString stringWithFormat:@"%@ · %@", [[self dateFormatter] stringFromDate:[NSDate dateWithTimeIntervalSince1970:timestamp]], matchedPattern] :
-        [[self dateFormatter] stringFromDate:[NSDate dateWithTimeIntervalSince1970:timestamp]];
+    cell.detailTextLabel.text = [[self dateFormatter] stringFromDate:[NSDate dateWithTimeIntervalSince1970:timestamp]];
     cell.imageView.image = [[NFPAppInfoProvider sharedProvider] iconForBundleIdentifier:self.bundleIdentifier];
     return cell;
 }

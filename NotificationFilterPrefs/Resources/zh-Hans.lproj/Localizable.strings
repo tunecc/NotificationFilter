@@ -22,7 +22,6 @@
 "COMMON_CLEAR" = "清空";
 "COMMON_EDIT" = "编辑";
 "COMMON_DONE" = "完成";
-"COMMON_PASTE" = "粘贴";
 "COMMON_SCAN" = "扫描";
 "COMMON_UNKNOWN" = "未知";
 "COMMON_CONFIRM_DELETE" = "确认删除";
@@ -170,13 +169,11 @@
 "RULES_LIST_CONTAINS_PLACEHOLDER" = "输入一条需要匹配的消息内容，例如：支付成功";
 "RULES_LIST_EXCLUDE_PLACEHOLDER" = "输入一条需要放行的消息内容，例如：验证码";
 "RULES_LIST_REGEX_PLACEHOLDER" = "输入一条正则表达式，例如：验证码\\d{4,6}";
-"RULES_LIST_IMPORT_EMPTY_PASTEBOARD_MESSAGE" = "剪贴板里没有可用内容。";
 "RULES_LIST_DELETE_CONFIRM_MESSAGE_FORMAT" = "将删除已选中的 %lu 条规则。";
 "RULES_LIST_SELECTED_COUNT_TITLE_FORMAT" = "已选 %lu 条";
 "RULES_LIST_DELETE_COUNT_BUTTON_FORMAT" = "删除(%lu)";
 "RULE_SCAN_TITLE" = "扫描历史";
 "RULE_SCAN_EMPTY" = "当前应用还没有可用的通知历史记录。";
-"RULE_SCAN_EMPTY_PREVIEW" = "没有可扫描文本";
 "RULE_SCAN_FOOTER" = "这里读取的是 SpringBoard 当前持有的通知中心历史记录。";
 "RULE_SCAN_FOOTER_MIRROR" = "实时通知中心快照不可用，当前显示的是 Notification Filter 在内存里维护的镜像。";
 "RULE_SCAN_SOURCE_FAILED" = "无法从 SpringBoard 读取通知中心历史。";
@@ -184,7 +181,7 @@
 "RULE_SCAN_PICKER_TITLE" = "生成规则";
 "RULE_SCAN_NOTIFICATION_LABEL" = "通知内容";
 "RULE_SCAN_RULE_TYPE_LABEL" = "规则类型";
-"RULE_SCAN_TOKENS_LABEL" = "选择词语";
+"RULE_SCAN_TOKENS_LABEL" = "按区域选择词语";
 "RULE_SCAN_NO_TOKENS" = "这条通知里没有可供选择的词语。";
 "RULE_SCAN_EMPTY_SELECTION_TITLE" = "还没有选择内容";
 "RULE_SCAN_EMPTY_SELECTION_MESSAGE" = "请至少选择一个词语再保存。";

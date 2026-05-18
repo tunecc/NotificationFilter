@@ -5,14 +5,12 @@
 #import <objc/message.h>
 #import <rocketbootstrap/rocketbootstrap.h>
 
-static BOOL NFPEnsureAppSupportLoaded(void) {
+static void NFPEnsureAppSupportLoaded(void) {
     static BOOL attempted = NO;
-    static BOOL loaded = NO;
     if (!attempted) {
         attempted = YES;
-        loaded = dlopen("/System/Library/PrivateFrameworks/AppSupport.framework/AppSupport", RTLD_LAZY) != NULL;
+        dlopen("/System/Library/PrivateFrameworks/AppSupport.framework/AppSupport", RTLD_LAZY);
     }
-    return loaded;
 }
 
 @implementation NFPNotificationHistoryClient

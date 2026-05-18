@@ -219,10 +219,6 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     [self.navigationController pushViewController:controller animated:YES];
 }
 
-- (void)setEditing:(BOOL)editing animated:(BOOL)animated {
-    [super setEditing:editing animated:animated];
-}
-
 - (void)pushEditorForRuleEntry:(NSDictionary *)ruleEntry atIndex:(NSUInteger)index {
     NSString *placeholder = nil;
     switch (self.editorKind) {
@@ -269,24 +265,6 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
                                                    defaultScope:NFPRuleDefaultScopeForEditorKind(self.editorKind)] mutableCopy];
     [self persistRules];
     [self.tableView reloadData];
-}
-
-- (NSError *)validateRegexRules:(NSArray *)rules {
-    for (NSDictionary *ruleEntry in [NFPreferences normalizedRuleEntriesFromArray:rules]) {
-        NSString *rule = [NFPreferences ruleTextFromEntry:ruleEntry];
-        NSError *error = nil;
-        [NSRegularExpression regularExpressionWithPattern:rule
-                                                  options:NSRegularExpressionCaseInsensitive
-                                                    error:&error];
-        if (error) {
-            return [NSError errorWithDomain:NFPreferencesIdentifier
-                                       code:4
-                                   userInfo:@{NSLocalizedDescriptionKey: [NSString stringWithFormat:NFPLocalizedString(@"REGEX_COMPILE_FAILED_FORMAT"),
-                                                                          rule,
-                                                                          error.localizedDescription ?: NFPLocalizedString(@"COMMON_UNKNOWN")]}];
-        }
-    }
-    return nil;
 }
 
 - (NFPRuleValidationState)validationStateForRuleEntry:(NSDictionary *)ruleEntry {
@@ -417,14 +395,6 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     self.rules = [[NFPreferences normalizedRuleEntriesFromArray:reloadedRules
                                                    defaultScope:NFPRuleDefaultScopeForEditorKind(self.editorKind)] mutableCopy];
     [self.tableView reloadData];
-}
-
-- (void)presentAlertWithTitle:(NSString *)title message:(NSString *)message {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:title
-                                                                   message:message
-                                                            preferredStyle:UIAlertControllerStyleAlert];
-    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_OK") style:UIAlertActionStyleDefault handler:nil]];
-    [self presentViewController:alert animated:YES completion:nil];
 }
 
 @end

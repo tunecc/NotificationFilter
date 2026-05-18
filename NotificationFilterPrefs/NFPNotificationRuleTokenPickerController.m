@@ -2,8 +2,9 @@
 #import "../Shared/NFPreferences.h"
 #import "NFPLocalization.h"
 
-static NSString * const NFPTokenTextKey = @"text";
-static NSString * const NFPTokenScopesKey = @"scopes";
+static NSString * const NFPTokenSectionScopeKey = @"scope";
+static NSString * const NFPTokenSectionTokensKey = @"tokens";
+static NSString * const NFPTokenSelectionSeparator = @"\n";
 
 @interface NFPNotificationRuleTokenPickerController ()
 
@@ -13,12 +14,8 @@ static NSString * const NFPTokenScopesKey = @"scopes";
 @property (nonatomic, assign) NFPRuleEditorKind selectedRuleKind;
 @property (nonatomic, weak, nullable) UIViewController *returnViewController;
 @property (nonatomic, copy) NFPNotificationRuleTokenCommitHandler commitHandler;
-@property (nonatomic, copy) NSArray<NSDictionary *> *tokens;
-@property (nonatomic, strong) NSMutableSet<NSString *> *selectedTokens;
-@property (nonatomic, copy) NSString *selectedScope;
-@property (nonatomic, strong) UISegmentedControl *ruleKindControl;
-@property (nonatomic, strong) UISegmentedControl *scopeControl;
-@property (nonatomic, strong) UITextView *summaryTextView;
+@property (nonatomic, copy) NSArray<NSDictionary *> *tokenSections;
+@property (nonatomic, strong) NSMutableSet<NSString *> *selectedTokenKeys;
 @property (nonatomic, strong) UIStackView *tokenStackView;
 
 @end
@@ -38,9 +35,8 @@ static NSString * const NFPTokenScopesKey = @"scopes";
         _selectedRuleKind = initialRuleKind == NFPRuleEditorKindExclude ? NFPRuleEditorKindExclude : NFPRuleEditorKindContains;
         _returnViewController = returnViewController;
         _commitHandler = [commitHandler copy];
-        _selectedTokens = [NSMutableSet set];
-        _tokens = [self buildTokensFromEntry:_entry];
-        _selectedScope = NFRuleScopeAll;
+        _selectedTokenKeys = [NSMutableSet set];
+        _tokenSections = [self buildTokenSectionsFromEntry:_entry];
         self.title = NFPLocalizedString(@"RULE_SCAN_PICKER_TITLE");
     }
     return self;
@@ -81,7 +77,6 @@ static NSString * const NFPTokenScopesKey = @"scopes";
     summaryTextView.font = [UIFont systemFontOfSize:15.0];
     summaryTextView.text = [self notificationSummaryText];
     [contentStack addArrangedSubview:summaryTextView];
-    self.summaryTextView = summaryTextView;
 
     UILabel *ruleTypeLabel = [[UILabel alloc] init];
     ruleTypeLabel.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightSemibold];
@@ -96,23 +91,6 @@ static NSString * const NFPTokenScopesKey = @"scopes";
     ruleKindControl.selectedSegmentIndex = self.selectedRuleKind == NFPRuleEditorKindExclude ? 1 : 0;
     [ruleKindControl addTarget:self action:@selector(ruleKindChanged:) forControlEvents:UIControlEventValueChanged];
     [contentStack addArrangedSubview:ruleKindControl];
-    self.ruleKindControl = ruleKindControl;
-
-    UILabel *scopeLabel = [[UILabel alloc] init];
-    scopeLabel.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightSemibold];
-    scopeLabel.textColor = [UIColor secondaryLabelColor];
-    scopeLabel.text = NFPLocalizedString(@"RULE_TEXT_SCOPE_LABEL");
-    [contentStack addArrangedSubview:scopeLabel];
-
-    UISegmentedControl *scopeControl = [[UISegmentedControl alloc] initWithItems:@[
-        NFPLocalizedScopeName(NFRuleScopeMessage),
-        NFPLocalizedScopeName(NFRuleScopeTitle),
-        NFPLocalizedScopeName(NFRuleScopeSubtitle),
-        NFPLocalizedScopeName(NFRuleScopeAll)
-    ]];
-    [scopeControl addTarget:self action:@selector(scopeChanged:) forControlEvents:UIControlEventValueChanged];
-    [contentStack addArrangedSubview:scopeControl];
-    self.scopeControl = scopeControl;
 
     UILabel *tokenLabel = [[UILabel alloc] init];
     tokenLabel.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightSemibold];
@@ -152,48 +130,68 @@ static NSString * const NFPTokenScopesKey = @"scopes";
     ]];
 
     [self rebuildTokenButtons];
-    [self updateSelectedScopeFromTokens];
-    [self updateScopeControl];
 }
 
-- (NSArray<NSDictionary *> *)buildTokensFromEntry:(NSDictionary *)entry {
-    NSMutableDictionary<NSString *, NSMutableSet<NSString *> *> *tokenScopes = [NSMutableDictionary dictionary];
-    [self collectTokensFromText:entry[NFLogTitleKey] scope:NFRuleScopeTitle intoMap:tokenScopes];
-    [self collectTokensFromText:entry[NFLogSubtitleKey] scope:NFRuleScopeSubtitle intoMap:tokenScopes];
-    [self collectTokensFromText:entry[NFLogHeaderKey] scope:NFRuleScopeMessage intoMap:tokenScopes];
-    [self collectTokensFromText:entry[NFLogBodyKey] scope:NFRuleScopeMessage intoMap:tokenScopes];
-    [self collectTokensFromText:entry[NFLogMessageKey] scope:NFRuleScopeMessage intoMap:tokenScopes];
+- (NSArray<NSDictionary *> *)buildTokenSectionsFromEntry:(NSDictionary *)entry {
+    NSMutableArray<NSDictionary *> *sections = [NSMutableArray array];
 
-    NSMutableArray<NSDictionary *> *tokens = [NSMutableArray arrayWithCapacity:tokenScopes.count];
-    [tokenScopes enumerateKeysAndObjectsUsingBlock:^(NSString *token, NSMutableSet<NSString *> *scopes, BOOL *stop) {
-        [tokens addObject:@{
-            NFPTokenTextKey: token,
-            NFPTokenScopesKey: [[scopes allObjects] sortedArrayUsingSelector:@selector(compare:)]
-        }];
-    }];
+    [self appendSectionWithScope:NFRuleScopeTitle
+                        rawTexts:@[entry[NFLogTitleKey] ?: @""]
+                       toSections:sections];
+    [self appendSectionWithScope:NFRuleScopeSubtitle
+                        rawTexts:@[entry[NFLogSubtitleKey] ?: @""]
+                       toSections:sections];
+    [self appendSectionWithScope:NFRuleScopeMessage
+                        rawTexts:@[entry[NFLogHeaderKey] ?: @"", entry[NFLogBodyKey] ?: @"", entry[NFLogMessageKey] ?: @""]
+                       toSections:sections];
 
-    [tokens sortUsingComparator:^NSComparisonResult(NSDictionary *lhs, NSDictionary *rhs) {
-        NSString *lhsText = lhs[NFPTokenTextKey];
-        NSString *rhsText = rhs[NFPTokenTextKey];
-        if (lhsText.length > rhsText.length) {
+    return sections;
+}
+
+- (void)appendSectionWithScope:(NSString *)scope
+                      rawTexts:(NSArray *)rawTexts
+                     toSections:(NSMutableArray<NSDictionary *> *)sections {
+    NSMutableArray<NSString *> *tokens = [NSMutableArray array];
+    NSMutableSet<NSString *> *seenTokens = [NSMutableSet set];
+
+    for (id rawText in rawTexts) {
+        for (NSString *token in [self tokensFromText:rawText]) {
+            if (token.length == 0 || [seenTokens containsObject:token]) {
+                continue;
+            }
+            [seenTokens addObject:token];
+            [tokens addObject:token];
+        }
+    }
+
+    if (tokens.count == 0) {
+        return;
+    }
+
+    [tokens sortUsingComparator:^NSComparisonResult(NSString *lhs, NSString *rhs) {
+        if (lhs.length > rhs.length) {
             return NSOrderedAscending;
         }
-        if (lhsText.length < rhsText.length) {
+        if (lhs.length < rhs.length) {
             return NSOrderedDescending;
         }
-        return [lhsText localizedCaseInsensitiveCompare:rhsText];
+        return [lhs localizedCaseInsensitiveCompare:rhs];
     }];
-    return tokens;
+
+    [sections addObject:@{
+        NFPTokenSectionScopeKey: scope,
+        NFPTokenSectionTokensKey: tokens
+    }];
 }
 
-- (void)collectTokensFromText:(id)rawText scope:(NSString *)scope intoMap:(NSMutableDictionary<NSString *, NSMutableSet<NSString *> *> *)tokenScopes {
+- (NSArray<NSString *> *)tokensFromText:(id)rawText {
     if (![rawText isKindOfClass:[NSString class]]) {
-        return;
+        return @[];
     }
 
     NSString *text = [(NSString *)rawText stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     if (text.length == 0) {
-        return;
+        return @[];
     }
 
     NSMutableArray<NSString *> *tokens = [NSMutableArray array];
@@ -212,14 +210,7 @@ static NSString * const NFPTokenScopesKey = @"scopes";
         [tokens addObjectsFromArray:[self fallbackTokensFromText:text]];
     }
 
-    for (NSString *token in tokens) {
-        NSMutableSet<NSString *> *scopes = tokenScopes[token];
-        if (!scopes) {
-            scopes = [NSMutableSet set];
-            tokenScopes[token] = scopes;
-        }
-        [scopes addObject:scope];
-    }
+    return tokens;
 }
 
 - (NSArray<NSString *> *)fallbackTokensFromText:(NSString *)text {
@@ -300,7 +291,7 @@ static NSString * const NFPTokenScopesKey = @"scopes";
         [subview removeFromSuperview];
     }
 
-    if (self.tokens.count == 0) {
+    if (self.tokenSections.count == 0) {
         UILabel *emptyLabel = [[UILabel alloc] init];
         emptyLabel.text = NFPLocalizedString(@"RULE_SCAN_NO_TOKENS");
         emptyLabel.textColor = [UIColor secondaryLabelColor];
@@ -309,56 +300,64 @@ static NSString * const NFPTokenScopesKey = @"scopes";
         return;
     }
 
-    UIStackView *currentRow = nil;
-    NSUInteger itemsInRow = 0;
-    for (NSUInteger index = 0; index < self.tokens.count; index++) {
-        if (!currentRow || itemsInRow >= 3) {
-            currentRow = [[UIStackView alloc] init];
-            currentRow.axis = UILayoutConstraintAxisHorizontal;
-            currentRow.spacing = 8.0;
-            currentRow.distribution = UIStackViewDistributionFillEqually;
-            [self.tokenStackView addArrangedSubview:currentRow];
-            itemsInRow = 0;
+    for (NSDictionary *section in self.tokenSections) {
+        NSString *scope = section[NFPTokenSectionScopeKey];
+        NSArray<NSString *> *tokens = [section[NFPTokenSectionTokensKey] isKindOfClass:[NSArray class]] ? section[NFPTokenSectionTokensKey] : @[];
+        if (tokens.count == 0) {
+            continue;
         }
 
-        NSDictionary *tokenInfo = self.tokens[index];
-        UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
-        button.tag = index;
-        button.layer.cornerRadius = 12.0;
-        button.layer.borderWidth = 1.0;
-        button.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
-        button.titleLabel.numberOfLines = 2;
-        button.titleLabel.adjustsFontSizeToFitWidth = YES;
-        button.titleLabel.minimumScaleFactor = 0.72;
-        [button setTitle:tokenInfo[NFPTokenTextKey] forState:UIControlStateNormal];
-        [button addTarget:self action:@selector(tokenTapped:) forControlEvents:UIControlEventTouchUpInside];
-        [button.heightAnchor constraintGreaterThanOrEqualToConstant:44.0].active = YES;
-        [self updateAppearanceForTokenButton:button selected:NO];
-        [currentRow addArrangedSubview:button];
-        itemsInRow += 1;
+        UILabel *sectionLabel = [[UILabel alloc] init];
+        sectionLabel.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightSemibold];
+        sectionLabel.textColor = [UIColor secondaryLabelColor];
+        sectionLabel.text = NFPLocalizedScopeName(scope);
+        [self.tokenStackView addArrangedSubview:sectionLabel];
+
+        UIStackView *currentRow = nil;
+        NSUInteger itemsInRow = 0;
+        for (NSString *token in tokens) {
+            if (!currentRow || itemsInRow >= 3) {
+                currentRow = [[UIStackView alloc] init];
+                currentRow.axis = UILayoutConstraintAxisHorizontal;
+                currentRow.spacing = 8.0;
+                currentRow.distribution = UIStackViewDistributionFillEqually;
+                [self.tokenStackView addArrangedSubview:currentRow];
+                itemsInRow = 0;
+            }
+
+            NSString *selectionKey = [self selectionKeyForScope:scope token:token];
+            UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
+            button.accessibilityIdentifier = selectionKey;
+            button.layer.cornerRadius = 12.0;
+            button.layer.borderWidth = 1.0;
+            button.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
+            button.titleLabel.numberOfLines = 2;
+            button.titleLabel.adjustsFontSizeToFitWidth = YES;
+            button.titleLabel.minimumScaleFactor = 0.72;
+            [button setTitle:token forState:UIControlStateNormal];
+            [button addTarget:self action:@selector(tokenTapped:) forControlEvents:UIControlEventTouchUpInside];
+            [button.heightAnchor constraintGreaterThanOrEqualToConstant:44.0].active = YES;
+            [self updateAppearanceForTokenButton:button selected:[self.selectedTokenKeys containsObject:selectionKey]];
+            [currentRow addArrangedSubview:button];
+            itemsInRow += 1;
+        }
     }
 }
 
 - (void)tokenTapped:(UIButton *)sender {
-    if (sender.tag >= self.tokens.count) {
+    NSString *selectionKey = sender.accessibilityIdentifier;
+    if (selectionKey.length == 0) {
         return;
     }
 
-    NSString *tokenText = self.tokens[sender.tag][NFPTokenTextKey];
-    if (tokenText.length == 0) {
-        return;
-    }
-
-    BOOL selected = ![self.selectedTokens containsObject:tokenText];
+    BOOL selected = ![self.selectedTokenKeys containsObject:selectionKey];
     if (selected) {
-        [self.selectedTokens addObject:tokenText];
+        [self.selectedTokenKeys addObject:selectionKey];
     } else {
-        [self.selectedTokens removeObject:tokenText];
+        [self.selectedTokenKeys removeObject:selectionKey];
     }
 
     [self updateAppearanceForTokenButton:sender selected:selected];
-    [self updateSelectedScopeFromTokens];
-    [self updateScopeControl];
 }
 
 - (void)updateAppearanceForTokenButton:(UIButton *)button selected:(BOOL)selected {
@@ -367,85 +366,32 @@ static NSString * const NFPTokenScopesKey = @"scopes";
     [button setTitleColor:(selected ? [UIColor whiteColor] : [UIColor labelColor]) forState:UIControlStateNormal];
 }
 
-- (void)updateSelectedScopeFromTokens {
-    if (self.selectedTokens.count == 0) {
-        self.selectedScope = self.selectedRuleKind == NFPRuleEditorKindContains ? NFRuleScopeMessage : NFRuleScopeAll;
-        return;
-    }
-
-    NSMutableSet<NSString *> *scopes = [NSMutableSet set];
-    for (NSDictionary *tokenInfo in self.tokens) {
-        NSString *tokenText = tokenInfo[NFPTokenTextKey];
-        if (![self.selectedTokens containsObject:tokenText]) {
-            continue;
-        }
-
-        NSArray<NSString *> *tokenScopes = tokenInfo[NFPTokenScopesKey];
-        for (NSString *scope in tokenScopes) {
-            if (scope.length > 0) {
-                [scopes addObject:scope];
-            }
-        }
-    }
-
-    if (scopes.count == 1) {
-        NSString *scope = scopes.anyObject;
-        if ([scope isEqualToString:NFRuleScopeTitle]) {
-            self.selectedScope = NFRuleScopeTitle;
-            return;
-        }
-        if ([scope isEqualToString:NFRuleScopeSubtitle]) {
-            self.selectedScope = NFRuleScopeSubtitle;
-            return;
-        }
-        self.selectedScope = NFRuleScopeMessage;
-        return;
-    }
-
-    self.selectedScope = NFRuleScopeAll;
-}
-
-- (void)updateScopeControl {
-    NSArray<NSString *> *scopes = @[NFRuleScopeMessage, NFRuleScopeTitle, NFRuleScopeSubtitle, NFRuleScopeAll];
-    NSUInteger index = [scopes indexOfObject:self.selectedScope ?: NFRuleScopeAll];
-    self.scopeControl.selectedSegmentIndex = index == NSNotFound ? 3 : index;
-}
-
 - (void)ruleKindChanged:(UISegmentedControl *)sender {
     self.selectedRuleKind = sender.selectedSegmentIndex == 1 ? NFPRuleEditorKindExclude : NFPRuleEditorKindContains;
 }
 
-- (void)scopeChanged:(UISegmentedControl *)sender {
-    switch (sender.selectedSegmentIndex) {
-        case 1:
-            self.selectedScope = NFRuleScopeTitle;
-            break;
-        case 2:
-            self.selectedScope = NFRuleScopeSubtitle;
-            break;
-        case 3:
-            self.selectedScope = NFRuleScopeAll;
-            break;
-        default:
-            self.selectedScope = NFRuleScopeMessage;
-            break;
-    }
-}
-
 - (void)saveTapped {
-    if (self.selectedTokens.count == 0) {
+    if (self.selectedTokenKeys.count == 0) {
         [self presentAlertWithTitle:NFPLocalizedString(@"RULE_SCAN_EMPTY_SELECTION_TITLE")
                             message:NFPLocalizedString(@"RULE_SCAN_EMPTY_SELECTION_MESSAGE")];
         return;
     }
 
-    NSMutableArray<NSDictionary *> *entries = [NSMutableArray arrayWithCapacity:self.selectedTokens.count];
-    NSArray<NSString *> *sortedSelections = [[self.selectedTokens allObjects] sortedArrayUsingSelector:@selector(localizedCaseInsensitiveCompare:)];
-    for (NSString *token in sortedSelections) {
-        [entries addObject:[NFPreferences ruleEntryWithText:token
-                                                    enabled:YES
-                                                  identifier:nil
-                                                       scope:self.selectedScope ?: NFRuleScopeAll]];
+    NSMutableArray<NSDictionary *> *entries = [NSMutableArray arrayWithCapacity:self.selectedTokenKeys.count];
+    for (NSDictionary *section in self.tokenSections) {
+        NSString *scope = section[NFPTokenSectionScopeKey];
+        NSArray<NSString *> *tokens = [section[NFPTokenSectionTokensKey] isKindOfClass:[NSArray class]] ? section[NFPTokenSectionTokensKey] : @[];
+        for (NSString *token in tokens) {
+            NSString *selectionKey = [self selectionKeyForScope:scope token:token];
+            if (![self.selectedTokenKeys containsObject:selectionKey]) {
+                continue;
+            }
+
+            [entries addObject:[NFPreferences ruleEntryWithText:token
+                                                        enabled:YES
+                                                      identifier:nil
+                                                           scope:scope ?: NFRuleScopeMessage]];
+        }
     }
 
     NSError *error = nil;
@@ -473,6 +419,10 @@ static NSString * const NFPTokenScopesKey = @"scopes";
     }
 
     [self.navigationController popViewControllerAnimated:YES];
+}
+
+- (NSString *)selectionKeyForScope:(NSString *)scope token:(NSString *)token {
+    return [NSString stringWithFormat:@"%@%@%@", scope ?: @"", NFPTokenSelectionSeparator, token ?: @""];
 }
 
 - (void)presentAlertWithTitle:(NSString *)title message:(NSString *)message {

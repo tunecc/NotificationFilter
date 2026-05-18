@@ -33,7 +33,7 @@ static void NFAttemptDeleteFilteredBulletin(id server,
                                             NFNotificationRecord *record,
                                             NFMatchResult *result);
 static void NFClearTransientBlockedCaches(void);
-static NSDictionary *NFHandleNotificationHistoryFetchMessage(NSString *name, NSDictionary *userInfo);
+static NSDictionary *NFHandleNotificationHistoryFetchMessage(NSDictionary *userInfo);
 static void NFPerformSyncOrInlineOnBBServerQueue(dispatch_block_t block);
 static void NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier(NSString *bundleIdentifier,
                                                                          NSArray<NSDictionary *> *entries);
@@ -51,14 +51,12 @@ static NSDictionary *NFCopyPreferencesSnapshot(void) {
     return snapshot;
 }
 
-static BOOL NFEnsureAppSupportLoaded(void) {
+static void NFEnsureAppSupportLoaded(void) {
     static BOOL attempted = NO;
-    static BOOL loaded = NO;
     if (!attempted) {
         attempted = YES;
-        loaded = dlopen("/System/Library/PrivateFrameworks/AppSupport.framework/AppSupport", RTLD_LAZY) != NULL;
+        dlopen("/System/Library/PrivateFrameworks/AppSupport.framework/AppSupport", RTLD_LAZY);
     }
-    return loaded;
 }
 
 static BOOL NFShouldDeleteFilteredNotifications(void) {
@@ -549,7 +547,7 @@ static NSArray<NSDictionary *> *NFNotificationHistoryLiveEntriesForBundleIdentif
     return resultEntries;
 }
 
-static NSDictionary *NFHandleNotificationHistoryFetchMessage(NSString *name, NSDictionary *userInfo) {
+static NSDictionary *NFHandleNotificationHistoryFetchMessage(NSDictionary *userInfo) {
     NSString *bundleIdentifier = NFNormalizedStringValue(userInfo[NFNotificationHistoryBundleIdentifierKey]);
     NSUInteger limit = [userInfo[NFNotificationHistoryLimitKey] respondsToSelector:@selector(unsignedIntegerValue)] ?
         [userInfo[NFNotificationHistoryLimitKey] unsignedIntegerValue] :
@@ -605,7 +603,7 @@ static void NFStartNotificationHistoryServerIfNeeded(void) {
 @implementation NFNotificationHistoryMessageServer
 
 - (NSDictionary *)handleMessageNamed:(NSString *)name withUserInfo:(NSDictionary *)userInfo {
-    return NFHandleNotificationHistoryFetchMessage(name, userInfo ?: @{});
+    return NFHandleNotificationHistoryFetchMessage(userInfo ?: @{});
 }
 
 @end
