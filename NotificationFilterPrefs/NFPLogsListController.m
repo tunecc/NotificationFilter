@@ -177,10 +177,12 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.title = [self isShowingAppEntries] ? (self.displayNameFilter ?: NFPLocalizedString(@"LOGS_TITLE")) : NFPLocalizedString(@"LOGS_TITLE");
-    if (![self isShowingAppEntries]) {
-        UIBarButtonItem *clearButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash
-                                                                                     target:self
-                                                                                     action:@selector(clearTapped)];
+    UIBarButtonItem *clearButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash
+                                                                                 target:self
+                                                                                 action:@selector(clearTapped)];
+    if ([self isShowingAppEntries]) {
+        self.navigationItem.rightBarButtonItem = clearButton;
+    } else {
         UIBarButtonItem *limitButton = [[UIBarButtonItem alloc] initWithTitle:NFPLocalizedString(@"LOGS_LIMIT_BUTTON")
                                                                         style:UIBarButtonItemStylePlain
                                                                        target:self
@@ -310,14 +312,19 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
         return;
     }
 
+    NSString *message = [self isShowingAppEntries] ? NFPLocalizedString(@"LOGS_CLEAR_APP_MESSAGE") : NFPLocalizedString(@"LOGS_CLEAR_MESSAGE");
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"LOGS_CLEAR_TITLE")
-                                                                   message:NFPLocalizedString(@"LOGS_CLEAR_MESSAGE")
+                                                                   message:message
                                                             preferredStyle:UIAlertControllerStyleAlert];
     [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_CANCEL") style:UIAlertActionStyleCancel handler:nil]];
     [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_CLEAR")
                                               style:UIAlertActionStyleDestructive
                                             handler:^(UIAlertAction *action) {
-        [NFLogStore clearEntries];
+        if ([self isShowingAppEntries]) {
+            [NFLogStore clearEntriesForBundleIdentifier:self.bundleIdentifierFilter ?: @""];
+        } else {
+            [NFLogStore clearEntries];
+        }
         [self reloadEntries];
     }]];
     [self presentViewController:alert animated:YES completion:nil];

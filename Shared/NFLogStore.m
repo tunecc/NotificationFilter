@@ -149,6 +149,45 @@ static NSString *NFNormalizedLogString(id value) {
     });
 }
 
++ (void)clearEntriesForBundleIdentifier:(NSString *)bundleIdentifier {
+    NSString *normalizedBundleIdentifier = NFNormalizedLogString(bundleIdentifier);
+    if (normalizedBundleIdentifier.length == 0) {
+        return;
+    }
+
+    dispatch_sync([self _logQueue], ^{
+        NSString *logPath = [NFPreferences logsFilePath];
+        NSArray *existingEntries = [NSArray arrayWithContentsOfFile:logPath];
+        if (![existingEntries isKindOfClass:[NSArray class]] || existingEntries.count == 0) {
+            return;
+        }
+
+        NSMutableArray<NSDictionary *> *remainingEntries = [NSMutableArray arrayWithCapacity:existingEntries.count];
+        for (id entry in existingEntries) {
+            if (![entry isKindOfClass:[NSDictionary class]]) {
+                continue;
+            }
+
+            NSString *entryBundleIdentifier = NFNormalizedLogString(((NSDictionary *)entry)[NFLogBundleIdentifierKey]);
+            if ([entryBundleIdentifier isEqualToString:normalizedBundleIdentifier]) {
+                continue;
+            }
+            [remainingEntries addObject:entry];
+        }
+
+        if (remainingEntries.count == existingEntries.count) {
+            return;
+        }
+
+        if (remainingEntries.count == 0) {
+            [[NSFileManager defaultManager] removeItemAtPath:logPath error:nil];
+            return;
+        }
+
+        [remainingEntries writeToFile:logPath atomically:YES];
+    });
+}
+
 + (void)trimEntriesToCurrentLimit {
     dispatch_sync([self _logQueue], ^{
         NSUInteger entryLimit = [self _currentEntryLimit];

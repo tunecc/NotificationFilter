@@ -60,7 +60,7 @@
 "RULE_CONTAINS_TITLE" = "包含规则";
 "RULE_EXCLUDE_TITLE" = "排除规则";
 "RULE_REGEX_TITLE" = "正则规则";
-"SCOPE_MESSAGE" = "消息";
+"SCOPE_MESSAGE" = "正文";
 "SCOPE_TITLE" = "标题";
 "SCOPE_SUBTITLE" = "副标题";
 "SCOPE_ALL" = "全部文本";
@@ -102,6 +102,7 @@
 "LOGS_LIMIT_SAVE_FAILED" = "无法保存日志条数设置。";
 "LOGS_CLEAR_TITLE" = "清空日志";
 "LOGS_CLEAR_MESSAGE" = "该操作只会删除过滤记录，不会影响规则。";
+"LOGS_CLEAR_APP_MESSAGE" = "该操作只会删除当前应用的过滤记录，不会影响其他应用或规则。";
 
 "LOG_DETAIL_TITLE" = "通知详情";
 "LOG_DETAIL_APP_FORMAT" = "应用：%@";
