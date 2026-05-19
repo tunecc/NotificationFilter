@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/opt/homebrew/bin/bash
 
 set -euo pipefail
 
@@ -140,7 +140,8 @@ clean_host_metadata() {
 
     for target_path in "$@"; do
         [ -e "$target_path" ] || continue
-        find "$target_path" -name '.DS_Store' -type f -delete
+        find "$target_path" -type f -name '.DS_Store' -delete
+        find "$target_path" -type f -name '._*' -delete
         find "$target_path" -name '__MACOSX' -type d -prune -exec rm -rf {} +
     done
 }
@@ -218,11 +219,16 @@ build_native_deb() {
 
     log "building native $flavor package"
     run_make_clean_with_retry "$flavor" "${make_vars[@]}"
-    clean_host_metadata "$repo_root/layout" "$repo_root/_" "$package_dir"
+    clean_host_metadata "$repo_root" "$package_dir"
     run_make_target package "${make_vars[@]}"
     clean_host_metadata "$package_dir"
 
-    mapfile -t deb_candidates < <(find "$package_dir" -maxdepth 1 -type f -name '*.deb' | sort)
+    local -a deb_candidates=()
+    local deb_candidate
+    while IFS= read -r deb_candidate; do
+        [ -n "$deb_candidate" ] || continue
+        deb_candidates+=("$deb_candidate")
+    done < <(find "$package_dir" -maxdepth 1 -type f -name '*.deb' | sort)
     [ "${#deb_candidates[@]}" -gt 0 ] || fail "no deb produced for $flavor"
     [ "${#deb_candidates[@]}" -eq 1 ] || fail "expected exactly one deb for $flavor, got ${#deb_candidates[@]}"
 
@@ -300,7 +306,7 @@ assert_otool_contains() {
 
 assert_clean_unpack_dir() {
     local unpack_dir="$1"
-    if find "$unpack_dir" \( -name '.DS_Store' -o -name '__MACOSX' \) -print -quit | grep -q .; then
+    if find "$unpack_dir" \( -name '.DS_Store' -o -name '._*' -o -name '__MACOSX' \) -print -quit | grep -q .; then
         fail "$(basename "$unpack_dir") contains host metadata files"
     fi
 }
@@ -398,7 +404,7 @@ main() {
     parse_targets "$@"
 
     mkdir -p "$out_root"
-    clean_host_metadata "$out_root" "$repo_root/layout" "$repo_root/packages"
+    clean_host_metadata "$repo_root"
 
     if [ "$want_rootful" -eq 1 ]; then
         rootful_source="$(build_native_deb rootful)"
