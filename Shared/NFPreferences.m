@@ -1,6 +1,6 @@
 #import "NFPreferences.h"
 #import <CoreFoundation/CoreFoundation.h>
-#import <roothide/stub.h>
+#import <roothide.h>
 
 NSString * const NFPreferencesIdentifier = @"com.tune.notificationfilter";
 NSString * const NFPreferencesChangedDarwinNotification = @"com.tune.notificationfilter/preferences-changed";
