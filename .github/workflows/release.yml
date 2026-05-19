@@ -23,6 +23,7 @@ jobs:
     runs-on: macos-15
     env:
       RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      RELEASE_REPO: ${{ github.repository }}
       HOMEBREW_NO_AUTO_UPDATE: "1"
       HOMEBREW_NO_INSTALL_CLEANUP: "1"
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
@@ -113,14 +114,26 @@ jobs:
           test -f "out/NotificationFilter_${TAG_VERSION}_roothide_arm64e.deb"
           ls -l out/NotificationFilter_*
 
+      - name: Generate release notes
+        run: |
+          mkdir -p out
+          ./scripts/generate_release_notes.py \
+            --current-tag "$RELEASE_TAG" \
+            --repo "$RELEASE_REPO" \
+            --output out/release-notes.md
+
       - name: Publish GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            gh release edit "$RELEASE_TAG" --title "$RELEASE_TAG"
+            gh release edit "$RELEASE_TAG" \
+              --title "$RELEASE_TAG" \
+              --notes-file out/release-notes.md
           else
-            gh release create "$RELEASE_TAG" --title "$RELEASE_TAG" --generate-notes
+            gh release create "$RELEASE_TAG" \
+              --title "$RELEASE_TAG" \
+              --notes-file out/release-notes.md
           fi
 
           gh release upload "$RELEASE_TAG" out/NotificationFilter_* --clobber
