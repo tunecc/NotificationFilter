@@ -79,6 +79,127 @@ static NSString *NFNormalizedLogString(id value) {
     return NSNotFound;
 }
 
++ (NSString *)_clearStatePath {
+    return [[NFPreferences logsFilePath] stringByAppendingString:@".cleared.plist"];
+}
+
++ (NSMutableDictionary *)_loadClearState {
+    NSDictionary *state = [NSDictionary dictionaryWithContentsOfFile:[self _clearStatePath]];
+    if (![state isKindOfClass:[NSDictionary class]]) {
+        return [NSMutableDictionary dictionary];
+    }
+    return [state mutableCopy];
+}
+
++ (void)_saveClearState:(NSDictionary *)state {
+    NSString *statePath = [self _clearStatePath];
+    NSString *directoryPath = [statePath stringByDeletingLastPathComponent];
+    [[NSFileManager defaultManager] createDirectoryAtPath:directoryPath
+                              withIntermediateDirectories:YES
+                                               attributes:nil
+                                                    error:nil];
+    [state writeToFile:statePath atomically:YES];
+}
+
++ (NSString *)_clearSignatureForEntry:(NSDictionary *)entry {
+    NSString *bundleIdentifier = NFNormalizedLogString(entry[NFLogBundleIdentifierKey]);
+    if (bundleIdentifier.length == 0) {
+        return nil;
+    }
+
+    NSString *sectionID = NFNormalizedLogString(entry[NFLogSectionIDKey]);
+    NSString *bulletinID = NFNormalizedLogString(entry[NFLogBulletinIDKey]);
+    NSString *recordID = NFNormalizedLogString(entry[NFLogRecordIDKey]);
+    NSString *publisherBulletinID = NFNormalizedLogString(entry[NFLogPublisherBulletinIDKey]);
+    if (bulletinID.length > 0 || recordID.length > 0 || publisherBulletinID.length > 0) {
+        return [NSString stringWithFormat:@"id|%@|%@|%@|%@|%@",
+                                          bundleIdentifier,
+                                          sectionID ?: @"",
+                                          bulletinID ?: @"",
+                                          recordID ?: @"",
+                                          publisherBulletinID ?: @""];
+    }
+
+    return nil;
+}
+
++ (void)_markEntriesClearedForBundleIdentifier:(NSString *)bundleIdentifier
+                                       entries:(NSArray<NSDictionary *> *)entries
+                                     clearTime:(NSTimeInterval)clearTime
+                                         state:(NSMutableDictionary *)state {
+    NSString *normalizedBundleIdentifier = NFNormalizedLogString(bundleIdentifier);
+    if (normalizedBundleIdentifier.length == 0) {
+        return;
+    }
+
+    NSMutableSet<NSString *> *signatures = [NSMutableSet set];
+    NSDictionary *existingBundleState = [state[normalizedBundleIdentifier] isKindOfClass:[NSDictionary class]] ?
+        state[normalizedBundleIdentifier] :
+        nil;
+    NSArray *existingSignatures = [existingBundleState[@"signatures"] isKindOfClass:[NSArray class]] ?
+        existingBundleState[@"signatures"] :
+        @[];
+    for (id signature in existingSignatures) {
+        if ([signature isKindOfClass:[NSString class]] && [signature length] > 0) {
+            [signatures addObject:signature];
+        }
+    }
+
+    for (NSDictionary *entry in entries) {
+        if (![entry isKindOfClass:[NSDictionary class]]) {
+            continue;
+        }
+
+        NSString *entryBundleIdentifier = NFNormalizedLogString(entry[NFLogBundleIdentifierKey]);
+        if (![entryBundleIdentifier isEqualToString:normalizedBundleIdentifier]) {
+            continue;
+        }
+
+        NSString *signature = [self _clearSignatureForEntry:entry];
+        if (signature.length > 0) {
+            [signatures addObject:signature];
+        }
+    }
+
+    NSTimeInterval existingClearTime = [existingBundleState[@"clearedAt"] respondsToSelector:@selector(doubleValue)] ?
+        [existingBundleState[@"clearedAt"] doubleValue] :
+        0;
+    state[normalizedBundleIdentifier] = @{
+        @"clearedAt": @(MAX(existingClearTime, clearTime)),
+        @"signatures": [signatures.allObjects sortedArrayUsingSelector:@selector(compare:)]
+    };
+}
+
++ (BOOL)_entryMatchesClearState:(NSDictionary *)entry clearState:(NSDictionary *)state {
+    NSString *bundleIdentifier = NFNormalizedLogString(entry[NFLogBundleIdentifierKey]);
+    if (bundleIdentifier.length == 0) {
+        return NO;
+    }
+
+    NSDictionary *bundleState = [state[bundleIdentifier] isKindOfClass:[NSDictionary class]] ?
+        state[bundleIdentifier] :
+        nil;
+    if (!bundleState) {
+        return NO;
+    }
+
+    NSTimeInterval clearedAt = [bundleState[@"clearedAt"] respondsToSelector:@selector(doubleValue)] ?
+        [bundleState[@"clearedAt"] doubleValue] :
+        0;
+    NSTimeInterval entryTimestamp = [entry[NFLogTimestampKey] respondsToSelector:@selector(doubleValue)] ?
+        [entry[NFLogTimestampKey] doubleValue] :
+        0;
+    if (clearedAt > 0 && entryTimestamp > 0 && entryTimestamp <= clearedAt) {
+        return YES;
+    }
+
+    NSString *signature = [self _clearSignatureForEntry:entry];
+    NSArray *signatures = [bundleState[@"signatures"] isKindOfClass:[NSArray class]] ?
+        bundleState[@"signatures"] :
+        @[];
+    return signature.length > 0 && [signatures containsObject:signature];
+}
+
 + (NSArray<NSDictionary *> *)loadEntries {
     NSString *logPath = [NFPreferences logsFilePath];
     NSArray *entries = [NSArray arrayWithContentsOfFile:logPath];
@@ -108,6 +229,10 @@ static NSString *NFNormalizedLogString(id value) {
         }
         if (![mutableEntry[NFLogTimestampKey] respondsToSelector:@selector(doubleValue)]) {
             mutableEntry[NFLogTimestampKey] = @([[NSDate date] timeIntervalSince1970]);
+        }
+
+        if ([self _entryMatchesClearState:mutableEntry clearState:[self _loadClearState]]) {
+            return;
         }
 
         NSMutableArray<NSDictionary *> *entries = [[self loadEntries] mutableCopy];
@@ -145,6 +270,29 @@ static NSString *NFNormalizedLogString(id value) {
 + (void)clearEntries {
     dispatch_sync([self _logQueue], ^{
         NSString *logPath = [NFPreferences logsFilePath];
+        NSArray *existingEntries = [NSArray arrayWithContentsOfFile:logPath];
+        if ([existingEntries isKindOfClass:[NSArray class]] && existingEntries.count > 0) {
+            NSMutableDictionary *clearState = [self _loadClearState];
+            NSMutableSet<NSString *> *bundleIdentifiers = [NSMutableSet set];
+            for (id entry in existingEntries) {
+                if (![entry isKindOfClass:[NSDictionary class]]) {
+                    continue;
+                }
+                NSString *bundleIdentifier = NFNormalizedLogString(((NSDictionary *)entry)[NFLogBundleIdentifierKey]);
+                if (bundleIdentifier.length > 0) {
+                    [bundleIdentifiers addObject:bundleIdentifier];
+                }
+            }
+
+            NSTimeInterval clearTime = [[NSDate date] timeIntervalSince1970];
+            for (NSString *bundleIdentifier in bundleIdentifiers) {
+                [self _markEntriesClearedForBundleIdentifier:bundleIdentifier
+                                                     entries:(NSArray<NSDictionary *> *)existingEntries
+                                                   clearTime:clearTime
+                                                       state:clearState];
+            }
+            [self _saveClearState:clearState];
+        }
         [[NSFileManager defaultManager] removeItemAtPath:logPath error:nil];
     });
 }
@@ -158,6 +306,13 @@ static NSString *NFNormalizedLogString(id value) {
     dispatch_sync([self _logQueue], ^{
         NSString *logPath = [NFPreferences logsFilePath];
         NSArray *existingEntries = [NSArray arrayWithContentsOfFile:logPath];
+        NSMutableDictionary *clearState = [self _loadClearState];
+        [self _markEntriesClearedForBundleIdentifier:normalizedBundleIdentifier
+                                             entries:[existingEntries isKindOfClass:[NSArray class]] ? (NSArray<NSDictionary *> *)existingEntries : @[]
+                                           clearTime:[[NSDate date] timeIntervalSince1970]
+                                               state:clearState];
+        [self _saveClearState:clearState];
+
         if (![existingEntries isKindOfClass:[NSArray class]] || existingEntries.count == 0) {
             return;
         }

@@ -141,7 +141,6 @@ def collect_commits(repo_root: Path, previous_tag: str | None, current_tag: str)
 
 
 def render_notes(repo: str, current_tag: str, previous_tag: str | None, summary: str, commits: list[tuple[str, str]], revspec: str) -> str:
-    compare_range = f"{previous_tag}...{current_tag}" if previous_tag else current_tag
     compare_url = (
         f"https://github.com/{repo}/compare/{previous_tag}...{current_tag}"
         if previous_tag
@@ -149,31 +148,36 @@ def render_notes(repo: str, current_tag: str, previous_tag: str | None, summary:
     )
 
     lines: list[str] = []
-    lines.append(f"# {current_tag}")
-    lines.append("")
 
     if summary:
-        lines.append("## 维护者摘要")
+        # 有 CHANGELOG.md 手写内容时，直接用它作为主体，不重复输出 git log 归类
         lines.append(summary)
         lines.append("")
-
-    categorized: dict[str, list[str]] = {category: [] for category in CATEGORY_ORDER}
-    for category, detail in commits:
-        categorized.setdefault(category, []).append(detail)
-
-    for category in CATEGORY_ORDER:
-        items = categorized.get(category, [])
-        if not items:
-            continue
-        lines.append(f"## {category}")
-        for item in items:
-            lines.append(f"- {item}")
+        lines.append(f"**[完整变更对比]({compare_url})**")
+        lines.append("")
+    else:
+        # 没有 CHANGELOG 时，用 git log 自动归类兜底
+        lines.append(f"# {current_tag}")
         lines.append("")
 
-    lines.append("## 完整提交列表")
-    lines.append(f"- 比较范围：`{compare_range}`")
-    lines.append(f"- 对比链接：{compare_url}")
-    lines.append("")
+        categorized: dict[str, list[str]] = {category: [] for category in CATEGORY_ORDER}
+        for category, detail in commits:
+            categorized.setdefault(category, []).append(detail)
+
+        for category in CATEGORY_ORDER:
+            items = categorized.get(category, [])
+            if not items:
+                continue
+            lines.append(f"## {category}")
+            for item in items:
+                lines.append(f"- {item}")
+            lines.append("")
+
+        lines.append("## 完整提交列表")
+        lines.append(f"- 比较范围：`{revspec}`")
+        lines.append(f"- 对比链接：{compare_url}")
+        lines.append("")
+
     return "\n".join(lines).rstrip() + "\n"
 
 
