@@ -5,8 +5,18 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 out_root="$repo_root/out"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/notificationfilter-packages.XXXXXX")"
+lock_dir="${TMPDIR:-/tmp}/notificationfilter-build.$(printf '%s' "$repo_root" | shasum | awk '{print $1}').lock"
+lock_acquired=0
 
-trap 'rm -rf "$work_dir"' EXIT
+cleanup() {
+    if [ "$lock_acquired" -eq 1 ]; then
+        rm -f "$lock_dir/pid" 2>/dev/null || true
+        rmdir "$lock_dir" 2>/dev/null || true
+    fi
+    rm -rf "$work_dir"
+}
+
+trap cleanup EXIT
 
 log() {
     printf '[build_packages] %s\n' "$*" >&2
@@ -19,6 +29,31 @@ fail() {
 
 require_command() {
     command -v "$1" >/dev/null 2>&1 || fail "missing command: $1"
+}
+
+acquire_build_lock() {
+    local waited=0
+    local existing_pid=""
+
+    while ! mkdir "$lock_dir" 2>/dev/null; do
+        existing_pid=""
+        if [ -f "$lock_dir/pid" ]; then
+            existing_pid="$(cat "$lock_dir/pid" 2>/dev/null || true)"
+        fi
+
+        if [ -n "$existing_pid" ] && ! kill -0 "$existing_pid" 2>/dev/null; then
+            rm -rf "$lock_dir"
+            continue
+        fi
+
+        [ "$waited" -lt 600 ] || fail "another build appears to be running; lock: $lock_dir"
+        log "waiting for existing build lock: $lock_dir"
+        sleep 2
+        waited=$((waited + 2))
+    done
+
+    lock_acquired=1
+    printf '%s\n' "$$" > "$lock_dir/pid"
 }
 
 sanitize_filename_component() {
@@ -119,6 +154,9 @@ run_make_target() {
         HOME="$HOME" \
         THEOS="${THEOS:-}" \
         TMPDIR="${TMPDIR:-/tmp}" \
+        COPYFILE_DISABLE=1 \
+        COPY_EXTENDED_ATTRIBUTES_DISABLE=1 \
+        XATTR_DISABLE=1 \
         /bin/bash -lc "$cmdline" >&2
 }
 
@@ -140,13 +178,14 @@ clean_host_metadata() {
 
     for target_path in "$@"; do
         [ -e "$target_path" ] || continue
-        find "$target_path" -type f -name '.DS_Store' -delete
-        find "$target_path" -type f -name '._*' -delete
-        find "$target_path" -name '__MACOSX' -type d -prune -exec rm -rf {} +
+        find "$target_path" -type f \( -name '.DS_Store' -o -name '._*' \) -exec rm -f {} + 2>/dev/null || true
+        find "$target_path" -name '__MACOSX' -type d -prune -exec rm -rf {} + 2>/dev/null || true
     done
 }
 
 clean_intermediate_build_state() {
+    local entry
+
     if [ -d "$repo_root/.theos" ]; then
         find "$repo_root/.theos" -mindepth 1 -maxdepth 1 -print0 | while IFS= read -r -d '' entry; do
             remove_path_with_retry "$entry"
@@ -221,7 +260,7 @@ build_native_deb() {
     run_make_clean_with_retry "$flavor" "${make_vars[@]}"
     clean_host_metadata "$repo_root" "$package_dir"
     run_make_target package "${make_vars[@]}"
-    clean_host_metadata "$package_dir"
+    clean_host_metadata "$package_dir" "$repo_root/.theos/_"
 
     local -a deb_candidates=()
     local deb_candidate
@@ -233,7 +272,21 @@ build_native_deb() {
     [ "${#deb_candidates[@]}" -eq 1 ] || fail "expected exactly one deb for $flavor, got ${#deb_candidates[@]}"
 
     deb_path="${deb_candidates[0]}"
+    sanitize_deb_payload "$deb_path"
     printf '%s\n' "$deb_path"
+}
+
+sanitize_deb_payload() {
+    local deb_path="$1"
+    local unpack_dir="$work_dir/sanitize-$(basename "$deb_path" .deb)"
+    local sanitized_path="$work_dir/sanitized-$(basename "$deb_path")"
+
+    rm -rf "$unpack_dir"
+    dpkg-deb -R "$deb_path" "$unpack_dir" >/dev/null
+    clean_host_metadata "$unpack_dir"
+    dpkg-deb -b --root-owner-group "$unpack_dir" "$sanitized_path" >/dev/null
+    mv -f "$sanitized_path" "$deb_path"
+    rm -rf "$unpack_dir"
 }
 
 expected_output_path() {
@@ -400,6 +453,11 @@ main() {
     require_command otool
     require_command cp
     require_command find
+    require_command shasum
+    require_command awk
+    require_command mv
+
+    acquire_build_lock
 
     parse_targets "$@"
 

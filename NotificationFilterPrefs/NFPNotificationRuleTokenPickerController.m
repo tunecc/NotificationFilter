@@ -1,12 +1,173 @@
 #import "NFPNotificationRuleTokenPickerController.h"
 #import "../Shared/NFPreferences.h"
 #import "NFPLocalization.h"
+#import "NFPNotificationRuleTokenBuilder.h"
 
-static NSString * const NFPTokenSectionScopeKey = @"scope";
-static NSString * const NFPTokenSectionTokensKey = @"tokens";
-static NSString * const NFPTokenSelectionSeparator = @"\n";
+static const CGFloat NFPTokenHorizontalSpacing = 4.0;
+static const CGFloat NFPTokenVerticalSpacing = 5.0;
+static const CGFloat NFPTokenMinimumWidth = 24.0;
+static const CGFloat NFPTokenMinimumHeight = 26.0;
+static const CGFloat NFPTokenMaximumWidth = 168.0;
+static const CGFloat NFPTokenDragHitOutset = 5.0;
+static const CGFloat NFPTokenDragSampleDistance = 4.0;
+static const CGFloat NFPTokenMinimumTouchSize = 30.0;
 
-@interface NFPNotificationRuleTokenPickerController ()
+@interface NFPTokenButton : UIButton
+
+@property (nonatomic, assign) UIEdgeInsets visualContentInsets;
+
+@end
+
+@implementation NFPTokenButton
+
+- (CGSize)sizeThatFits:(CGSize)size {
+    UIEdgeInsets insets = self.visualContentInsets;
+    CGFloat titleMaxWidth = MAX(0.0, size.width - insets.left - insets.right);
+    CGSize titleSize = [self.titleLabel sizeThatFits:CGSizeMake(titleMaxWidth, CGFLOAT_MAX)];
+    return CGSizeMake(ceil(titleSize.width + insets.left + insets.right),
+                      ceil(titleSize.height + insets.top + insets.bottom));
+}
+
+- (CGRect)titleRectForContentRect:(CGRect)contentRect {
+    return UIEdgeInsetsInsetRect(contentRect, self.visualContentInsets);
+}
+
+- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event {
+    CGFloat horizontalInset = MIN(0.0, (CGRectGetWidth(self.bounds) - NFPTokenMinimumTouchSize) / 2.0);
+    CGFloat verticalInset = MIN(0.0, (CGRectGetHeight(self.bounds) - NFPTokenMinimumTouchSize) / 2.0);
+    CGRect hitFrame = CGRectInset(self.bounds, horizontalInset, verticalInset);
+    return CGRectContainsPoint(hitFrame, point);
+}
+
+@end
+
+@interface NFPTokenFlowView : UIView
+
+@property (nonatomic, assign) UIEdgeInsets contentInsets;
+@property (nonatomic, assign) CGFloat horizontalSpacing;
+@property (nonatomic, assign) CGFloat verticalSpacing;
+@property (nonatomic, assign) CGFloat minimumTokenWidth;
+@property (nonatomic, assign) CGFloat minimumTokenHeight;
+@property (nonatomic, assign) CGFloat maximumTokenWidth;
+
+- (void)addTokenView:(UIView *)tokenView;
+
+@end
+
+@implementation NFPTokenFlowView {
+    NSMutableArray<UIView *> *_tokenViews;
+}
+
+- (instancetype)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:frame];
+    if (self) {
+        _tokenViews = [NSMutableArray array];
+        _contentInsets = UIEdgeInsetsZero;
+        _horizontalSpacing = NFPTokenHorizontalSpacing;
+        _verticalSpacing = NFPTokenVerticalSpacing;
+        _minimumTokenWidth = NFPTokenMinimumWidth;
+        _minimumTokenHeight = NFPTokenMinimumHeight;
+        _maximumTokenWidth = NFPTokenMaximumWidth;
+    }
+    return self;
+}
+
+- (void)addTokenView:(UIView *)tokenView {
+    if (!tokenView) {
+        return;
+    }
+
+    [_tokenViews addObject:tokenView];
+    [self addSubview:tokenView];
+    [self invalidateIntrinsicContentSize];
+    [self setNeedsLayout];
+}
+
+- (void)setBounds:(CGRect)bounds {
+    CGFloat oldWidth = CGRectGetWidth(self.bounds);
+    [super setBounds:bounds];
+    if (fabs(oldWidth - CGRectGetWidth(bounds)) > 0.5) {
+        [self invalidateIntrinsicContentSize];
+    }
+}
+
+- (CGSize)intrinsicContentSize {
+    CGFloat width = CGRectGetWidth(self.bounds);
+    if (width <= 0.0) {
+        width = UIScreen.mainScreen.bounds.size.width - 56.0;
+    }
+    return CGSizeMake(UIViewNoIntrinsicMetric, [self heightForWidth:width]);
+}
+
+- (CGSize)sizeThatFits:(CGSize)size {
+    return CGSizeMake(size.width, [self heightForWidth:size.width]);
+}
+
+- (CGSize)systemLayoutSizeFittingSize:(CGSize)targetSize
+         withHorizontalFittingPriority:(UILayoutPriority)horizontalFittingPriority
+               verticalFittingPriority:(UILayoutPriority)verticalFittingPriority {
+    CGFloat width = targetSize.width > 0.0 ? targetSize.width : CGRectGetWidth(self.bounds);
+    if (width <= 0.0) {
+        width = UIScreen.mainScreen.bounds.size.width - 56.0;
+    }
+    return CGSizeMake(width, [self heightForWidth:width]);
+}
+
+- (CGSize)systemLayoutSizeFittingSize:(CGSize)targetSize {
+    return [self systemLayoutSizeFittingSize:targetSize
+               withHorizontalFittingPriority:UILayoutPriorityFittingSizeLevel
+                     verticalFittingPriority:UILayoutPriorityFittingSizeLevel];
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    [self layoutTokenViewsForWidth:CGRectGetWidth(self.bounds) applyFrames:YES];
+}
+
+- (CGFloat)heightForWidth:(CGFloat)width {
+    return [self layoutTokenViewsForWidth:width applyFrames:NO];
+}
+
+- (CGFloat)layoutTokenViewsForWidth:(CGFloat)width applyFrames:(BOOL)applyFrames {
+    CGFloat availableWidth = MAX(0.0, width - self.contentInsets.left - self.contentInsets.right);
+    if (availableWidth <= 0.0 || _tokenViews.count == 0) {
+        return self.contentInsets.top + self.contentInsets.bottom;
+    }
+
+    CGFloat x = 0.0;
+    CGFloat y = self.contentInsets.top;
+    CGFloat rowHeight = 0.0;
+
+    for (UIView *tokenView in _tokenViews) {
+        CGSize tokenSize = [self sizeForTokenView:tokenView availableWidth:availableWidth];
+        if (x > 0.0 && x + tokenSize.width > availableWidth) {
+            y += rowHeight + self.verticalSpacing;
+            x = 0.0;
+            rowHeight = 0.0;
+        }
+
+        if (applyFrames) {
+            tokenView.frame = CGRectMake(self.contentInsets.left + x, y, tokenSize.width, tokenSize.height);
+        }
+
+        x += tokenSize.width + self.horizontalSpacing;
+        rowHeight = MAX(rowHeight, tokenSize.height);
+    }
+
+    return y + rowHeight + self.contentInsets.bottom;
+}
+
+- (CGSize)sizeForTokenView:(UIView *)tokenView availableWidth:(CGFloat)availableWidth {
+    CGFloat cappedMaximumWidth = MIN(MAX(self.minimumTokenWidth, self.maximumTokenWidth), availableWidth);
+    CGSize fittingSize = [tokenView sizeThatFits:CGSizeMake(cappedMaximumWidth, CGFLOAT_MAX)];
+    CGFloat width = MIN(MAX(ceil(fittingSize.width), self.minimumTokenWidth), cappedMaximumWidth);
+    CGFloat height = MAX(ceil(fittingSize.height), self.minimumTokenHeight);
+    return CGSizeMake(width, height);
+}
+
+@end
+
+@interface NFPNotificationRuleTokenPickerController () <UIGestureRecognizerDelegate>
 
 @property (nonatomic, copy) NSDictionary *entry;
 @property (nonatomic, copy) NSString *appDisplayName;
@@ -18,6 +179,12 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
 @property (nonatomic, copy) NSArray<NSDictionary *> *tokenSections;
 @property (nonatomic, strong) NSMutableSet<NSString *> *selectedTokenKeys;
 @property (nonatomic, strong) UIStackView *tokenStackView;
+@property (nonatomic, strong) UILongPressGestureRecognizer *tokenDragGestureRecognizer;
+@property (nonatomic, strong) NSMutableSet<NSString *> *dragToggledTokenKeys;
+@property (nonatomic, strong) UISelectionFeedbackGenerator *tokenSelectionFeedbackGenerator;
+@property (nonatomic, assign) CGPoint lastTokenDragPoint;
+@property (nonatomic, assign) BOOL hasLastTokenDragPoint;
+@property (nonatomic, assign) BOOL tokenDragActive;
 
 @end
 
@@ -52,7 +219,8 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
         _returnMode = returnMode;
         _commitHandler = [commitHandler copy];
         _selectedTokenKeys = [NSMutableSet set];
-        _tokenSections = [self buildTokenSectionsFromEntry:_entry];
+        _dragToggledTokenKeys = [NSMutableSet set];
+        _tokenSections = [NFPNotificationRuleTokenBuilder tokenSectionsFromNotificationEntry:_entry];
         self.title = NFPLocalizedString(@"RULE_SCAN_PICKER_TITLE");
     }
     return self;
@@ -123,9 +291,18 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
     UIStackView *tokenStackView = [[UIStackView alloc] init];
     tokenStackView.translatesAutoresizingMaskIntoConstraints = NO;
     tokenStackView.axis = UILayoutConstraintAxisVertical;
-    tokenStackView.spacing = 10.0;
+    tokenStackView.spacing = 8.0;
     [tokenContainer addSubview:tokenStackView];
     self.tokenStackView = tokenStackView;
+
+    UILongPressGestureRecognizer *tokenDragGestureRecognizer = [[UILongPressGestureRecognizer alloc] initWithTarget:self
+                                                                                                             action:@selector(tokenDragGestureRecognized:)];
+    tokenDragGestureRecognizer.minimumPressDuration = 0.0;
+    tokenDragGestureRecognizer.allowableMovement = CGFLOAT_MAX;
+    tokenDragGestureRecognizer.cancelsTouchesInView = YES;
+    tokenDragGestureRecognizer.delegate = self;
+    [tokenContainer addGestureRecognizer:tokenDragGestureRecognizer];
+    self.tokenDragGestureRecognizer = tokenDragGestureRecognizer;
 
     [NSLayoutConstraint activateConstraints:@[
         [scrollView.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor],
@@ -139,147 +316,13 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
         [contentStack.bottomAnchor constraintEqualToAnchor:scrollView.contentLayoutGuide.bottomAnchor constant:-24.0],
 
         [summaryTextView.heightAnchor constraintGreaterThanOrEqualToConstant:120.0],
-        [tokenStackView.topAnchor constraintEqualToAnchor:tokenContainer.topAnchor constant:12.0],
-        [tokenStackView.leadingAnchor constraintEqualToAnchor:tokenContainer.leadingAnchor constant:12.0],
-        [tokenStackView.trailingAnchor constraintEqualToAnchor:tokenContainer.trailingAnchor constant:-12.0],
-        [tokenStackView.bottomAnchor constraintEqualToAnchor:tokenContainer.bottomAnchor constant:-12.0]
+        [tokenStackView.topAnchor constraintEqualToAnchor:tokenContainer.topAnchor constant:10.0],
+        [tokenStackView.leadingAnchor constraintEqualToAnchor:tokenContainer.leadingAnchor constant:10.0],
+        [tokenStackView.trailingAnchor constraintEqualToAnchor:tokenContainer.trailingAnchor constant:-10.0],
+        [tokenStackView.bottomAnchor constraintEqualToAnchor:tokenContainer.bottomAnchor constant:-10.0]
     ]];
 
     [self rebuildTokenButtons];
-}
-
-- (NSArray<NSDictionary *> *)buildTokenSectionsFromEntry:(NSDictionary *)entry {
-    NSMutableArray<NSDictionary *> *sections = [NSMutableArray array];
-
-    [self appendSectionWithScope:NFRuleScopeTitle
-                        rawTexts:@[entry[NFLogTitleKey] ?: @""]
-                       toSections:sections];
-    [self appendSectionWithScope:NFRuleScopeSubtitle
-                        rawTexts:@[entry[NFLogSubtitleKey] ?: @""]
-                       toSections:sections];
-    [self appendSectionWithScope:NFRuleScopeMessage
-                        rawTexts:@[entry[NFLogHeaderKey] ?: @"", entry[NFLogBodyKey] ?: @"", entry[NFLogMessageKey] ?: @""]
-                       toSections:sections];
-
-    return sections;
-}
-
-- (void)appendSectionWithScope:(NSString *)scope
-                      rawTexts:(NSArray *)rawTexts
-                     toSections:(NSMutableArray<NSDictionary *> *)sections {
-    NSMutableArray<NSString *> *tokens = [NSMutableArray array];
-    NSMutableSet<NSString *> *seenTokens = [NSMutableSet set];
-
-    for (id rawText in rawTexts) {
-        for (NSString *token in [self tokensFromText:rawText]) {
-            if (token.length == 0 || [seenTokens containsObject:token]) {
-                continue;
-            }
-            [seenTokens addObject:token];
-            [tokens addObject:token];
-        }
-    }
-
-    if (tokens.count == 0) {
-        return;
-    }
-
-    [tokens sortUsingComparator:^NSComparisonResult(NSString *lhs, NSString *rhs) {
-        if (lhs.length > rhs.length) {
-            return NSOrderedAscending;
-        }
-        if (lhs.length < rhs.length) {
-            return NSOrderedDescending;
-        }
-        return [lhs localizedCaseInsensitiveCompare:rhs];
-    }];
-
-    [sections addObject:@{
-        NFPTokenSectionScopeKey: scope,
-        NFPTokenSectionTokensKey: tokens
-    }];
-}
-
-- (NSArray<NSString *> *)tokensFromText:(id)rawText {
-    if (![rawText isKindOfClass:[NSString class]]) {
-        return @[];
-    }
-
-    NSString *text = [(NSString *)rawText stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-    if (text.length == 0) {
-        return @[];
-    }
-
-    NSMutableArray<NSString *> *tokens = [NSMutableArray array];
-    if (@available(iOS 5.0, *)) {
-        [text enumerateSubstringsInRange:NSMakeRange(0, text.length)
-                                 options:NSStringEnumerationByWords | NSStringEnumerationLocalized
-                              usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) {
-            NSString *normalized = [self normalizedTokenFromSubstring:substring];
-            if (normalized.length > 0) {
-                [tokens addObject:normalized];
-            }
-        }];
-    }
-
-    if (tokens.count == 0) {
-        [tokens addObjectsFromArray:[self fallbackTokensFromText:text]];
-    }
-
-    return tokens;
-}
-
-- (NSArray<NSString *> *)fallbackTokensFromText:(NSString *)text {
-    NSMutableArray<NSString *> *tokens = [NSMutableArray array];
-    NSMutableString *currentLatin = [NSMutableString string];
-    NSCharacterSet *alphanumeric = [NSCharacterSet alphanumericCharacterSet];
-
-    for (NSUInteger index = 0; index < text.length; index++) {
-        unichar character = [text characterAtIndex:index];
-        NSString *unit = [text substringWithRange:NSMakeRange(index, 1)];
-        if ([alphanumeric characterIsMember:character]) {
-            [currentLatin appendString:unit];
-            continue;
-        }
-
-        if (currentLatin.length > 0) {
-            [tokens addObject:[currentLatin copy]];
-            [currentLatin setString:@""];
-        }
-
-        NSString *normalized = [self normalizedTokenFromSubstring:unit];
-        if (normalized.length > 0) {
-            [tokens addObject:normalized];
-        }
-    }
-
-    if (currentLatin.length > 0) {
-        [tokens addObject:[currentLatin copy]];
-    }
-
-    return tokens;
-}
-
-- (NSString *)normalizedTokenFromSubstring:(NSString *)substring {
-    NSString *trimmed = [substring stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-    if (trimmed.length == 0) {
-        return nil;
-    }
-
-    NSCharacterSet *punctuation = [NSCharacterSet punctuationCharacterSet];
-    BOOL allPunctuation = YES;
-    for (NSUInteger index = 0; index < trimmed.length; index++) {
-        unichar character = [trimmed characterAtIndex:index];
-        if (![punctuation characterIsMember:character]) {
-            allPunctuation = NO;
-            break;
-        }
-    }
-    if (allPunctuation) {
-        return nil;
-    }
-
-    return trimmed;
 }
 
 - (NSString *)notificationSummaryText {
@@ -317,8 +360,8 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
     }
 
     for (NSDictionary *section in self.tokenSections) {
-        NSString *scope = section[NFPTokenSectionScopeKey];
-        NSArray<NSString *> *tokens = [section[NFPTokenSectionTokensKey] isKindOfClass:[NSArray class]] ? section[NFPTokenSectionTokensKey] : @[];
+        NSString *scope = section[NFPNotificationRuleTokenSectionScopeKey];
+        NSArray<NSString *> *tokens = [section[NFPNotificationRuleTokenSectionTokensKey] isKindOfClass:[NSArray class]] ? section[NFPNotificationRuleTokenSectionTokensKey] : @[];
         if (tokens.count == 0) {
             continue;
         }
@@ -329,41 +372,51 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
         sectionLabel.text = NFPLocalizedScopeName(scope);
         [self.tokenStackView addArrangedSubview:sectionLabel];
 
-        UIStackView *currentRow = nil;
-        NSUInteger itemsInRow = 0;
-        for (NSString *token in tokens) {
-            if (!currentRow || itemsInRow >= 3) {
-                currentRow = [[UIStackView alloc] init];
-                currentRow.axis = UILayoutConstraintAxisHorizontal;
-                currentRow.spacing = 8.0;
-                currentRow.distribution = UIStackViewDistributionFillEqually;
-                [self.tokenStackView addArrangedSubview:currentRow];
-                itemsInRow = 0;
-            }
+        NFPTokenFlowView *flowView = [[NFPTokenFlowView alloc] initWithFrame:CGRectZero];
+        flowView.translatesAutoresizingMaskIntoConstraints = NO;
+        flowView.horizontalSpacing = NFPTokenHorizontalSpacing;
+        flowView.verticalSpacing = NFPTokenVerticalSpacing;
+        flowView.minimumTokenWidth = NFPTokenMinimumWidth;
+        flowView.minimumTokenHeight = NFPTokenMinimumHeight;
+        flowView.maximumTokenWidth = NFPTokenMaximumWidth;
+        [self.tokenStackView addArrangedSubview:flowView];
 
-            NSString *selectionKey = [self selectionKeyForScope:scope token:token];
-            UIButton *button = [UIButton buttonWithType:UIButtonTypeSystem];
+        for (NSUInteger tokenIndex = 0; tokenIndex < tokens.count; tokenIndex++) {
+            NSString *token = tokens[tokenIndex];
+            NSString *selectionKey = [NFPNotificationRuleTokenBuilder selectionKeyForScope:scope tokenIndex:tokenIndex token:token];
+            NFPTokenButton *button = [NFPTokenButton buttonWithType:UIButtonTypeSystem];
             button.accessibilityIdentifier = selectionKey;
-            button.layer.cornerRadius = 12.0;
+            button.visualContentInsets = UIEdgeInsetsMake(3.0, 6.0, 3.0, 6.0);
+            button.layer.cornerRadius = 7.0;
             button.layer.borderWidth = 1.0;
-            button.titleLabel.font = [UIFont systemFontOfSize:15.0 weight:UIFontWeightMedium];
-            button.titleLabel.numberOfLines = 2;
+            button.titleLabel.font = [UIFont systemFontOfSize:14.5 weight:UIFontWeightMedium];
+            button.titleLabel.numberOfLines = 1;
             button.titleLabel.adjustsFontSizeToFitWidth = YES;
-            button.titleLabel.minimumScaleFactor = 0.72;
+            button.titleLabel.minimumScaleFactor = 0.78;
+            button.titleLabel.lineBreakMode = NSLineBreakByTruncatingMiddle;
             [button setTitle:token forState:UIControlStateNormal];
             [button addTarget:self action:@selector(tokenTapped:) forControlEvents:UIControlEventTouchUpInside];
-            [button.heightAnchor constraintGreaterThanOrEqualToConstant:44.0].active = YES;
             [self updateAppearanceForTokenButton:button selected:[self.selectedTokenKeys containsObject:selectionKey]];
-            [currentRow addArrangedSubview:button];
-            itemsInRow += 1;
+            [flowView addTokenView:button];
         }
     }
 }
 
 - (void)tokenTapped:(UIButton *)sender {
-    NSString *selectionKey = sender.accessibilityIdentifier;
+    [self toggleTokenButton:sender trackingCurrentDrag:NO];
+}
+
+- (void)toggleTokenButton:(UIButton *)button trackingCurrentDrag:(BOOL)trackingCurrentDrag {
+    NSString *selectionKey = button.accessibilityIdentifier;
     if (selectionKey.length == 0) {
         return;
+    }
+
+    if (trackingCurrentDrag) {
+        if ([self.dragToggledTokenKeys containsObject:selectionKey]) {
+            return;
+        }
+        [self.dragToggledTokenKeys addObject:selectionKey];
     }
 
     BOOL selected = ![self.selectedTokenKeys containsObject:selectionKey];
@@ -373,13 +426,170 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
         [self.selectedTokenKeys removeObject:selectionKey];
     }
 
-    [self updateAppearanceForTokenButton:sender selected:selected];
+    [self emitTokenSelectionFeedback];
+    [self updateAppearanceForTokenButton:button selected:selected];
+}
+
+- (void)emitTokenSelectionFeedback {
+    if (!self.tokenSelectionFeedbackGenerator) {
+        self.tokenSelectionFeedbackGenerator = [[UISelectionFeedbackGenerator alloc] init];
+    }
+    [self.tokenSelectionFeedbackGenerator selectionChanged];
+    [self.tokenSelectionFeedbackGenerator prepare];
+}
+
+- (void)tokenDragGestureRecognized:(UILongPressGestureRecognizer *)gestureRecognizer {
+    CGPoint point = [gestureRecognizer locationInView:self.tokenStackView];
+
+    switch (gestureRecognizer.state) {
+        case UIGestureRecognizerStateBegan:
+            self.tokenDragActive = YES;
+            self.hasLastTokenDragPoint = NO;
+            [self.dragToggledTokenKeys removeAllObjects];
+            self.tokenSelectionFeedbackGenerator = [[UISelectionFeedbackGenerator alloc] init];
+            [self.tokenSelectionFeedbackGenerator prepare];
+            [self toggleTokensAlongDragPathToPoint:point];
+            break;
+
+        case UIGestureRecognizerStateChanged:
+            [self toggleTokensAlongDragPathToPoint:point];
+            break;
+
+        case UIGestureRecognizerStateEnded:
+        case UIGestureRecognizerStateCancelled:
+        case UIGestureRecognizerStateFailed:
+            if (self.tokenDragActive) {
+                [self toggleTokensAlongDragPathToPoint:point];
+            }
+            self.tokenDragActive = NO;
+            self.hasLastTokenDragPoint = NO;
+            [self.dragToggledTokenKeys removeAllObjects];
+            self.tokenSelectionFeedbackGenerator = nil;
+            break;
+
+        default:
+            break;
+    }
+}
+
+- (void)toggleTokensAlongDragPathToPoint:(CGPoint)point {
+    if (!self.tokenDragActive) {
+        return;
+    }
+
+    if (!self.hasLastTokenDragPoint) {
+        [self toggleTokenAtDragPoint:point];
+        self.lastTokenDragPoint = point;
+        self.hasLastTokenDragPoint = YES;
+        return;
+    }
+
+    CGFloat dx = point.x - self.lastTokenDragPoint.x;
+    CGFloat dy = point.y - self.lastTokenDragPoint.y;
+    CGFloat distance = hypot(dx, dy);
+    NSUInteger stepCount = MAX((NSUInteger)1, (NSUInteger)ceil(distance / NFPTokenDragSampleDistance));
+    for (NSUInteger stepIndex = 1; stepIndex <= stepCount; stepIndex++) {
+        CGFloat progress = (CGFloat)stepIndex / (CGFloat)stepCount;
+        CGPoint sampledPoint = CGPointMake(self.lastTokenDragPoint.x + dx * progress,
+                                           self.lastTokenDragPoint.y + dy * progress);
+        [self toggleTokenAtDragPoint:sampledPoint];
+    }
+
+    self.lastTokenDragPoint = point;
+}
+
+- (void)toggleTokenAtDragPoint:(CGPoint)point {
+    NFPTokenButton *button = [self tokenButtonAtPoint:point includeExpandedHitArea:YES];
+    if (button) {
+        [self toggleTokenButton:button trackingCurrentDrag:YES];
+    }
+}
+
+- (NFPTokenButton *)tokenButtonAtPoint:(CGPoint)point includeExpandedHitArea:(BOOL)includeExpandedHitArea {
+    __block NFPTokenButton *visibleMatch = nil;
+    __block NFPTokenButton *expandedMatch = nil;
+    __block CGFloat expandedMatchDistance = CGFLOAT_MAX;
+
+    [self enumerateTokenButtonsUsingBlock:^(NFPTokenButton *button, BOOL *stop) {
+        CGRect visibleFrame = [self.tokenStackView convertRect:button.bounds fromView:button];
+        if (CGRectContainsPoint(visibleFrame, point)) {
+            visibleMatch = button;
+            *stop = YES;
+            return;
+        }
+
+        if (!includeExpandedHitArea) {
+            return;
+        }
+
+        CGRect expandedFrame = CGRectInset(visibleFrame, -NFPTokenDragHitOutset, -NFPTokenDragHitOutset);
+        if (!CGRectContainsPoint(expandedFrame, point)) {
+            return;
+        }
+
+        CGFloat centerX = CGRectGetMidX(visibleFrame);
+        CGFloat centerY = CGRectGetMidY(visibleFrame);
+        CGFloat distance = hypot(point.x - centerX, point.y - centerY);
+        if (!expandedMatch || distance < expandedMatchDistance) {
+            expandedMatch = button;
+            expandedMatchDistance = distance;
+        }
+    }];
+
+    return visibleMatch ?: expandedMatch;
+}
+
+- (void)enumerateTokenButtonsUsingBlock:(void (^)(NFPTokenButton *button, BOOL *stop))block {
+    if (!block) {
+        return;
+    }
+
+    BOOL stop = NO;
+    for (UIView *arrangedSubview in self.tokenStackView.arrangedSubviews) {
+        if (![arrangedSubview isKindOfClass:[NFPTokenFlowView class]]) {
+            continue;
+        }
+
+        for (UIView *subview in arrangedSubview.subviews) {
+            if (![subview isKindOfClass:[NFPTokenButton class]]) {
+                continue;
+            }
+
+            block((NFPTokenButton *)subview, &stop);
+            if (stop) {
+                return;
+            }
+        }
+    }
+}
+
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldReceiveTouch:(UITouch *)touch {
+    if (gestureRecognizer != self.tokenDragGestureRecognizer) {
+        return YES;
+    }
+
+    CGPoint point = [touch locationInView:self.tokenStackView];
+    return [self tokenButtonAtPoint:point includeExpandedHitArea:YES] != nil;
+}
+
+- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
+    if (gestureRecognizer != self.tokenDragGestureRecognizer) {
+        return YES;
+    }
+
+    CGPoint point = [gestureRecognizer locationInView:self.tokenStackView];
+    return [self tokenButtonAtPoint:point includeExpandedHitArea:YES] != nil;
 }
 
 - (void)updateAppearanceForTokenButton:(UIButton *)button selected:(BOOL)selected {
-    button.backgroundColor = selected ? [UIColor systemBlueColor] : [UIColor tertiarySystemBackgroundColor];
+    button.backgroundColor = selected ? [UIColor systemBlueColor] : [UIColor tertiarySystemFillColor];
     button.layer.borderColor = (selected ? [UIColor systemBlueColor] : [UIColor separatorColor]).CGColor;
     [button setTitleColor:(selected ? [UIColor whiteColor] : [UIColor labelColor]) forState:UIControlStateNormal];
+    UIAccessibilityTraits traits = UIAccessibilityTraitButton;
+    if (selected) {
+        traits |= UIAccessibilityTraitSelected;
+    }
+    button.accessibilityTraits = traits;
 }
 
 - (void)ruleKindChanged:(UISegmentedControl *)sender {
@@ -393,22 +603,9 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
         return;
     }
 
-    NSMutableArray<NSDictionary *> *entries = [NSMutableArray arrayWithCapacity:self.selectedTokenKeys.count];
-    for (NSDictionary *section in self.tokenSections) {
-        NSString *scope = section[NFPTokenSectionScopeKey];
-        NSArray<NSString *> *tokens = [section[NFPTokenSectionTokensKey] isKindOfClass:[NSArray class]] ? section[NFPTokenSectionTokensKey] : @[];
-        for (NSString *token in tokens) {
-            NSString *selectionKey = [self selectionKeyForScope:scope token:token];
-            if (![self.selectedTokenKeys containsObject:selectionKey]) {
-                continue;
-            }
-
-            [entries addObject:[NFPreferences ruleEntryWithText:token
-                                                        enabled:YES
-                                                      identifier:nil
-                                                           scope:scope ?: NFRuleScopeMessage]];
-        }
-    }
+    NSArray<NSDictionary *> *entries = [NFPNotificationRuleTokenBuilder ruleEntriesFromTokenSections:self.tokenSections
+                                                                                   selectedTokenKeys:self.selectedTokenKeys
+                                                                                       defaultScope:NFRuleScopeMessage];
 
     NSError *error = nil;
     if (!self.commitHandler || !self.commitHandler(self.selectedRuleKind, entries, &error)) {
@@ -440,10 +637,6 @@ static NSString * const NFPTokenSelectionSeparator = @"\n";
     }
 
     [self.navigationController popViewControllerAnimated:YES];
-}
-
-- (NSString *)selectionKeyForScope:(NSString *)scope token:(NSString *)token {
-    return [NSString stringWithFormat:@"%@%@%@", scope ?: @"", NFPTokenSelectionSeparator, token ?: @""];
 }
 
 - (void)presentAlertWithTitle:(NSString *)title message:(NSString *)message {

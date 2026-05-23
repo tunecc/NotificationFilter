@@ -16,6 +16,7 @@ NotificationFilterPrefs_FILES = \
 	NFPRuleTextEditorController.m \
 	NFPRulesListEditorController.m \
 	NFPNotificationRuleScannerController.m \
+	NFPNotificationRuleTokenBuilder.m \
 	NFPNotificationRuleTokenPickerController.m \
 	NFPNotificationHistoryClient.m \
 	NFPJSONImportController.m \
