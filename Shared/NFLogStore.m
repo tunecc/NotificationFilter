@@ -58,8 +58,7 @@ static NSString *NFNormalizedLogString(id value) {
     NSTimeInterval timestamp = [entry[NFLogTimestampKey] respondsToSelector:@selector(doubleValue)] ?
         [entry[NFLogTimestampKey] doubleValue] :
         [[NSDate date] timeIntervalSince1970];
-    NSUInteger maxScanCount = MIN(entries.count, (NSUInteger)20);
-    for (NSUInteger index = 0; index < maxScanCount; index++) {
+    for (NSUInteger index = 0; index < entries.count; index++) {
         NSDictionary *existingEntry = entries[index];
         NSString *existingSignature = [self _dedupeSignatureForEntry:existingEntry];
         if (existingSignature.length == 0 || ![existingSignature isEqualToString:signature]) {
