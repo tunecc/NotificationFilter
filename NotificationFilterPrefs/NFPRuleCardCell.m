@@ -28,6 +28,8 @@
         UIView *cardView = [[UIView alloc] init];
         cardView.backgroundColor = [UIColor secondarySystemBackgroundColor];
         cardView.layer.cornerRadius = 14.0;
+        cardView.layer.shadowRadius = 8.0;
+        cardView.layer.shadowOffset = CGSizeMake(0.0, 2.0);
         cardView.translatesAutoresizingMaskIntoConstraints = NO;
         [self.contentView addSubview:cardView];
         self.cardView = cardView;
@@ -99,8 +101,35 @@
             [statusLabel.heightAnchor constraintEqualToConstant:18.0],
             [statusLabel.widthAnchor constraintGreaterThanOrEqualToConstant:44.0]
         ]];
+
+        [self updateCardAppearance];
     }
     return self;
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    self.cardView.layer.shadowPath = [UIBezierPath bezierPathWithRoundedRect:self.cardView.bounds
+                                                                cornerRadius:self.cardView.layer.cornerRadius].CGPath;
+}
+
+- (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
+    [super traitCollectionDidChange:previousTraitCollection];
+    [self updateCardAppearance];
+}
+
+- (void)updateCardAppearance {
+    BOOL darkMode = NO;
+    if (@available(iOS 12.0, *)) {
+        darkMode = self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark;
+    }
+
+    self.cardView.layer.borderWidth = 1.0 / [UIScreen mainScreen].scale;
+    UIColor *borderColor = darkMode ? [[UIColor separatorColor] colorWithAlphaComponent:0.32] : [UIColor opaqueSeparatorColor];
+    self.cardView.layer.borderColor = borderColor.CGColor;
+
+    self.cardView.layer.shadowColor = [UIColor blackColor].CGColor;
+    self.cardView.layer.shadowOpacity = darkMode ? 0.0 : 0.08;
 }
 
 - (void)prepareForReuse {
