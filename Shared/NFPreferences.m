@@ -1,6 +1,20 @@
 #import "NFPreferences.h"
 #import <CoreFoundation/CoreFoundation.h>
-#import <roothide.h>
+
+#ifdef __has_include
+  #if __has_include(<rootless.h>)
+    #import <rootless.h>
+  #elif __has_include(<roothide.h>)
+    #include <roothide.h>
+  #endif
+#endif
+#ifndef jbroot
+  #ifdef ROOT_PATH_NS
+    #define jbroot(path) ROOT_PATH_NS(path)
+  #else
+    #define jbroot(path) path
+  #endif
+#endif
 
 NSString * const NFPreferencesIdentifier = @"com.tune.notificationfilter";
 NSString * const NFPreferencesChangedDarwinNotification = @"com.tune.notificationfilter/preferences-changed";
@@ -55,6 +69,86 @@ NSString * const NFMatchModeExclude = @"exclude";
 NSString * const NFMatchModeContains = @"contains";
 NSString * const NFMatchModeRegex = @"regex";
 
+static NSString *NFPreferencesFilename(void) {
+    return [NFPreferencesIdentifier stringByAppendingString:@".plist"];
+}
+
+static NSString *NFPreferencesLegacyDirectoryPath(void) {
+    return @"/var/mobile/Library/Preferences";
+}
+
+static NSString *NFPreferencesLegacyFilePath(void) {
+    return [NFPreferencesLegacyDirectoryPath() stringByAppendingPathComponent:NFPreferencesFilename()];
+}
+
+static NSString *NFPreferencesPrimaryFilePath(void) {
+    return jbroot(NFPreferencesLegacyFilePath());
+}
+
+static NSString *NFPreferencesLegacyRootlessFilePath(void) {
+    return [@"/var/jb/Library/Preferences" stringByAppendingPathComponent:NFPreferencesFilename()];
+}
+
+static NSArray<NSString *> *NFPreferencesCandidatePaths(void) {
+    NSMutableArray<NSString *> *paths = [NSMutableArray array];
+    NSArray<NSString *> *candidates = @[
+        NFPreferencesPrimaryFilePath(),
+        NFPreferencesLegacyFilePath(),
+        NFPreferencesLegacyRootlessFilePath()
+    ];
+
+    for (NSString *path in candidates) {
+        if (path.length == 0 || [paths containsObject:path]) {
+            continue;
+        }
+        [paths addObject:path];
+    }
+
+    return paths;
+}
+
+static NSDictionary *NFPreferencesDictionaryAtPath(NSString *path) {
+    if (path.length == 0) {
+        return nil;
+    }
+
+    NSDictionary *dictionary = [NSDictionary dictionaryWithContentsOfFile:path];
+    return [dictionary isKindOfClass:[NSDictionary class]] ? dictionary : nil;
+}
+
+static NSString *NFPreparePrimaryPreferencesFilePath(void) {
+    NSString *primaryPath = NFPreferencesPrimaryFilePath();
+    if (primaryPath.length == 0) {
+        return nil;
+    }
+
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    if ([fileManager fileExistsAtPath:primaryPath]) {
+        return primaryPath;
+    }
+
+    for (NSString *candidatePath in NFPreferencesCandidatePaths()) {
+        if ([candidatePath isEqualToString:primaryPath] ||
+            ![fileManager fileExistsAtPath:candidatePath]) {
+            continue;
+        }
+
+        NSString *parentPath = [primaryPath stringByDeletingLastPathComponent];
+        [fileManager createDirectoryAtPath:parentPath
+               withIntermediateDirectories:YES
+                                attributes:nil
+                                     error:nil];
+
+        NSError *moveError = nil;
+        if (![fileManager moveItemAtPath:candidatePath toPath:primaryPath error:&moveError]) {
+            [fileManager copyItemAtPath:candidatePath toPath:primaryPath error:nil];
+        }
+        break;
+    }
+
+    return primaryPath;
+}
+
 @implementation NFPreferences
 
 + (NSArray<NSString *> *)_allPreferenceKeys {
@@ -90,16 +184,19 @@ NSString * const NFMatchModeRegex = @"regex";
 }
 
 + (NSDictionary *)loadPreferences {
-    NSMutableDictionary *rawPreferences = [NSMutableDictionary dictionary];
+    NSString *primaryPath = NFPreparePrimaryPreferencesFilePath();
+    NSDictionary *rawPreferences = NFPreferencesDictionaryAtPath(primaryPath);
 
-    for (NSString *key in [self _allPreferenceKeys]) {
-        CFPropertyListRef value = CFPreferencesCopyAppValue((CFStringRef)key, (CFStringRef)NFPreferencesIdentifier);
-        if (value) {
-            rawPreferences[key] = CFBridgingRelease(value);
+    if (!rawPreferences) {
+        for (NSString *candidatePath in NFPreferencesCandidatePaths()) {
+            rawPreferences = NFPreferencesDictionaryAtPath(candidatePath);
+            if (rawPreferences) {
+                break;
+            }
         }
     }
 
-    return [self normalizedPreferencesFromDictionary:rawPreferences];
+    return [self normalizedPreferencesFromDictionary:rawPreferences ?: @{}];
 }
 
 + (NSMutableDictionary *)loadMutablePreferences {
@@ -108,22 +205,30 @@ NSString * const NFMatchModeRegex = @"regex";
 
 + (BOOL)savePreferences:(NSDictionary *)preferences error:(NSError **)error {
     NSDictionary *normalizedPreferences = [self normalizedPreferencesFromDictionary:preferences];
-
-    for (NSString *key in [self _allPreferenceKeys]) {
-        id value = normalizedPreferences[key];
-        CFPreferencesSetAppValue((CFStringRef)key,
-                                 value ? (__bridge CFPropertyListRef)value : NULL,
-                                 (CFStringRef)NFPreferencesIdentifier);
+    NSString *preferencesPath = NFPreparePrimaryPreferencesFilePath();
+    if (preferencesPath.length == 0) {
+        if (error) {
+            *error = [NSError errorWithDomain:NFPreferencesIdentifier
+                                         code:1
+                                     userInfo:@{NSLocalizedDescriptionKey: @"Failed to resolve preferences path."}];
+        }
+        return NO;
     }
 
-    Boolean synchronized = CFPreferencesAppSynchronize((CFStringRef)NFPreferencesIdentifier);
-    if (!synchronized && error) {
+    NSString *parentPath = [preferencesPath stringByDeletingLastPathComponent];
+    [[NSFileManager defaultManager] createDirectoryAtPath:parentPath
+                              withIntermediateDirectories:YES
+                                               attributes:nil
+                                                    error:nil];
+
+    BOOL written = [normalizedPreferences writeToFile:preferencesPath atomically:YES];
+    if (!written && error) {
         *error = [NSError errorWithDomain:NFPreferencesIdentifier
                                      code:1
-                                 userInfo:@{NSLocalizedDescriptionKey: @"Failed to synchronize preferences."}];
+                                 userInfo:@{NSLocalizedDescriptionKey: @"Failed to write preferences."}];
     }
 
-    return synchronized;
+    return written;
 }
 
 + (void)postPreferencesChangedNotification {
