@@ -367,32 +367,36 @@ static void NFPrimeNotificationHistoryForDataProvider(id dataProvider) {
         return;
     }
 
-    NSSet *bulletins = nil;
-    if ([dataProvider respondsToSelector:@selector(bulletinsFilteredBy:count:lastCleared:)]) {
-        bulletins = ((id (*)(id, SEL, NSUInteger, NSUInteger, id))objc_msgSend)(dataProvider,
-                                                                                 @selector(bulletinsFilteredBy:count:lastCleared:),
-                                                                                 0,
-                                                                                 200,
-                                                                                 nil);
-    }
-    if (![bulletins isKindOfClass:[NSSet class]]) {
-        return;
-    }
-
-    NSMutableArray<NSDictionary *> *entries = [NSMutableArray arrayWithCapacity:bulletins.count];
-    for (id bulletin in bulletins) {
-        NFNotificationRecord *record = [NFNotificationRecord recordFromBulletin:bulletin];
-        if (record.bundleIdentifier.length == 0) {
-            record.bundleIdentifier = bundleIdentifier;
+    @try {
+        NSSet *bulletins = nil;
+        if ([dataProvider respondsToSelector:@selector(bulletinsFilteredBy:count:lastCleared:)]) {
+            bulletins = ((id (*)(id, SEL, NSUInteger, NSUInteger, id))objc_msgSend)(dataProvider,
+                                                                                     @selector(bulletinsFilteredBy:count:lastCleared:),
+                                                                                     0,
+                                                                                     200,
+                                                                                     nil);
         }
-        NSDictionary *entry = NFNotificationHistoryDictionaryFromRecord(record);
-        if (entry) {
-            [entries addObject:entry];
+        if (![bulletins isKindOfClass:[NSSet class]]) {
+            return;
         }
-    }
 
-    NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier(bundleIdentifier,
-                                                                 NFSortedNotificationHistoryEntriesFromDictionaryEntries(entries));
+        NSMutableArray<NSDictionary *> *entries = [NSMutableArray arrayWithCapacity:bulletins.count];
+        for (id bulletin in bulletins) {
+            NFNotificationRecord *record = [NFNotificationRecord recordFromBulletin:bulletin];
+            if (record.bundleIdentifier.length == 0) {
+                record.bundleIdentifier = bundleIdentifier;
+            }
+            NSDictionary *entry = NFNotificationHistoryDictionaryFromRecord(record);
+            if (entry) {
+                [entries addObject:entry];
+            }
+        }
+
+        NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier(bundleIdentifier,
+                                                                     NFSortedNotificationHistoryEntriesFromDictionaryEntries(entries));
+    } @catch (NSException *exception) {
+        // Silently fail if notification history priming fails - this is non-critical functionality
+    }
 }
 
 static void NFRememberNotificationHistoryDataProviderForSectionFromServer(id server, NSString *sectionIdentifier) {
@@ -400,15 +404,19 @@ static void NFRememberNotificationHistoryDataProviderForSectionFromServer(id ser
         return;
     }
 
-    SEL selector = NSSelectorFromString(@"dataProviderForSectionID:");
-    if (![server respondsToSelector:selector]) {
-        return;
-    }
+    @try {
+        SEL selector = NSSelectorFromString(@"dataProviderForSectionID:");
+        if (![server respondsToSelector:selector]) {
+            return;
+        }
 
-    id dataProvider = ((id (*)(id, SEL, id))objc_msgSend)(server, selector, sectionIdentifier);
-    if (dataProvider) {
-        NFRememberNotificationHistoryDataProvider(dataProvider);
-        NFPrimeNotificationHistoryForDataProvider(dataProvider);
+        id dataProvider = ((id (*)(id, SEL, id))objc_msgSend)(server, selector, sectionIdentifier);
+        if (dataProvider) {
+            NFRememberNotificationHistoryDataProvider(dataProvider);
+            NFPrimeNotificationHistoryForDataProvider(dataProvider);
+        }
+    } @catch (NSException *exception) {
+        // Silently fail if notification history tracking fails - this is non-critical functionality
     }
 }
 
@@ -481,53 +489,60 @@ static void NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier(NSStrin
 
 static NSArray<NSDictionary *> *NFNotificationHistoryLiveEntriesForBundleIdentifier(NSString *bundleIdentifier, NSUInteger limit) {
     __block NSArray<NSDictionary *> *resultEntries = nil;
-    NFPerformSyncOrInlineOnBBServerQueue(^{
-        __block id dataProvider = nil;
-        dispatch_sync(NFNotificationHistoryQueue, ^{
-            dataProvider = NFNotificationHistoryDataProviders[bundleIdentifier];
-        });
-        if (!dataProvider && NFCurrentBBServer) {
-            NFRememberNotificationHistoryDataProviderForSectionFromServer(NFCurrentBBServer, bundleIdentifier);
+
+    @try {
+        NFPerformSyncOrInlineOnBBServerQueue(^{
+            __block id dataProvider = nil;
             dispatch_sync(NFNotificationHistoryQueue, ^{
                 dataProvider = NFNotificationHistoryDataProviders[bundleIdentifier];
             });
-        }
-        if (!dataProvider) {
-            return;
-        }
-
-        NSSet *bulletins = nil;
-        if ([dataProvider respondsToSelector:@selector(bulletinsFilteredBy:count:lastCleared:)]) {
-            NSUInteger count = limit > 0 ? limit : 200;
-            bulletins = ((id (*)(id, SEL, NSUInteger, NSUInteger, id))objc_msgSend)(dataProvider,
-                                                                                     @selector(bulletinsFilteredBy:count:lastCleared:),
-                                                                                     0,
-                                                                                     count,
-                                                                                     nil);
-        }
-        if (![bulletins isKindOfClass:[NSSet class]]) {
-            return;
-        }
-
-        NSMutableArray<NSDictionary *> *entries = [NSMutableArray arrayWithCapacity:bulletins.count];
-        for (id bulletin in bulletins) {
-            NFNotificationRecord *record = [NFNotificationRecord recordFromBulletin:bulletin];
-            if (record.bundleIdentifier.length == 0) {
-                record.bundleIdentifier = bundleIdentifier;
+            if (!dataProvider && NFCurrentBBServer) {
+                NFRememberNotificationHistoryDataProviderForSectionFromServer(NFCurrentBBServer, bundleIdentifier);
+                dispatch_sync(NFNotificationHistoryQueue, ^{
+                    dataProvider = NFNotificationHistoryDataProviders[bundleIdentifier];
+                });
             }
-            NSDictionary *entry = NFNotificationHistoryDictionaryFromRecord(record);
-            if (entry) {
-                [entries addObject:entry];
+            if (!dataProvider) {
+                return;
             }
-        }
 
-        NSArray<NSDictionary *> *sortedEntries = NFSortedNotificationHistoryEntriesFromDictionaryEntries(entries);
-        NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier(bundleIdentifier, sortedEntries);
-        if (limit > 0 && sortedEntries.count > limit) {
-            sortedEntries = [sortedEntries subarrayWithRange:NSMakeRange(0, limit)];
-        }
-        resultEntries = sortedEntries;
-    });
+            NSSet *bulletins = nil;
+            if ([dataProvider respondsToSelector:@selector(bulletinsFilteredBy:count:lastCleared:)]) {
+                NSUInteger count = limit > 0 ? limit : 200;
+                bulletins = ((id (*)(id, SEL, NSUInteger, NSUInteger, id))objc_msgSend)(dataProvider,
+                                                                                         @selector(bulletinsFilteredBy:count:lastCleared:),
+                                                                                         0,
+                                                                                         count,
+                                                                                         nil);
+            }
+            if (![bulletins isKindOfClass:[NSSet class]]) {
+                return;
+            }
+
+            NSMutableArray<NSDictionary *> *entries = [NSMutableArray arrayWithCapacity:bulletins.count];
+            for (id bulletin in bulletins) {
+                NFNotificationRecord *record = [NFNotificationRecord recordFromBulletin:bulletin];
+                if (record.bundleIdentifier.length == 0) {
+                    record.bundleIdentifier = bundleIdentifier;
+                }
+                NSDictionary *entry = NFNotificationHistoryDictionaryFromRecord(record);
+                if (entry) {
+                    [entries addObject:entry];
+                }
+            }
+
+            NSArray<NSDictionary *> *sortedEntries = NFSortedNotificationHistoryEntriesFromDictionaryEntries(entries);
+            NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier(bundleIdentifier, sortedEntries);
+            if (limit > 0 && sortedEntries.count > limit) {
+                sortedEntries = [sortedEntries subarrayWithRange:NSMakeRange(0, limit)];
+            }
+            resultEntries = sortedEntries;
+        });
+    } @catch (NSException *exception) {
+        // Silently fail if notification history retrieval fails - this is non-critical functionality
+        resultEntries = nil;
+    }
+
     return resultEntries;
 }
 
@@ -831,16 +846,20 @@ static void NFTrackNotificationHistoryObject(id server,
         return;
     }
 
-    NFNotificationRecord *record = NFBestRecordFromNotificationObject(notificationObject, fallbackSectionIdentifier);
-    if (record.bundleIdentifier.length == 0) {
-        return;
-    }
+    @try {
+        NFNotificationRecord *record = NFBestRecordFromNotificationObject(notificationObject, fallbackSectionIdentifier);
+        if (record.bundleIdentifier.length == 0) {
+            return;
+        }
 
-    if (server) {
-        NFCurrentBBServer = server;
-        NFRememberNotificationHistoryDataProviderForSectionFromServer(server, record.bundleIdentifier);
+        if (server) {
+            NFCurrentBBServer = server;
+            NFRememberNotificationHistoryDataProviderForSectionFromServer(server, record.bundleIdentifier);
+        }
+        NFStoreNotificationHistoryRecord(record);
+    } @catch (NSException *exception) {
+        // Silently fail if notification history tracking fails - this is non-critical functionality
     }
-    NFStoreNotificationHistoryRecord(record);
 }
 
 static BOOL NFShouldBlockNotificationObject(id server,
@@ -1088,9 +1107,13 @@ static void NFAttemptDeleteFilteredBulletin(id server,
 %hook BBServer
 
 - (void)_addDataProvider:(id)dataProvider sortSectionsNow:(BOOL)sortSections {
-    if (dataProvider) {
-        NFRememberNotificationHistoryDataProvider(dataProvider);
-        NFPrimeNotificationHistoryForDataProvider(dataProvider);
+    @try {
+        if (dataProvider) {
+            NFRememberNotificationHistoryDataProvider(dataProvider);
+            NFPrimeNotificationHistoryForDataProvider(dataProvider);
+        }
+    } @catch (NSException *exception) {
+        // Silently fail if notification history tracking fails - this is non-critical functionality
     }
     %orig;
 }
