@@ -35,6 +35,9 @@ NSString * const NFRulesEnabledKey = @"enabled";
 NSString * const NFRulesContainsKey = @"contains";
 NSString * const NFRulesExcludeKey = @"exclude";
 NSString * const NFRulesRegexKey = @"regex";
+NSString * const NFRulesModeKey = @"mode";
+NSString * const NFRulesModeBlacklist = @"blacklist";
+NSString * const NFRulesModeWhitelist = @"whitelist";
 NSString * const NFRuleEntryIdentifierKey = @"id";
 NSString * const NFRuleEntryTextKey = @"text";
 NSString * const NFRuleEntryEnabledKey = @"enabled";
@@ -68,6 +71,7 @@ NSString * const NFMatchScopeGlobal = @"global";
 NSString * const NFMatchModeExclude = @"exclude";
 NSString * const NFMatchModeContains = @"contains";
 NSString * const NFMatchModeRegex = @"regex";
+NSString * const NFMatchModeWhitelistDefault = @"whitelist-default";
 
 static NSString *NFPreferencesFilename(void) {
     return [NFPreferencesIdentifier stringByAppendingString:@".plist"];
@@ -148,6 +152,16 @@ static NSString *NFPreparePrimaryPreferencesFilePath(void) {
 
     return primaryPath;
 }
+
+@interface NFPreferences ()
+
++ (NSDictionary *)normalizedRulesDictionaryFromEnabled:(BOOL)enabled
+                                                  mode:(NSString *)mode
+                                              contains:(NSArray * _Nullable)contains
+                                               exclude:(NSArray * _Nullable)exclude
+                                                 regex:(NSArray * _Nullable)regex;
+
+@end
 
 @implementation NFPreferences
 
@@ -278,22 +292,52 @@ static NSString *NFPreparePrimaryPreferencesFilePath(void) {
 
 + (NSDictionary *)normalizedRulesDictionaryFromRawDictionary:(NSDictionary *)rawRules {
     if (![rawRules isKindOfClass:[NSDictionary class]]) {
-        return [self normalizedRulesDictionaryFromEnabled:NO contains:nil exclude:nil regex:nil];
+        return [self normalizedRulesDictionaryFromEnabled:NO
+                                                     mode:NFRulesModeBlacklist
+                                                 contains:nil
+                                                  exclude:nil
+                                                    regex:nil];
     }
 
     BOOL enabled = [rawRules[NFRulesEnabledKey] respondsToSelector:@selector(boolValue)] ? [rawRules[NFRulesEnabledKey] boolValue] : NO;
     return [self normalizedRulesDictionaryFromEnabled:enabled
+                                                 mode:[self normalizedRulesMode:rawRules[NFRulesModeKey]]
                                              contains:rawRules[NFRulesContainsKey]
                                               exclude:rawRules[NFRulesExcludeKey]
                                                 regex:rawRules[NFRulesRegexKey]];
+}
+
++ (NSString *)normalizedRulesMode:(id)value {
+    if (![value isKindOfClass:[NSString class]]) {
+        return NFRulesModeBlacklist;
+    }
+
+    if ([value isEqualToString:NFRulesModeWhitelist]) {
+        return NFRulesModeWhitelist;
+    }
+
+    return NFRulesModeBlacklist;
 }
 
 + (NSDictionary *)normalizedRulesDictionaryFromEnabled:(BOOL)enabled
                                               contains:(NSArray *)contains
                                                exclude:(NSArray *)exclude
                                                  regex:(NSArray *)regex {
+    return [self normalizedRulesDictionaryFromEnabled:enabled
+                                                 mode:NFRulesModeBlacklist
+                                             contains:contains
+                                              exclude:exclude
+                                                regex:regex];
+}
+
++ (NSDictionary *)normalizedRulesDictionaryFromEnabled:(BOOL)enabled
+                                                  mode:(NSString *)mode
+                                              contains:(NSArray *)contains
+                                               exclude:(NSArray *)exclude
+                                                 regex:(NSArray *)regex {
     return @{
         NFRulesEnabledKey: @(enabled),
+        NFRulesModeKey: [self normalizedRulesMode:mode],
         NFRulesContainsKey: [self normalizedRuleEntriesFromArray:contains defaultScope:NFRuleScopeMessage],
         NFRulesExcludeKey: [self normalizedRuleEntriesFromArray:exclude defaultScope:NFRuleScopeAll],
         NFRulesRegexKey: [self normalizedRuleEntriesFromArray:regex defaultScope:NFRuleScopeAll]

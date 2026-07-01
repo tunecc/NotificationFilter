@@ -21,6 +21,9 @@ extern NSString * const NFRulesEnabledKey;
 extern NSString * const NFRulesContainsKey;
 extern NSString * const NFRulesExcludeKey;
 extern NSString * const NFRulesRegexKey;
+extern NSString * const NFRulesModeKey;
+extern NSString * const NFRulesModeBlacklist;
+extern NSString * const NFRulesModeWhitelist;
 extern NSString * const NFRuleEntryIdentifierKey;
 extern NSString * const NFRuleEntryTextKey;
 extern NSString * const NFRuleEntryEnabledKey;
@@ -54,6 +57,7 @@ extern NSString * const NFMatchScopeGlobal;
 extern NSString * const NFMatchModeExclude;
 extern NSString * const NFMatchModeContains;
 extern NSString * const NFMatchModeRegex;
+extern NSString * const NFMatchModeWhitelistDefault;
 
 @interface NFPreferences : NSObject
 
@@ -70,6 +74,7 @@ extern NSString * const NFMatchModeRegex;
 + (NSDictionary * _Nullable)rulesForBundleIdentifier:(NSString *)bundleIdentifier
                                      fromPreferences:(NSDictionary *)preferences;
 + (NSDictionary *)normalizedRulesDictionaryFromRawDictionary:(NSDictionary * _Nullable)rawRules;
++ (NSString *)normalizedRulesMode:(id _Nullable)value;
 + (NSDictionary *)normalizedRulesDictionaryFromEnabled:(BOOL)enabled
                                               contains:(NSArray * _Nullable)contains
                                                exclude:(NSArray * _Nullable)exclude
