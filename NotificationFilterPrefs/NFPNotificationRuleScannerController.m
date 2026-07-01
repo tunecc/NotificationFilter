@@ -10,6 +10,7 @@
 
 @property (nonatomic, copy) NSString *bundleIdentifier;
 @property (nonatomic, copy) NSString *displayName;
+@property (nonatomic, copy) NSString *ruleMode;
 @property (nonatomic, assign) NFPRuleEditorKind initialRuleKind;
 @property (nonatomic, weak, nullable) UIViewController *returnViewController;
 @property (nonatomic, assign) NFPNotificationRuleTokenReturnMode returnMode;
@@ -66,11 +67,13 @@ static NSString *NFPScannerPreviewText(NSDictionary *entry) {
 - (instancetype)initWithBundleIdentifier:(NSString *)bundleIdentifier
                              displayName:(NSString *)displayName
                          initialRuleKind:(NFPRuleEditorKind)initialRuleKind
+                                 ruleMode:(NSString *)ruleMode
                     returnViewController:(UIViewController *)returnViewController
                            commitHandler:(NFPNotificationRuleScannerCommitHandler)commitHandler {
     return [self initWithBundleIdentifier:bundleIdentifier
                               displayName:displayName
                           initialRuleKind:initialRuleKind
+                                  ruleMode:ruleMode
                      returnViewController:returnViewController
                                returnMode:NFPNotificationRuleTokenReturnModeRulesList
                             commitHandler:commitHandler];
@@ -79,6 +82,7 @@ static NSString *NFPScannerPreviewText(NSDictionary *entry) {
 - (instancetype)initWithBundleIdentifier:(NSString *)bundleIdentifier
                              displayName:(NSString *)displayName
                          initialRuleKind:(NFPRuleEditorKind)initialRuleKind
+                                 ruleMode:(NSString *)ruleMode
                     returnViewController:(UIViewController *)returnViewController
                               returnMode:(NFPNotificationRuleTokenReturnMode)returnMode
                            commitHandler:(NFPNotificationRuleScannerCommitHandler)commitHandler {
@@ -86,6 +90,7 @@ static NSString *NFPScannerPreviewText(NSDictionary *entry) {
     if (self) {
         _bundleIdentifier = [bundleIdentifier copy] ?: @"";
         _displayName = [displayName copy] ?: _bundleIdentifier;
+        _ruleMode = [[NFPreferences normalizedRulesMode:ruleMode] copy];
         _initialRuleKind = initialRuleKind;
         _returnViewController = returnViewController;
         _returnMode = returnMode;
@@ -315,6 +320,7 @@ static NSString *NFPScannerPreviewText(NSDictionary *entry) {
     NFPNotificationRuleTokenPickerController *controller = [[NFPNotificationRuleTokenPickerController alloc] initWithNotificationEntry:entry
                                                                                                                            appDisplayName:self.displayName
                                                                                                                            initialRuleKind:self.initialRuleKind
+                                                                                                                                  ruleMode:self.ruleMode
                                                                                                                       returnViewController:self.returnViewController
                                                                                                                                 returnMode:self.returnMode
                                                                                                                              commitHandler:self.commitHandler];

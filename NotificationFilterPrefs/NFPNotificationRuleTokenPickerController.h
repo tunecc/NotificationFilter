@@ -15,12 +15,14 @@ typedef NS_ENUM(NSInteger, NFPNotificationRuleTokenReturnMode) {
 - (instancetype)initWithNotificationEntry:(NSDictionary *)entry
                           appDisplayName:(NSString *)appDisplayName
                           initialRuleKind:(NFPRuleEditorKind)initialRuleKind
+                                 ruleMode:(NSString * _Nullable)ruleMode
                      returnViewController:(UIViewController * _Nullable)returnViewController
                             commitHandler:(NFPNotificationRuleTokenCommitHandler)commitHandler;
 
 - (instancetype)initWithNotificationEntry:(NSDictionary *)entry
                           appDisplayName:(NSString *)appDisplayName
                           initialRuleKind:(NFPRuleEditorKind)initialRuleKind
+                                 ruleMode:(NSString * _Nullable)ruleMode
                      returnViewController:(UIViewController * _Nullable)returnViewController
                                returnMode:(NFPNotificationRuleTokenReturnMode)returnMode
                             commitHandler:(NFPNotificationRuleTokenCommitHandler)commitHandler;

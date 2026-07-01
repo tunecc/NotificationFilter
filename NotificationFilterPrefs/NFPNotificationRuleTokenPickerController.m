@@ -171,6 +171,7 @@ static const CGFloat NFPTokenMinimumTouchSize = 30.0;
 
 @property (nonatomic, copy) NSDictionary *entry;
 @property (nonatomic, copy) NSString *appDisplayName;
+@property (nonatomic, copy) NSString *ruleMode;
 @property (nonatomic, assign) NFPRuleEditorKind initialRuleKind;
 @property (nonatomic, assign) NFPRuleEditorKind selectedRuleKind;
 @property (nonatomic, weak, nullable) UIViewController *returnViewController;
@@ -193,11 +194,13 @@ static const CGFloat NFPTokenMinimumTouchSize = 30.0;
 - (instancetype)initWithNotificationEntry:(NSDictionary *)entry
                           appDisplayName:(NSString *)appDisplayName
                           initialRuleKind:(NFPRuleEditorKind)initialRuleKind
+                                 ruleMode:(NSString *)ruleMode
                      returnViewController:(UIViewController *)returnViewController
                             commitHandler:(NFPNotificationRuleTokenCommitHandler)commitHandler {
     return [self initWithNotificationEntry:entry
                             appDisplayName:appDisplayName
                             initialRuleKind:initialRuleKind
+                                  ruleMode:ruleMode
                        returnViewController:returnViewController
                                  returnMode:NFPNotificationRuleTokenReturnModeRulesList
                               commitHandler:commitHandler];
@@ -206,6 +209,7 @@ static const CGFloat NFPTokenMinimumTouchSize = 30.0;
 - (instancetype)initWithNotificationEntry:(NSDictionary *)entry
                           appDisplayName:(NSString *)appDisplayName
                           initialRuleKind:(NFPRuleEditorKind)initialRuleKind
+                                 ruleMode:(NSString *)ruleMode
                      returnViewController:(UIViewController *)returnViewController
                                returnMode:(NFPNotificationRuleTokenReturnMode)returnMode
                             commitHandler:(NFPNotificationRuleTokenCommitHandler)commitHandler {
@@ -213,6 +217,7 @@ static const CGFloat NFPTokenMinimumTouchSize = 30.0;
     if (self) {
         _entry = [entry copy] ?: @{};
         _appDisplayName = [appDisplayName copy] ?: @"";
+        _ruleMode = [[NFPreferences normalizedRulesMode:ruleMode] copy];
         _initialRuleKind = initialRuleKind == NFPRuleEditorKindExclude ? NFPRuleEditorKindExclude : NFPRuleEditorKindContains;
         _selectedRuleKind = initialRuleKind == NFPRuleEditorKindExclude ? NFPRuleEditorKindExclude : NFPRuleEditorKindContains;
         _returnViewController = returnViewController;
@@ -269,8 +274,8 @@ static const CGFloat NFPTokenMinimumTouchSize = 30.0;
     [contentStack addArrangedSubview:ruleTypeLabel];
 
     UISegmentedControl *ruleKindControl = [[UISegmentedControl alloc] initWithItems:@[
-        NFPLocalizedRuleEditorTitle(NFPRuleEditorKindContains),
-        NFPLocalizedRuleEditorTitle(NFPRuleEditorKindExclude)
+        NFPLocalizedRuleEditorTitleForMode(NFPRuleEditorKindContains, self.ruleMode),
+        NFPLocalizedRuleEditorTitleForMode(NFPRuleEditorKindExclude, self.ruleMode)
     ]];
     ruleKindControl.selectedSegmentIndex = self.selectedRuleKind == NFPRuleEditorKindExclude ? 1 : 0;
     [ruleKindControl addTarget:self action:@selector(ruleKindChanged:) forControlEvents:UIControlEventValueChanged];

@@ -11,6 +11,7 @@
 @property (nonatomic, copy) void (^saveHandler)(NSArray *rules);
 @property (nonatomic, copy, nullable) NSString *bundleIdentifier;
 @property (nonatomic, copy, nullable) NSString *displayName;
+@property (nonatomic, copy) NSString *ruleMode;
 @property (nonatomic, copy, nullable) NFPScannedRuleMergeHandler scannedRuleMergeHandler;
 @property (nonatomic, copy, nullable) NFPRulesReloadHandler rulesReloadHandler;
 @property (nonatomic, strong) NSMutableArray<NSDictionary *> *rules;
@@ -38,6 +39,7 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
                          rules:rules
               bundleIdentifier:nil
                    displayName:nil
+                      ruleMode:NFRulesModeBlacklist
                    saveHandler:saveHandler
         scannedRuleMergeHandler:nil
               rulesReloadHandler:nil];
@@ -48,6 +50,7 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
                         rules:(NSArray *)rules
              bundleIdentifier:(NSString *)bundleIdentifier
                   displayName:(NSString *)displayName
+                      ruleMode:(NSString *)ruleMode
                   saveHandler:(void (^)(NSArray *))saveHandler
        scannedRuleMergeHandler:(NFPScannedRuleMergeHandler)scannedRuleMergeHandler
              rulesReloadHandler:(NFPRulesReloadHandler)rulesReloadHandler {
@@ -59,6 +62,7 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
                                                   defaultScope:NFPRuleDefaultScopeForEditorKind(editorKind)] mutableCopy];
         _bundleIdentifier = [bundleIdentifier copy];
         _displayName = [displayName copy];
+        _ruleMode = [[NFPreferences normalizedRulesMode:ruleMode] copy];
         _saveHandler = [saveHandler copy];
         _scannedRuleMergeHandler = [scannedRuleMergeHandler copy];
         _rulesReloadHandler = [rulesReloadHandler copy];
@@ -107,14 +111,7 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
-    switch (self.editorKind) {
-        case NFPRuleEditorKindContains:
-            return NFPLocalizedString(@"RULES_LIST_CONTAINS_FOOTER");
-        case NFPRuleEditorKindExclude:
-            return NFPLocalizedString(@"RULES_LIST_EXCLUDE_FOOTER");
-        default:
-            return NFPLocalizedString(@"RULES_LIST_REGEX_FOOTER");
-    }
+    return NFPLocalizedRulesListFooterForMode(self.editorKind, self.ruleMode);
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
@@ -202,6 +199,7 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     NFPNotificationRuleScannerController *controller = [[NFPNotificationRuleScannerController alloc] initWithBundleIdentifier:self.bundleIdentifier
                                                                                                                     displayName:self.displayName ?: self.bundleIdentifier
                                                                                                                 initialRuleKind:self.editorKind
+                                                                                                                        ruleMode:self.ruleMode
                                                                                                              returnViewController:self
                                                                                                                    commitHandler:^BOOL(NFPRuleEditorKind targetKind, NSArray<NSDictionary *> *entries, NSError **error) {
         if (!weakSelf.scannedRuleMergeHandler) {
@@ -220,18 +218,7 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
 }
 
 - (void)pushEditorForRuleEntry:(NSDictionary *)ruleEntry atIndex:(NSUInteger)index {
-    NSString *placeholder = nil;
-    switch (self.editorKind) {
-        case NFPRuleEditorKindContains:
-            placeholder = NFPLocalizedString(@"RULES_LIST_CONTAINS_PLACEHOLDER");
-            break;
-        case NFPRuleEditorKindExclude:
-            placeholder = NFPLocalizedString(@"RULES_LIST_EXCLUDE_PLACEHOLDER");
-            break;
-        default:
-            placeholder = NFPLocalizedString(@"RULES_LIST_REGEX_PLACEHOLDER");
-            break;
-    }
+    NSString *placeholder = NFPLocalizedRulesListPlaceholderForMode(self.editorKind, self.ruleMode);
 
     __weak typeof(self) weakSelf = self;
     NFPRuleTextEditorController *controller = [[NFPRuleTextEditorController alloc] initWithTitle:self.title
@@ -365,7 +352,7 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
         self.deleteButton.enabled = count > 0;
         self.navigationItem.rightBarButtonItems = @[self.deleteButton];
     } else {
-        self.title = NFPLocalizedRuleEditorTitle(self.editorKind);
+        self.title = NFPLocalizedRuleEditorTitleForMode(self.editorKind, self.ruleMode);
         if (self.scanButton) {
             self.navigationItem.rightBarButtonItems = @[self.addButton, self.scanButton];
         } else {
