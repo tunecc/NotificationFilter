@@ -91,6 +91,9 @@ NSString *NFPLocalizedMatchModeName(NSString *mode) {
     if ([mode isEqualToString:NFMatchModeRegex]) {
         return NFPLocalizedString(@"RULE_REGEX_TITLE");
     }
+    if ([mode isEqualToString:NFMatchModeWhitelistDefault]) {
+        return NFPLocalizedString(@"RULE_WHITELIST_DEFAULT_TITLE");
+    }
     if ([mode isEqualToString:NFMatchModeContains]) {
         return NFPLocalizedString(@"RULE_CONTAINS_TITLE");
     }
