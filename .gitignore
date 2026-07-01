@@ -10,3 +10,4 @@ docs
 .theos-rootless
 AGENTS.md
 out
+.worktrees/
