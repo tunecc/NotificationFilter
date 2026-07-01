@@ -184,3 +184,33 @@
 "RULE_SCAN_NO_TOKENS" = "这条通知里没有可供选择的词语。";
 "RULE_SCAN_EMPTY_SELECTION_TITLE" = "还没有选择内容";
 "RULE_SCAN_EMPTY_SELECTION_MESSAGE" = "请至少选择一个词语再保存。";
+
+"PER_APP_RULES_MODE" = "规则模式";
+"PER_APP_RULES_MODE_MESSAGE" = "选择该应用规则如何判断哪些通知会被过滤。";
+"PER_APP_RULES_MODE_BLACKLIST" = "黑名单模式";
+"PER_APP_RULES_MODE_WHITELIST" = "白名单模式";
+"PER_APP_RULES_ENABLED_FOOTER_BLACKLIST" = "黑名单模式会过滤命中拦截关键词或正则拦截的通知；命中放行例外时优先放行。";
+"PER_APP_RULES_ENABLED_FOOTER_WHITELIST" = "白名单模式只放行命中放行关键词或正则放行的通知；命中强制拦截时优先过滤，未命中时默认过滤。";
+
+"RULE_BLOCK_KEYWORDS_TITLE" = "拦截关键词";
+"RULE_ALLOW_EXCEPTION_TITLE" = "放行例外";
+"RULE_REGEX_BLOCK_TITLE" = "正则拦截";
+"RULE_ALLOW_KEYWORDS_TITLE" = "放行关键词";
+"RULE_FORCE_BLOCK_TITLE" = "强制拦截";
+"RULE_REGEX_ALLOW_TITLE" = "正则放行";
+
+"RULES_LIST_BLOCK_KEYWORDS_FOOTER" = "命中后会过滤通知。每条规则都可以选择匹配消息、标题、副标题或全部文本。";
+"RULES_LIST_ALLOW_EXCEPTION_FOOTER" = "命中后会在检查拦截关键词和正则拦截前直接放行。";
+"RULES_LIST_REGEX_BLOCK_FOOTER" = "命中正则表达式后会过滤通知，保存前会校验语法。";
+"RULES_LIST_ALLOW_KEYWORDS_FOOTER" = "命中后会放行通知；没有命中放行关键词或正则放行的通知会默认过滤。";
+"RULES_LIST_FORCE_BLOCK_FOOTER" = "命中后会在检查放行关键词和正则放行前直接过滤。";
+"RULES_LIST_REGEX_ALLOW_FOOTER" = "命中正则表达式后会放行通知，保存前会校验语法。";
+
+"RULES_LIST_BLOCK_KEYWORDS_PLACEHOLDER" = "输入需要过滤的内容，例如：推广";
+"RULES_LIST_ALLOW_EXCEPTION_PLACEHOLDER" = "输入始终放行的内容，例如：验证码";
+"RULES_LIST_REGEX_BLOCK_PLACEHOLDER" = "输入用于过滤的正则表达式，例如：推广\\d{4,6}";
+"RULES_LIST_ALLOW_KEYWORDS_PLACEHOLDER" = "输入需要放行的内容，例如：验证码";
+"RULES_LIST_FORCE_BLOCK_PLACEHOLDER" = "输入继续拦截的内容，例如：广告";
+"RULES_LIST_REGEX_ALLOW_PLACEHOLDER" = "输入用于放行的正则表达式，例如：验证码\\d{4,6}";
+
+"RULE_WHITELIST_DEFAULT_TITLE" = "白名单默认拦截";

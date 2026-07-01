@@ -183,3 +183,33 @@
 "RULE_SCAN_NO_TOKENS" = "No selectable words were found in this notification.";
 "RULE_SCAN_EMPTY_SELECTION_TITLE" = "Select Content";
 "RULE_SCAN_EMPTY_SELECTION_MESSAGE" = "Pick at least one word before saving.";
+
+"PER_APP_RULES_MODE" = "Rule Mode";
+"PER_APP_RULES_MODE_MESSAGE" = "Choose how this app's rules decide which notifications are filtered.";
+"PER_APP_RULES_MODE_BLACKLIST" = "Blacklist Mode";
+"PER_APP_RULES_MODE_WHITELIST" = "Whitelist Mode";
+"PER_APP_RULES_ENABLED_FOOTER_BLACKLIST" = "Blacklist mode filters notifications that match block keywords or regex blocks. Allow exceptions are delivered first.";
+"PER_APP_RULES_ENABLED_FOOTER_WHITELIST" = "Whitelist mode only delivers notifications that match allow keywords or regex allows. Force blocks are filtered first, and unmatched notifications are filtered by default.";
+
+"RULE_BLOCK_KEYWORDS_TITLE" = "Block Keywords";
+"RULE_ALLOW_EXCEPTION_TITLE" = "Allow Exceptions";
+"RULE_REGEX_BLOCK_TITLE" = "Regex Blocks";
+"RULE_ALLOW_KEYWORDS_TITLE" = "Allow Keywords";
+"RULE_FORCE_BLOCK_TITLE" = "Force Blocks";
+"RULE_REGEX_ALLOW_TITLE" = "Regex Allows";
+
+"RULES_LIST_BLOCK_KEYWORDS_FOOTER" = "Matching notifications are filtered. Each rule can target message, title, subtitle, or all text.";
+"RULES_LIST_ALLOW_EXCEPTION_FOOTER" = "Matching notifications are delivered before block keywords and regex blocks are checked.";
+"RULES_LIST_REGEX_BLOCK_FOOTER" = "Matching regular expressions filter notifications. Syntax is checked before saving.";
+"RULES_LIST_ALLOW_KEYWORDS_FOOTER" = "Matching notifications are delivered. Notifications that do not match allow keywords or regex allows are filtered by default.";
+"RULES_LIST_FORCE_BLOCK_FOOTER" = "Matching notifications are filtered before allow keywords and regex allows are checked.";
+"RULES_LIST_REGEX_ALLOW_FOOTER" = "Matching regular expressions deliver notifications. Syntax is checked before saving.";
+
+"RULES_LIST_BLOCK_KEYWORDS_PLACEHOLDER" = "Enter text to filter, for example: Promotion";
+"RULES_LIST_ALLOW_EXCEPTION_PLACEHOLDER" = "Enter text to always deliver, for example: Verification code";
+"RULES_LIST_REGEX_BLOCK_PLACEHOLDER" = "Enter a regex to filter, for example: promo\\d{4,6}";
+"RULES_LIST_ALLOW_KEYWORDS_PLACEHOLDER" = "Enter text to deliver, for example: Verification code";
+"RULES_LIST_FORCE_BLOCK_PLACEHOLDER" = "Enter text to keep filtered, for example: Advertisement";
+"RULES_LIST_REGEX_ALLOW_PLACEHOLDER" = "Enter a regex to deliver, for example: code\\d{4,6}";
+
+"RULE_WHITELIST_DEFAULT_TITLE" = "Whitelist Default Block";
