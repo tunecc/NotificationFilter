@@ -18,6 +18,7 @@ typedef NSArray<NSDictionary *> * _Nonnull (^NFPRulesReloadHandler)(NFPRuleEdito
                         rules:(NSArray *)rules
              bundleIdentifier:(NSString * _Nullable)bundleIdentifier
                   displayName:(NSString * _Nullable)displayName
+                      ruleMode:(NSString * _Nullable)ruleMode
                   saveHandler:(void (^)(NSArray *rules))saveHandler
        scannedRuleMergeHandler:(NFPScannedRuleMergeHandler _Nullable)scannedRuleMergeHandler
              rulesReloadHandler:(NFPRulesReloadHandler _Nullable)rulesReloadHandler;

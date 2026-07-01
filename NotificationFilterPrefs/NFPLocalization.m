@@ -31,6 +31,46 @@ NSString *NFPLocalizedRuleEditorTitle(NFPRuleEditorKind editorKind) {
     }
 }
 
+static BOOL NFPModeIsWhitelist(NSString *mode) {
+    return [[NFPreferences normalizedRulesMode:mode] isEqualToString:NFRulesModeWhitelist];
+}
+
+NSString *NFPLocalizedRuleEditorTitleForMode(NFPRuleEditorKind editorKind, NSString *mode) {
+    BOOL whitelist = NFPModeIsWhitelist(mode);
+    switch (editorKind) {
+        case NFPRuleEditorKindExclude:
+            return NFPLocalizedString(whitelist ? @"RULE_FORCE_BLOCK_TITLE" : @"RULE_ALLOW_EXCEPTION_TITLE");
+        case NFPRuleEditorKindRegex:
+            return NFPLocalizedString(whitelist ? @"RULE_REGEX_ALLOW_TITLE" : @"RULE_REGEX_BLOCK_TITLE");
+        default:
+            return NFPLocalizedString(whitelist ? @"RULE_ALLOW_KEYWORDS_TITLE" : @"RULE_BLOCK_KEYWORDS_TITLE");
+    }
+}
+
+NSString *NFPLocalizedRulesListFooterForMode(NFPRuleEditorKind editorKind, NSString *mode) {
+    BOOL whitelist = NFPModeIsWhitelist(mode);
+    switch (editorKind) {
+        case NFPRuleEditorKindExclude:
+            return NFPLocalizedString(whitelist ? @"RULES_LIST_FORCE_BLOCK_FOOTER" : @"RULES_LIST_ALLOW_EXCEPTION_FOOTER");
+        case NFPRuleEditorKindRegex:
+            return NFPLocalizedString(whitelist ? @"RULES_LIST_REGEX_ALLOW_FOOTER" : @"RULES_LIST_REGEX_BLOCK_FOOTER");
+        default:
+            return NFPLocalizedString(whitelist ? @"RULES_LIST_ALLOW_KEYWORDS_FOOTER" : @"RULES_LIST_BLOCK_KEYWORDS_FOOTER");
+    }
+}
+
+NSString *NFPLocalizedRulesListPlaceholderForMode(NFPRuleEditorKind editorKind, NSString *mode) {
+    BOOL whitelist = NFPModeIsWhitelist(mode);
+    switch (editorKind) {
+        case NFPRuleEditorKindExclude:
+            return NFPLocalizedString(whitelist ? @"RULES_LIST_FORCE_BLOCK_PLACEHOLDER" : @"RULES_LIST_ALLOW_EXCEPTION_PLACEHOLDER");
+        case NFPRuleEditorKindRegex:
+            return NFPLocalizedString(whitelist ? @"RULES_LIST_REGEX_ALLOW_PLACEHOLDER" : @"RULES_LIST_REGEX_BLOCK_PLACEHOLDER");
+        default:
+            return NFPLocalizedString(whitelist ? @"RULES_LIST_ALLOW_KEYWORDS_PLACEHOLDER" : @"RULES_LIST_BLOCK_KEYWORDS_PLACEHOLDER");
+    }
+}
+
 NSString *NFPLocalizedScopeName(NSString *scope) {
     if ([scope isEqualToString:NFRuleScopeTitle]) {
         return NFPLocalizedString(@"SCOPE_TITLE");

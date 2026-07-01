@@ -11,12 +11,14 @@ typedef BOOL (^NFPNotificationRuleScannerCommitHandler)(NFPRuleEditorKind target
 - (instancetype)initWithBundleIdentifier:(NSString *)bundleIdentifier
                              displayName:(NSString *)displayName
                          initialRuleKind:(NFPRuleEditorKind)initialRuleKind
+                                 ruleMode:(NSString * _Nullable)ruleMode
                     returnViewController:(UIViewController * _Nullable)returnViewController
                            commitHandler:(NFPNotificationRuleScannerCommitHandler)commitHandler;
 
 - (instancetype)initWithBundleIdentifier:(NSString *)bundleIdentifier
                              displayName:(NSString *)displayName
                          initialRuleKind:(NFPRuleEditorKind)initialRuleKind
+                                 ruleMode:(NSString * _Nullable)ruleMode
                     returnViewController:(UIViewController * _Nullable)returnViewController
                               returnMode:(NFPNotificationRuleTokenReturnMode)returnMode
                            commitHandler:(NFPNotificationRuleScannerCommitHandler)commitHandler;

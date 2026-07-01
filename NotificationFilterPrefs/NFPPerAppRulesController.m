@@ -10,6 +10,11 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
     NFPPerAppRulesRowRegex
 };
 
+typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
+    NFPPerAppRulesConfigRowEnabled = 0,
+    NFPPerAppRulesConfigRowMode
+};
+
 @interface NFPPerAppRulesController ()
 
 @property (nonatomic, copy) NSString *bundleIdentifier;
@@ -29,6 +34,10 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
         default:
             return rules[NFRulesRegexKey] ?: @[];
     }
+}
+
+- (NSString *)currentRuleMode {
+    return [NFPreferences normalizedRulesMode:self.rules[NFRulesModeKey]];
 }
 
 - (instancetype)initWithBundleIdentifier:(NSString *)bundleIdentifier displayName:(NSString *)displayName {
@@ -63,7 +72,7 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     if (section == 0) {
-        return 1;
+        return 2;
     }
     if (section == 1) {
         return 3;
@@ -73,7 +82,8 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     if (section == 0) {
-        return NFPLocalizedString(@"PER_APP_RULES_ENABLED_FOOTER");
+        NSString *mode = [self currentRuleMode];
+        return [mode isEqualToString:NFRulesModeWhitelist] ? NFPLocalizedString(@"PER_APP_RULES_ENABLED_FOOTER_WHITELIST") : NFPLocalizedString(@"PER_APP_RULES_ENABLED_FOOTER_BLACKLIST");
     }
     if (section == 1) {
         return NFPLocalizedString(@"PER_APP_RULES_LIST_FOOTER");
@@ -83,6 +93,19 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     if (indexPath.section == 0) {
+        if (indexPath.row == NFPPerAppRulesConfigRowMode) {
+            UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"mode"];
+            if (!cell) {
+                cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:@"mode"];
+                cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+            }
+
+            NSString *mode = [self currentRuleMode];
+            cell.textLabel.text = NFPLocalizedString(@"PER_APP_RULES_MODE");
+            cell.detailTextLabel.text = [mode isEqualToString:NFRulesModeWhitelist] ? NFPLocalizedString(@"PER_APP_RULES_MODE_WHITELIST") : NFPLocalizedString(@"PER_APP_RULES_MODE_BLACKLIST");
+            return cell;
+        }
+
         UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"toggle"];
         if (!cell) {
             cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"toggle"];
@@ -116,17 +139,18 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
     }
 
     NSArray *values = nil;
+    NSString *mode = [self currentRuleMode];
     switch (indexPath.row) {
         case NFPPerAppRulesRowContains:
-            cell.textLabel.text = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindContains);
+            cell.textLabel.text = NFPLocalizedRuleEditorTitleForMode(NFPRuleEditorKindContains, mode);
             values = self.rules[NFRulesContainsKey];
             break;
         case NFPPerAppRulesRowExclude:
-            cell.textLabel.text = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindExclude);
+            cell.textLabel.text = NFPLocalizedRuleEditorTitleForMode(NFPRuleEditorKindExclude, mode);
             values = self.rules[NFRulesExcludeKey];
             break;
         default:
-            cell.textLabel.text = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindRegex);
+            cell.textLabel.text = NFPLocalizedRuleEditorTitleForMode(NFPRuleEditorKindRegex, mode);
             values = self.rules[NFRulesRegexKey];
             break;
     }
@@ -138,24 +162,30 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 
+    if (indexPath.section == 0 && indexPath.row == NFPPerAppRulesConfigRowMode) {
+        [self presentRuleModePickerFromIndexPath:indexPath];
+        return;
+    }
+
     if (indexPath.section == 1) {
         NSString *title = nil;
         NSArray<NSString *> *rules = nil;
         NFPRuleEditorKind editorKind = NFPRuleEditorKindContains;
 
+        NSString *mode = [self currentRuleMode];
         switch (indexPath.row) {
             case NFPPerAppRulesRowContains:
-                title = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindContains);
+                title = NFPLocalizedRuleEditorTitleForMode(NFPRuleEditorKindContains, mode);
                 rules = self.rules[NFRulesContainsKey];
                 editorKind = NFPRuleEditorKindContains;
                 break;
             case NFPPerAppRulesRowExclude:
-                title = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindExclude);
+                title = NFPLocalizedRuleEditorTitleForMode(NFPRuleEditorKindExclude, mode);
                 rules = self.rules[NFRulesExcludeKey];
                 editorKind = NFPRuleEditorKindExclude;
                 break;
             default:
-                title = NFPLocalizedRuleEditorTitle(NFPRuleEditorKindRegex);
+                title = NFPLocalizedRuleEditorTitleForMode(NFPRuleEditorKindRegex, mode);
                 rules = self.rules[NFRulesRegexKey];
                 editorKind = NFPRuleEditorKindRegex;
                 break;
@@ -180,6 +210,7 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
                                                                                                   rules:rules ?: @[]
                                                                                        bundleIdentifier:self.bundleIdentifier
                                                                                             displayName:self.displayName
+                                                                                               ruleMode:mode
                                                                                             saveHandler:^(NSArray<NSString *> *rules) {
             [weakSelf updateRules:rules forRow:indexPath.row];
         }
@@ -203,6 +234,34 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
     }
 }
 
+- (void)presentRuleModePickerFromIndexPath:(NSIndexPath *)indexPath {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"PER_APP_RULES_MODE")
+                                                                   message:NFPLocalizedString(@"PER_APP_RULES_MODE_MESSAGE")
+                                                            preferredStyle:UIAlertControllerStyleActionSheet];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"PER_APP_RULES_MODE_BLACKLIST")
+                                              style:UIAlertActionStyleDefault
+                                            handler:^(UIAlertAction *action) {
+        [self updateRuleMode:NFRulesModeBlacklist];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"PER_APP_RULES_MODE_WHITELIST")
+                                              style:UIAlertActionStyleDefault
+                                            handler:^(UIAlertAction *action) {
+        [self updateRuleMode:NFRulesModeWhitelist];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_CANCEL") style:UIAlertActionStyleCancel handler:nil]];
+
+    UITableViewCell *cell = [self.tableView cellForRowAtIndexPath:indexPath];
+    alert.popoverPresentationController.sourceView = cell ?: self.tableView;
+    alert.popoverPresentationController.sourceRect = cell ? cell.bounds : self.tableView.bounds;
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)updateRuleMode:(NSString *)mode {
+    NSMutableDictionary *mutableRules = [self.rules mutableCopy];
+    mutableRules[NFRulesModeKey] = [NFPreferences normalizedRulesMode:mode];
+    [self persistRules:mutableRules];
+}
+
 - (void)toggleChanged:(UISwitch *)sender {
     NSMutableDictionary *mutableRules = [self.rules mutableCopy];
     mutableRules[NFRulesEnabledKey] = @(sender.on);
@@ -214,6 +273,7 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
     NFPNotificationRuleScannerController *controller = [[NFPNotificationRuleScannerController alloc] initWithBundleIdentifier:self.bundleIdentifier
                                                                                                                   displayName:self.displayName
                                                                                                               initialRuleKind:NFPRuleEditorKindContains
+                                                                                                                      ruleMode:[self currentRuleMode]
                                                                                                          returnViewController:self
                                                                                                                    returnMode:NFPNotificationRuleTokenReturnModeTargetViewController
                                                                                                                 commitHandler:^BOOL(NFPRuleEditorKind targetKind, NSArray<NSDictionary *> *entries, NSError **error) {
