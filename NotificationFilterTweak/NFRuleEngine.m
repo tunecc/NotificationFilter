@@ -13,6 +13,18 @@
     return result;
 }
 
++ (NFMatchResult *)_resultWithShouldBlock:(BOOL)shouldBlock
+                                    scope:(NSString *)scope
+                                     mode:(NSString *)mode
+                                  pattern:(NSString *)pattern {
+    NFMatchResult *result = [[NFMatchResult alloc] init];
+    result.shouldBlock = shouldBlock;
+    result.matchedScope = scope;
+    result.matchedMode = mode;
+    result.matchedPattern = pattern;
+    return result;
+}
+
 + (NSString *)_scopeNameForBundleIdentifier:(NSString *)bundleIdentifier {
     return [NSString stringWithFormat:@"app:%@", bundleIdentifier];
 }
@@ -58,6 +70,112 @@
     return record.joinedText ?: @"";
 }
 
++ (NSString * _Nullable)_firstMatchingRuleEntryInRules:(NSArray *)rawRules
+                                           defaultScope:(NSString *)defaultScope
+                                                  regex:(BOOL)regex
+                                                 record:(NFNotificationRecord *)record {
+    for (NSDictionary *ruleEntry in [NFPreferences activeRuleEntriesFromArray:rawRules defaultScope:defaultScope]) {
+        NSString *ruleText = [NFPreferences ruleTextFromEntry:ruleEntry];
+        NSString *matchText = [self _textForScope:[NFPreferences ruleScopeFromEntry:ruleEntry defaultScope:defaultScope]
+                                           record:record
+                                     defaultScope:defaultScope];
+        NSArray *singleRule = ruleText.length > 0 ? @[ruleText] : @[];
+        NSString *matchedRule = regex ? [self _firstMatchingRegexRuleInRules:singleRule text:matchText] : [self _firstMatchingContainsRuleInRules:singleRule text:matchText];
+        if (matchedRule.length > 0) {
+            return matchedRule;
+        }
+    }
+    return nil;
+}
+
++ (NFMatchResult * _Nullable)_evaluateBlacklistRules:(NSDictionary *)rules
+                                           scopeName:(NSString *)scopeName
+                                              record:(NFNotificationRecord *)record {
+    NSString *matchedExclude = [self _firstMatchingRuleEntryInRules:rules[NFRulesExcludeKey]
+                                                       defaultScope:NFRuleScopeAll
+                                                              regex:NO
+                                                             record:record];
+    if (matchedExclude.length > 0) {
+        return [self _resultWithShouldBlock:NO
+                                      scope:scopeName
+                                       mode:NFMatchModeExclude
+                                    pattern:matchedExclude];
+    }
+
+    NSString *matchedContains = [self _firstMatchingRuleEntryInRules:rules[NFRulesContainsKey]
+                                                        defaultScope:NFRuleScopeMessage
+                                                               regex:NO
+                                                              record:record];
+    if (matchedContains.length > 0) {
+        return [self _resultWithShouldBlock:YES
+                                      scope:scopeName
+                                       mode:NFMatchModeContains
+                                    pattern:matchedContains];
+    }
+
+    NSString *matchedRegex = [self _firstMatchingRuleEntryInRules:rules[NFRulesRegexKey]
+                                                     defaultScope:NFRuleScopeAll
+                                                            regex:YES
+                                                           record:record];
+    if (matchedRegex.length > 0) {
+        return [self _resultWithShouldBlock:YES
+                                      scope:scopeName
+                                       mode:NFMatchModeRegex
+                                    pattern:matchedRegex];
+    }
+
+    return nil;
+}
+
++ (NFMatchResult * _Nullable)_evaluateAppRules:(NSDictionary *)rules
+                                     scopeName:(NSString *)scopeName
+                                        record:(NFNotificationRecord *)record {
+    NSString *mode = [NFPreferences normalizedRulesMode:rules[NFRulesModeKey]];
+    BOOL whitelist = [mode isEqualToString:NFRulesModeWhitelist];
+
+    NSString *matchedExclude = [self _firstMatchingRuleEntryInRules:rules[NFRulesExcludeKey]
+                                                       defaultScope:NFRuleScopeAll
+                                                              regex:NO
+                                                             record:record];
+    if (matchedExclude.length > 0) {
+        return [self _resultWithShouldBlock:whitelist
+                                      scope:scopeName
+                                       mode:NFMatchModeExclude
+                                    pattern:matchedExclude];
+    }
+
+    NSString *matchedContains = [self _firstMatchingRuleEntryInRules:rules[NFRulesContainsKey]
+                                                        defaultScope:NFRuleScopeMessage
+                                                               regex:NO
+                                                              record:record];
+    if (matchedContains.length > 0) {
+        return [self _resultWithShouldBlock:!whitelist
+                                      scope:scopeName
+                                       mode:NFMatchModeContains
+                                    pattern:matchedContains];
+    }
+
+    NSString *matchedRegex = [self _firstMatchingRuleEntryInRules:rules[NFRulesRegexKey]
+                                                     defaultScope:NFRuleScopeAll
+                                                            regex:YES
+                                                           record:record];
+    if (matchedRegex.length > 0) {
+        return [self _resultWithShouldBlock:!whitelist
+                                      scope:scopeName
+                                       mode:NFMatchModeRegex
+                                    pattern:matchedRegex];
+    }
+
+    if (whitelist) {
+        return [self _resultWithShouldBlock:YES
+                                      scope:scopeName
+                                       mode:NFMatchModeWhitelistDefault
+                                    pattern:nil];
+    }
+
+    return nil;
+}
+
 + (NFMatchResult *)evaluateRecord:(NFNotificationRecord *)record
                       preferences:(NSDictionary *)preferences {
     if (![preferences[NFEnabledKey] boolValue]) {
@@ -70,82 +188,25 @@
         return [self _allowResult];
     }
 
-    NSMutableArray<NSDictionary *> *scopes = [NSMutableArray array];
     NSDictionary *globalRules = [NFPreferences globalRulesFromPreferences:preferences];
     if ([globalRules[NFRulesEnabledKey] boolValue]) {
-        [scopes addObject:@{
-            @"name": NFMatchScopeGlobal,
-            @"rules": globalRules
-        }];
+        NFMatchResult *globalResult = [self _evaluateBlacklistRules:globalRules
+                                                          scopeName:NFMatchScopeGlobal
+                                                             record:record];
+        if (globalResult) {
+            return globalResult;
+        }
     }
 
     if (record.bundleIdentifier.length > 0) {
         NSDictionary *appRules = [NFPreferences rulesForBundleIdentifier:record.bundleIdentifier
                                                          fromPreferences:preferences];
         if ([appRules[NFRulesEnabledKey] boolValue]) {
-            [scopes addObject:@{
-                @"name": [self _scopeNameForBundleIdentifier:record.bundleIdentifier],
-                @"rules": appRules
-            }];
-        }
-    }
-
-    for (NSDictionary *scope in scopes) {
-        NSDictionary *rules = scope[@"rules"];
-        for (NSDictionary *ruleEntry in [NFPreferences activeRuleEntriesFromArray:rules[NFRulesExcludeKey]
-                                                                     defaultScope:NFRuleScopeAll]) {
-            NSString *ruleText = [NFPreferences ruleTextFromEntry:ruleEntry];
-            NSString *matchText = [self _textForScope:[NFPreferences ruleScopeFromEntry:ruleEntry defaultScope:NFRuleScopeAll]
-                                               record:record
-                                         defaultScope:NFRuleScopeAll];
-            NSString *matchedRule = [self _firstMatchingContainsRuleInRules:ruleText.length > 0 ? @[ruleText] : @[]
-                                                                       text:matchText];
-            if (matchedRule.length > 0) {
-                NFMatchResult *result = [[NFMatchResult alloc] init];
-                result.shouldBlock = NO;
-                result.matchedScope = scope[@"name"];
-                result.matchedMode = NFMatchModeExclude;
-                result.matchedPattern = matchedRule;
-                return result;
-            }
-        }
-    }
-
-    for (NSDictionary *scope in scopes) {
-        NSDictionary *rules = scope[@"rules"];
-        for (NSDictionary *ruleEntry in [NFPreferences activeRuleEntriesFromArray:rules[NFRulesContainsKey]
-                                                                     defaultScope:NFRuleScopeMessage]) {
-            NSString *ruleText = [NFPreferences ruleTextFromEntry:ruleEntry];
-            NSString *matchText = [self _textForScope:[NFPreferences ruleScopeFromEntry:ruleEntry defaultScope:NFRuleScopeMessage]
-                                               record:record
-                                         defaultScope:NFRuleScopeMessage];
-            NSString *matchedContainsRule = [self _firstMatchingContainsRuleInRules:ruleText.length > 0 ? @[ruleText] : @[]
-                                                                                text:matchText];
-            if (matchedContainsRule.length > 0) {
-                NFMatchResult *result = [[NFMatchResult alloc] init];
-                result.shouldBlock = YES;
-                result.matchedScope = scope[@"name"];
-                result.matchedMode = NFMatchModeContains;
-                result.matchedPattern = matchedContainsRule;
-                return result;
-            }
-        }
-
-        for (NSDictionary *ruleEntry in [NFPreferences activeRuleEntriesFromArray:rules[NFRulesRegexKey]
-                                                                     defaultScope:NFRuleScopeAll]) {
-            NSString *ruleText = [NFPreferences ruleTextFromEntry:ruleEntry];
-            NSString *matchText = [self _textForScope:[NFPreferences ruleScopeFromEntry:ruleEntry defaultScope:NFRuleScopeAll]
-                                               record:record
-                                         defaultScope:NFRuleScopeAll];
-            NSString *matchedRegexRule = [self _firstMatchingRegexRuleInRules:ruleText.length > 0 ? @[ruleText] : @[]
-                                                                         text:matchText];
-            if (matchedRegexRule.length > 0) {
-                NFMatchResult *result = [[NFMatchResult alloc] init];
-                result.shouldBlock = YES;
-                result.matchedScope = scope[@"name"];
-                result.matchedMode = NFMatchModeRegex;
-                result.matchedPattern = matchedRegexRule;
-                return result;
+            NFMatchResult *appResult = [self _evaluateAppRules:appRules
+                                                     scopeName:[self _scopeNameForBundleIdentifier:record.bundleIdentifier]
+                                                        record:record];
+            if (appResult) {
+                return appResult;
             }
         }
     }
