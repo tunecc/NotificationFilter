@@ -122,41 +122,33 @@ static NSString * const NFPNotificationRuleTokenSelectionSeparator = @"\n";
         return @[];
     }
 
-    NSMutableArray<NSString *> *selectedTokens = [NSMutableArray array];
-    NSString *resolvedScope = nil;
-    BOOL mixedScopes = NO;
+    NSMutableArray<NSDictionary *> *entries = [NSMutableArray array];
 
     for (NSDictionary *section in tokenSections) {
         NSString *scope = [section[NFPNotificationRuleTokenSectionScopeKey] isKindOfClass:[NSString class]] ? section[NFPNotificationRuleTokenSectionScopeKey] : defaultScope;
         NSArray<NSString *> *tokens = [section[NFPNotificationRuleTokenSectionTokensKey] isKindOfClass:[NSArray class]] ? section[NFPNotificationRuleTokenSectionTokensKey] : @[];
+        NSMutableArray<NSString *> *selectedTokens = [NSMutableArray array];
+
         for (NSUInteger tokenIndex = 0; tokenIndex < tokens.count; tokenIndex++) {
             NSString *token = tokens[tokenIndex];
             NSString *selectionKey = [self selectionKeyForScope:scope tokenIndex:tokenIndex token:token];
-            if (![selectedTokenKeys containsObject:selectionKey]) {
-                continue;
-            }
-
-            [selectedTokens addObject:token];
-            if (!resolvedScope) {
-                resolvedScope = scope;
-            } else if (![resolvedScope isEqualToString:scope]) {
-                mixedScopes = YES;
+            if ([selectedTokenKeys containsObject:selectionKey]) {
+                [selectedTokens addObject:token];
             }
         }
+
+        NSString *ruleText = [selectedTokens componentsJoinedByString:@""];
+        if (ruleText.length == 0) {
+            continue;
+        }
+
+        [entries addObject:[NFPreferences ruleEntryWithText:ruleText
+                                                    enabled:YES
+                                                  identifier:nil
+                                                       scope:scope ?: defaultScope ?: NFRuleScopeMessage]];
     }
 
-    NSString *ruleText = [selectedTokens componentsJoinedByString:@""];
-    if (ruleText.length == 0) {
-        return @[];
-    }
-
-    NSString *entryScope = mixedScopes ? NFRuleScopeAll : (resolvedScope ?: defaultScope);
-    return @[
-        [NFPreferences ruleEntryWithText:ruleText
-                                 enabled:YES
-                               identifier:nil
-                                    scope:entryScope ?: NFRuleScopeMessage]
-    ];
+    return entries;
 }
 
 @end

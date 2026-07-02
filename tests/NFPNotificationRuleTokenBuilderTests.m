@@ -82,15 +82,18 @@ int main(void) {
         NFAssert([sameScopeEntries[0][NFRuleEntryScopeKey] isEqualToString:NFRuleScopeMessage], @"same-scope selection should keep that scope");
 
         NSSet<NSString *> *mixedScopeSelection = [NSSet setWithObjects:
-            [NFPNotificationRuleTokenBuilder selectionKeyForScope:titleScope tokenIndex:2 token:titleTokens[2]],
+            [NFPNotificationRuleTokenBuilder selectionKeyForScope:titleScope tokenIndex:0 token:titleTokens[0]],
+            [NFPNotificationRuleTokenBuilder selectionKeyForScope:titleScope tokenIndex:1 token:titleTokens[1]],
             [NFPNotificationRuleTokenBuilder selectionKeyForScope:messageScope tokenIndex:2 token:messageTokens[2]],
             nil];
         NSArray<NSDictionary *> *mixedScopeEntries = [NFPNotificationRuleTokenBuilder ruleEntriesFromTokenSections:sections
                                                                                                  selectedTokenKeys:mixedScopeSelection
                                                                                                       defaultScope:NFRuleScopeMessage];
-        NFAssert(mixedScopeEntries.count == 1, @"one scan save should create exactly one rule across scopes");
-        NFAssert([mixedScopeEntries[0][NFRuleEntryTextKey] isEqualToString:@"sale到"], @"mixed selected pieces should be connected in section order");
-        NFAssert([mixedScopeEntries[0][NFRuleEntryScopeKey] isEqualToString:NFRuleScopeAll], @"cross-scope selection should fall back to all-text matching");
+        NFAssert(mixedScopeEntries.count == 2, @"cross-scope selection should create one rule per selected section");
+        NFAssert([mixedScopeEntries[0][NFRuleEntryTextKey] isEqualToString:@"限时"], @"title selected pieces should be connected inside the title rule");
+        NFAssert([mixedScopeEntries[0][NFRuleEntryScopeKey] isEqualToString:NFRuleScopeTitle], @"title selection should keep title scope");
+        NFAssert([mixedScopeEntries[1][NFRuleEntryTextKey] isEqualToString:@"到"], @"message selected pieces should be connected inside the message rule");
+        NFAssert([mixedScopeEntries[1][NFRuleEntryScopeKey] isEqualToString:NFRuleScopeMessage], @"message selection should keep message scope");
     }
     return 0;
 }
