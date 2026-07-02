@@ -180,6 +180,7 @@ static const CGFloat NFPTokenMinimumTouchSize = 30.0;
 @property (nonatomic, copy) NSArray<NSDictionary *> *tokenSections;
 @property (nonatomic, strong) NSMutableSet<NSString *> *selectedTokenKeys;
 @property (nonatomic, strong) UIStackView *tokenStackView;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, UIButton *> *sectionSelectButtons;
 @property (nonatomic, strong) UILongPressGestureRecognizer *tokenDragGestureRecognizer;
 @property (nonatomic, strong) NSMutableSet<NSString *> *dragToggledTokenKeys;
 @property (nonatomic, strong) UISelectionFeedbackGenerator *tokenSelectionFeedbackGenerator;
@@ -225,6 +226,7 @@ static const CGFloat NFPTokenMinimumTouchSize = 30.0;
         _commitHandler = [commitHandler copy];
         _selectedTokenKeys = [NSMutableSet set];
         _dragToggledTokenKeys = [NSMutableSet set];
+        _sectionSelectButtons = [NSMutableDictionary dictionary];
         _tokenSections = [NFPNotificationRuleTokenBuilder tokenSectionsFromNotificationEntry:_entry];
         self.title = NFPLocalizedString(@"RULE_SCAN_PICKER_TITLE");
     }
@@ -354,6 +356,7 @@ static const CGFloat NFPTokenMinimumTouchSize = 30.0;
         [self.tokenStackView removeArrangedSubview:subview];
         [subview removeFromSuperview];
     }
+    [self.sectionSelectButtons removeAllObjects];
 
     if (self.tokenSections.count == 0) {
         UILabel *emptyLabel = [[UILabel alloc] init];
@@ -371,11 +374,28 @@ static const CGFloat NFPTokenMinimumTouchSize = 30.0;
             continue;
         }
 
+        UIStackView *sectionHeader = [[UIStackView alloc] init];
+        sectionHeader.axis = UILayoutConstraintAxisHorizontal;
+        sectionHeader.alignment = UIStackViewAlignmentCenter;
+        sectionHeader.spacing = 8.0;
+
         UILabel *sectionLabel = [[UILabel alloc] init];
         sectionLabel.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightSemibold];
         sectionLabel.textColor = [UIColor secondaryLabelColor];
         sectionLabel.text = NFPLocalizedScopeName(scope);
-        [self.tokenStackView addArrangedSubview:sectionLabel];
+        [sectionHeader addArrangedSubview:sectionLabel];
+
+        UIView *spacer = [[UIView alloc] init];
+        [sectionHeader addArrangedSubview:spacer];
+
+        UIButton *selectButton = [UIButton buttonWithType:UIButtonTypeSystem];
+        selectButton.titleLabel.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightSemibold];
+        selectButton.accessibilityIdentifier = scope ?: @"";
+        [selectButton addTarget:self action:@selector(sectionSelectButtonTapped:) forControlEvents:UIControlEventTouchUpInside];
+        [sectionHeader addArrangedSubview:selectButton];
+
+        self.sectionSelectButtons[scope ?: @""] = selectButton;
+        [self.tokenStackView addArrangedSubview:sectionHeader];
 
         NFPTokenFlowView *flowView = [[NFPTokenFlowView alloc] initWithFrame:CGRectZero];
         flowView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -405,6 +425,71 @@ static const CGFloat NFPTokenMinimumTouchSize = 30.0;
             [flowView addTokenView:button];
         }
     }
+
+    [self updateSectionSelectButtons];
+}
+
+- (NSArray<NSString *> *)selectionKeysForSectionScope:(NSString *)scope {
+    NSString *targetScope = scope ?: @"";
+    NSMutableArray<NSString *> *selectionKeys = [NSMutableArray array];
+    for (NSDictionary *section in self.tokenSections) {
+        NSString *sectionScope = [section[NFPNotificationRuleTokenSectionScopeKey] isKindOfClass:[NSString class]] ? section[NFPNotificationRuleTokenSectionScopeKey] : @"";
+        if (![sectionScope isEqualToString:targetScope]) {
+            continue;
+        }
+
+        NSArray<NSString *> *tokens = [section[NFPNotificationRuleTokenSectionTokensKey] isKindOfClass:[NSArray class]] ? section[NFPNotificationRuleTokenSectionTokensKey] : @[];
+        for (NSUInteger tokenIndex = 0; tokenIndex < tokens.count; tokenIndex++) {
+            [selectionKeys addObject:[NFPNotificationRuleTokenBuilder selectionKeyForScope:sectionScope tokenIndex:tokenIndex token:tokens[tokenIndex]]];
+        }
+    }
+    return selectionKeys;
+}
+
+- (BOOL)sectionScopeIsFullySelected:(NSString *)scope {
+    NSArray<NSString *> *selectionKeys = [self selectionKeysForSectionScope:scope];
+    if (selectionKeys.count == 0) {
+        return NO;
+    }
+
+    for (NSString *selectionKey in selectionKeys) {
+        if (![self.selectedTokenKeys containsObject:selectionKey]) {
+            return NO;
+        }
+    }
+    return YES;
+}
+
+- (void)sectionSelectButtonTapped:(UIButton *)sender {
+    NSString *scope = sender.accessibilityIdentifier ?: @"";
+    NSArray<NSString *> *selectionKeys = [self selectionKeysForSectionScope:scope];
+    if (selectionKeys.count == 0) {
+        return;
+    }
+
+    NSSet<NSString *> *selectionSet = [NSSet setWithArray:selectionKeys];
+    if ([self sectionScopeIsFullySelected:scope]) {
+        [self.selectedTokenKeys minusSet:selectionSet];
+    } else {
+        [self.selectedTokenKeys unionSet:selectionSet];
+    }
+
+    [self emitTokenSelectionFeedback];
+    [self updateAllTokenButtonAppearances];
+    [self updateSectionSelectButtons];
+}
+
+- (void)updateAllTokenButtonAppearances {
+    [self enumerateTokenButtonsUsingBlock:^(NFPTokenButton *button, BOOL *stop) {
+        [self updateAppearanceForTokenButton:button selected:[self.selectedTokenKeys containsObject:button.accessibilityIdentifier]];
+    }];
+}
+
+- (void)updateSectionSelectButtons {
+    [self.sectionSelectButtons enumerateKeysAndObjectsUsingBlock:^(NSString *scope, UIButton *button, BOOL *stop) {
+        BOOL selected = [self sectionScopeIsFullySelected:scope];
+        [button setTitle:NFPLocalizedString(selected ? @"COMMON_DESELECT_ALL" : @"COMMON_SELECT_ALL") forState:UIControlStateNormal];
+    }];
 }
 
 - (void)tokenTapped:(UIButton *)sender {
@@ -433,6 +518,7 @@ static const CGFloat NFPTokenMinimumTouchSize = 30.0;
 
     [self emitTokenSelectionFeedback];
     [self updateAppearanceForTokenButton:button selected:selected];
+    [self updateSectionSelectButtons];
 }
 
 - (void)emitTokenSelectionFeedback {
