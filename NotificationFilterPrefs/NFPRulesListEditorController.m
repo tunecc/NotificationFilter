@@ -18,6 +18,7 @@
 @property (nonatomic, assign) BOOL editingRules;
 @property (nonatomic, strong) NSMutableSet<NSString *> *selectedRuleIdentifiers;
 @property (nonatomic, strong) UIBarButtonItem *editRulesButton;
+@property (nonatomic, strong) UIBarButtonItem *selectAllRulesButton;
 @property (nonatomic, strong, nullable) UIBarButtonItem *scanButton;
 @property (nonatomic, strong) UIBarButtonItem *addButton;
 @property (nonatomic, strong) UIBarButtonItem *deleteButton;
@@ -85,6 +86,11 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
                                                            target:self
                                                            action:@selector(toggleEditingRules)];
     self.navigationItem.leftBarButtonItem = self.editRulesButton;
+
+    self.selectAllRulesButton = [[UIBarButtonItem alloc] initWithTitle:NFPLocalizedString(@"COMMON_SELECT_ALL")
+                                                                 style:UIBarButtonItemStylePlain
+                                                                target:self
+                                                                action:@selector(toggleSelectAllRules)];
 
     if ([self shouldShowScanButton]) {
         self.scanButton = [[UIBarButtonItem alloc] initWithTitle:NFPLocalizedString(@"COMMON_SCAN")
@@ -281,6 +287,47 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     [self persistRules];
 }
 
+- (NSArray<NSString *> *)selectableRuleIdentifiers {
+    NSMutableArray<NSString *> *identifiers = [NSMutableArray array];
+    for (NSDictionary *ruleEntry in self.rules) {
+        NSString *identifier = ruleEntry[NFRuleEntryIdentifierKey];
+        if (identifier.length > 0) {
+            [identifiers addObject:identifier];
+        }
+    }
+    return identifiers;
+}
+
+- (BOOL)allSelectableRulesSelected {
+    NSArray<NSString *> *identifiers = [self selectableRuleIdentifiers];
+    if (identifiers.count == 0) {
+        return NO;
+    }
+
+    for (NSString *identifier in identifiers) {
+        if (![self.selectedRuleIdentifiers containsObject:identifier]) {
+            return NO;
+        }
+    }
+    return YES;
+}
+
+- (void)toggleSelectAllRules {
+    NSArray<NSString *> *identifiers = [self selectableRuleIdentifiers];
+    if (identifiers.count == 0) {
+        return;
+    }
+
+    if ([self allSelectableRulesSelected]) {
+        [self.selectedRuleIdentifiers removeAllObjects];
+    } else {
+        [self.selectedRuleIdentifiers unionSet:[NSSet setWithArray:identifiers]];
+    }
+
+    [self updateNavigationItems];
+    [self.tableView reloadData];
+}
+
 - (void)toggleEditingRules {
     self.editingRules = !self.editingRules;
     if (!self.editingRules) {
@@ -347,12 +394,17 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     self.editRulesButton.title = self.editingRules ? NFPLocalizedString(@"COMMON_DONE") : NFPLocalizedString(@"COMMON_EDIT");
     if (self.editingRules) {
         NSUInteger count = self.selectedRuleIdentifiers.count;
+        BOOL allSelected = [self allSelectableRulesSelected];
         self.title = [NSString stringWithFormat:NFPLocalizedString(@"RULES_LIST_SELECTED_COUNT_TITLE_FORMAT"), (unsigned long)count];
+        self.selectAllRulesButton.title = allSelected ? NFPLocalizedString(@"COMMON_DESELECT_ALL") : NFPLocalizedString(@"COMMON_SELECT_ALL");
+        self.selectAllRulesButton.enabled = [self selectableRuleIdentifiers].count > 0;
         self.deleteButton.title = count > 0 ? [NSString stringWithFormat:NFPLocalizedString(@"RULES_LIST_DELETE_COUNT_BUTTON_FORMAT"), (unsigned long)count] : NFPLocalizedString(@"COMMON_DELETE");
         self.deleteButton.enabled = count > 0;
+        self.navigationItem.leftBarButtonItem = self.selectAllRulesButton;
         self.navigationItem.rightBarButtonItems = @[self.deleteButton];
     } else {
         self.title = NFPLocalizedRuleEditorTitleForMode(self.editorKind, self.ruleMode);
+        self.navigationItem.leftBarButtonItem = self.editRulesButton;
         if (self.scanButton) {
             self.navigationItem.rightBarButtonItems = @[self.addButton, self.scanButton];
         } else {

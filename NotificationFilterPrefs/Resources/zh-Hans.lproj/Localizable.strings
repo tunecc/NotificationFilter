@@ -19,6 +19,8 @@
 "COMMON_IMPORT_SUCCEEDED" = "导入完成";
 "COMMON_CANCEL" = "取消";
 "COMMON_DELETE" = "删除";
+"COMMON_SELECT_ALL" = "全选";
+"COMMON_DESELECT_ALL" = "取消全选";
 "COMMON_CLEAR" = "清空";
 "COMMON_EDIT" = "编辑";
 "COMMON_DONE" = "完成";
