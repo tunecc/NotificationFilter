@@ -19,6 +19,8 @@
 "COMMON_IMPORT_SUCCEEDED" = "Import Completed";
 "COMMON_CANCEL" = "Cancel";
 "COMMON_DELETE" = "Delete";
+"COMMON_SELECT_ALL" = "Select All";
+"COMMON_DESELECT_ALL" = "Deselect All";
 "COMMON_CLEAR" = "Clear";
 "COMMON_EDIT" = "Edit";
 "COMMON_DONE" = "Done";
