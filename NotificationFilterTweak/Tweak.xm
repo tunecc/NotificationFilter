@@ -141,6 +141,18 @@ static NSString *NFBlockedActionRecordKey(NFNotificationRecord *record, NFMatchR
         return nil;
     }
 
+    NSString *matchedPattern = NFNormalizedStringValue(result.matchedPattern);
+    NSString *matchedMode = NFNormalizedStringValue(result.matchedMode);
+
+    // For whitelist default block mode with no pattern, include content hash to distinguish different notifications
+    if (matchedPattern.length == 0 && [matchedMode isEqualToString:NFMatchModeWhitelistDefault]) {
+        NSString *contentForHash = [NSString stringWithFormat:@"%@|%@|%@",
+                                    NFNormalizedStringValue(record.title) ?: @"",
+                                    NFNormalizedStringValue(record.subtitle) ?: @"",
+                                    NFNormalizedStringValue(record.messageText) ?: @""];
+        matchedPattern = [NSString stringWithFormat:@"content:%lu", (unsigned long)[contentForHash hash]];
+    }
+
     return [NSString stringWithFormat:@"%@|%@|%@|%@|%@|%@|%@",
                                       NFNormalizedStringValue(record.bundleIdentifier) ?: @"",
                                       NFNormalizedStringValue(record.sectionID) ?: @"",
@@ -148,7 +160,7 @@ static NSString *NFBlockedActionRecordKey(NFNotificationRecord *record, NFMatchR
                                       recordID ?: @"",
                                       publisherBulletinID ?: @"",
                                       NFNormalizedStringValue(result.matchedScope) ?: @"",
-                                      NFNormalizedStringValue(result.matchedPattern) ?: @""];
+                                      matchedPattern ?: @""];
 }
 
 static NSArray<NSString *> *NFBlockedIdentityKeysForRecord(NFNotificationRecord *record) {
