@@ -71,6 +71,8 @@
 "APP_RULES_LOADING" = "正在加载应用列表…";
 "APP_RULES_EMPTY_TITLE" = "暂无可用应用";
 "APP_RULES_EMPTY_DETAIL" = "下拉可重新刷新应用列表。";
+"APP_RULES_EMPTY_SEARCH_TITLE" = "未找到匹配应用";
+"APP_RULES_EMPTY_SEARCH_DETAIL" = "请尝试其他关键词，或清除当前搜索条件。";
 "APP_RULES_FOOTER" = "下拉可以刷新应用列表；已经配置规则的应用会固定排在前面。";
 "APP_RULES_COUNT_FORMAT" = "%lu条";
 "APP_RULES_FILTER_ONLY_CONFIGURED" = "只看已配置规则";
