@@ -14,6 +14,7 @@ static NSString * const NFPAppRulesDisplayNameKey = @"displayName";
 @property (nonatomic, copy) NSDictionary<NSString *, NSNumber *> *ruleCountsByBundleIdentifier;
 @property (nonatomic, strong) UISearchController *searchController;
 @property (nonatomic, assign) BOOL hasLoadedOnce;
+@property (nonatomic, assign) BOOL isLoadingApplications;
 @property (nonatomic, assign) BOOL onlyConfiguredApps;
 @property (nonatomic, assign) BOOL showSystemApps;
 @property (nonatomic, assign) BOOL showTrollApps;
@@ -36,6 +37,7 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.tableView.backgroundColor = [UIColor systemGroupedBackgroundColor];
     NSDictionary *preferences = [NFPreferences loadPreferences];
     self.onlyConfiguredApps = [preferences[NFPrefOnlyConfiguredAppsKey] boolValue];
     self.showSystemApps = [preferences[NFPrefShowSystemAppsKey] boolValue];
@@ -94,15 +96,71 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
     [self applySearchText:self.searchController.searchBar.text];
     self.hasLoadedOnce = YES;
     [self updateTitleSubtitle];
+    [self updateBackgroundState];
     [self.tableView reloadData];
 }
 
+- (UIView *)stateBackgroundViewWithTitle:(NSString *)title detail:(NSString *)detail {
+    UIView *container = [[UIView alloc] initWithFrame:self.tableView.bounds];
+    container.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+
+    UILabel *titleLabel = [[UILabel alloc] init];
+    titleLabel.text = title;
+    titleLabel.font = [UIFont systemFontOfSize:17.0 weight:UIFontWeightSemibold];
+    titleLabel.textColor = [UIColor labelColor];
+    titleLabel.textAlignment = NSTextAlignmentCenter;
+    titleLabel.numberOfLines = 0;
+
+    NSMutableArray<UIView *> *arrangedSubviews = [NSMutableArray arrayWithObject:titleLabel];
+    if (detail.length > 0) {
+        UILabel *detailLabel = [[UILabel alloc] init];
+        detailLabel.text = detail;
+        detailLabel.font = [UIFont systemFontOfSize:13.0];
+        detailLabel.textColor = [UIColor secondaryLabelColor];
+        detailLabel.textAlignment = NSTextAlignmentCenter;
+        detailLabel.numberOfLines = 0;
+        [arrangedSubviews addObject:detailLabel];
+    }
+
+    UIStackView *stackView = [[UIStackView alloc] initWithArrangedSubviews:arrangedSubviews];
+    stackView.axis = UILayoutConstraintAxisVertical;
+    stackView.alignment = UIStackViewAlignmentCenter;
+    stackView.spacing = 8.0;
+    stackView.translatesAutoresizingMaskIntoConstraints = NO;
+
+    [container addSubview:stackView];
+    [NSLayoutConstraint activateConstraints:@[
+        [stackView.centerXAnchor constraintEqualToAnchor:container.centerXAnchor],
+        [stackView.centerYAnchor constraintEqualToAnchor:container.centerYAnchor],
+        [stackView.leadingAnchor constraintGreaterThanOrEqualToAnchor:container.leadingAnchor constant:24.0],
+        [stackView.trailingAnchor constraintLessThanOrEqualToAnchor:container.trailingAnchor constant:-24.0]
+    ]];
+
+    return container;
+}
+
+- (UIView *)loadingStateView {
+    return [self stateBackgroundViewWithTitle:NFPLocalizedString(@"APP_RULES_LOADING")
+                                       detail:nil];
+}
+
+- (UIView *)emptyStateView {
+    return [self stateBackgroundViewWithTitle:NFPLocalizedString(@"APP_RULES_EMPTY_TITLE")
+                                       detail:NFPLocalizedString(@"APP_RULES_EMPTY_DETAIL")];
+}
+
+- (void)updateBackgroundState {
+    if (self.isLoadingApplications) {
+        self.tableView.backgroundView = [self loadingStateView];
+        return;
+    }
+
+    self.tableView.backgroundView = self.filteredApplications.count == 0 ? [self emptyStateView] : nil;
+}
+
 - (void)beginInitialLoad {
-    UILabel *loadingLabel = [[UILabel alloc] initWithFrame:self.tableView.bounds];
-    loadingLabel.text = NFPLocalizedString(@"APP_RULES_LOADING");
-    loadingLabel.textColor = [UIColor secondaryLabelColor];
-    loadingLabel.textAlignment = NSTextAlignmentCenter;
-    self.tableView.backgroundView = loadingLabel;
+    self.isLoadingApplications = YES;
+    [self updateBackgroundState];
     [self refreshApplications:NO];
 }
 
@@ -115,10 +173,13 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
         [self.refreshControl beginRefreshing];
     }
 
+    self.isLoadingApplications = YES;
+    [self updateBackgroundState];
+
     __weak typeof(self) weakSelf = self;
     [[NFPAppInfoProvider sharedProvider] refreshApplicationsWithCompletion:^(__unused NSArray<NSDictionary *> *applications) {
         [weakSelf.refreshControl endRefreshing];
-        weakSelf.tableView.backgroundView = nil;
+        weakSelf.isLoadingApplications = NO;
         [weakSelf reloadApplicationsFromCache];
     }];
 }
