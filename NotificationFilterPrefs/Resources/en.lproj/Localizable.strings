@@ -69,6 +69,8 @@
 
 "APP_RULES_SEARCH_PLACEHOLDER" = "Search app name or bundle ID";
 "APP_RULES_LOADING" = "Loading app list...";
+"APP_RULES_EMPTY_TITLE" = "No Apps Available";
+"APP_RULES_EMPTY_DETAIL" = "Pull down to refresh the app list.";
 "APP_RULES_FOOTER" = "Pull down to refresh the app list. Apps with configured rules stay pinned at the top.";
 "APP_RULES_COUNT_FORMAT" = "%lu rules";
 "APP_RULES_FILTER_ONLY_CONFIGURED" = "Configured Apps Only";
