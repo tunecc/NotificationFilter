@@ -71,6 +71,8 @@
 "APP_RULES_LOADING" = "Loading app list...";
 "APP_RULES_EMPTY_TITLE" = "No Apps Available";
 "APP_RULES_EMPTY_DETAIL" = "Pull down to refresh the app list.";
+"APP_RULES_EMPTY_SEARCH_TITLE" = "No Matching Apps";
+"APP_RULES_EMPTY_SEARCH_DETAIL" = "Try another keyword or clear the current search.";
 "APP_RULES_FOOTER" = "Pull down to refresh the app list. Apps with configured rules stay pinned at the top.";
 "APP_RULES_COUNT_FORMAT" = "%lu rules";
 "APP_RULES_FILTER_ONLY_CONFIGURED" = "Configured Apps Only";

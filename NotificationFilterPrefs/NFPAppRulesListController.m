@@ -144,9 +144,16 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
                                        detail:nil];
 }
 
-- (UIView *)emptyStateView {
-    return [self stateBackgroundViewWithTitle:NFPLocalizedString(@"APP_RULES_EMPTY_TITLE")
-                                       detail:NFPLocalizedString(@"APP_RULES_EMPTY_DETAIL")];
+- (UIView *)emptyStateViewForSearchResults:(BOOL)isSearchEmpty {
+    NSString *titleKey = isSearchEmpty ? @"APP_RULES_EMPTY_SEARCH_TITLE" : @"APP_RULES_EMPTY_TITLE";
+    NSString *detailKey = isSearchEmpty ? @"APP_RULES_EMPTY_SEARCH_DETAIL" : @"APP_RULES_EMPTY_DETAIL";
+    return [self stateBackgroundViewWithTitle:NFPLocalizedString(titleKey)
+                                       detail:NFPLocalizedString(detailKey)];
+}
+
+- (BOOL)hasActiveSearchText {
+    NSString *searchText = [self.searchController.searchBar.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    return searchText.length > 0;
 }
 
 - (void)updateBackgroundState {
@@ -155,7 +162,13 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
         return;
     }
 
-    self.tableView.backgroundView = self.filteredApplications.count == 0 ? [self emptyStateView] : nil;
+    if (self.filteredApplications.count > 0) {
+        self.tableView.backgroundView = nil;
+        return;
+    }
+
+    BOOL isSearchEmpty = [self hasActiveSearchText] && self.applications.count > 0;
+    self.tableView.backgroundView = [self emptyStateViewForSearchResults:isSearchEmpty];
 }
 
 - (void)beginInitialLoad {
@@ -219,6 +232,7 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
 
 - (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
     [self applySearchText:searchController.searchBar.text];
+    [self updateBackgroundState];
     [self.tableView reloadData];
 }
 
