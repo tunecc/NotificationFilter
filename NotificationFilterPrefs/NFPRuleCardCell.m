@@ -26,7 +26,7 @@
         self.selectionStyle = UITableViewCellSelectionStyleNone;
 
         UIView *cardView = [[UIView alloc] init];
-        cardView.backgroundColor = [UIColor secondarySystemBackgroundColor];
+        cardView.backgroundColor = [UIColor secondarySystemGroupedBackgroundColor];
         cardView.layer.cornerRadius = 14.0;
         cardView.layer.shadowRadius = 8.0;
         cardView.layer.shadowOffset = CGSizeMake(0.0, 2.0);
@@ -123,6 +123,8 @@
     if (@available(iOS 12.0, *)) {
         darkMode = self.traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark;
     }
+
+    self.cardView.backgroundColor = [UIColor secondarySystemGroupedBackgroundColor];
 
     self.cardView.layer.borderWidth = 1.0 / [UIScreen mainScreen].scale;
     UIColor *borderColor = darkMode ? [[UIColor separatorColor] colorWithAlphaComponent:0.32] : [UIColor opaqueSeparatorColor];
