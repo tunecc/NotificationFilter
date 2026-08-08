@@ -12,6 +12,8 @@ extern NSString * const NFGlobalExcludeKey;
 extern NSString * const NFGlobalRegexKey;
 extern NSString * const NFAppRulesKey;
 extern NSString * const NFDeleteFilteredNotificationsKey;
+extern NSString * const NFLoggingEnabledKey;
+extern NSString * const NFLoggingDisabledBundleIdentifiersKey;
 extern NSString * const NFLogEntryLimitKey;
 extern NSString * const NFPrefOnlyConfiguredAppsKey;
 extern NSString * const NFPrefShowSystemAppsKey;
@@ -62,6 +64,13 @@ extern NSString * const NFMatchModeWhitelistDefault;
 @interface NFPreferences : NSObject
 
 + (NSDictionary *)defaultPreferences;
++ (BOOL)loggingEnabledForPreferences:(NSDictionary *)preferences;
++ (BOOL)isLoggingDisabledForBundleIdentifier:(NSString *)bundleIdentifier
+                                preferences:(NSDictionary *)preferences;
++ (BOOL)loggingEnabledForBundleIdentifier:(NSString *)bundleIdentifier
+                             preferences:(NSDictionary *)preferences;
++ (void)setLoggingDisabled:(BOOL)disabled
+        forBundleIdentifier:(NSString *)bundleIdentifier;
 + (NSDictionary *)loadPreferences;
 + (NSMutableDictionary *)loadMutablePreferences;
 + (NSDictionary *)normalizedPreferencesFromDictionary:(NSDictionary * _Nullable)rawPreferences;

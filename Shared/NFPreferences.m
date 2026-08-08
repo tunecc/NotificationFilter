@@ -26,6 +26,8 @@ NSString * const NFGlobalExcludeKey = @"GlobalExclude";
 NSString * const NFGlobalRegexKey = @"GlobalRegex";
 NSString * const NFAppRulesKey = @"AppRules";
 NSString * const NFDeleteFilteredNotificationsKey = @"DeleteFilteredNotifications";
+NSString * const NFLoggingEnabledKey = @"LoggingEnabled";
+NSString * const NFLoggingDisabledBundleIdentifiersKey = @"LoggingDisabledBundleIdentifiers";
 NSString * const NFLogEntryLimitKey = @"LogEntryLimit";
 NSString * const NFPrefOnlyConfiguredAppsKey = @"PrefOnlyConfiguredApps";
 NSString * const NFPrefShowSystemAppsKey = @"PrefShowSystemApps";
@@ -174,6 +176,8 @@ static NSString *NFPreparePrimaryPreferencesFilePath(void) {
         NFGlobalRegexKey,
         NFAppRulesKey,
         NFDeleteFilteredNotificationsKey,
+        NFLoggingEnabledKey,
+        NFLoggingDisabledBundleIdentifiersKey,
         NFLogEntryLimitKey,
         NFPrefOnlyConfiguredAppsKey,
         NFPrefShowSystemAppsKey,
@@ -190,6 +194,8 @@ static NSString *NFPreparePrimaryPreferencesFilePath(void) {
         NFGlobalRegexKey: @[],
         NFAppRulesKey: @{},
         NFDeleteFilteredNotificationsKey: @NO,
+        NFLoggingEnabledKey: @YES,
+        NFLoggingDisabledBundleIdentifiersKey: @[],
         NFLogEntryLimitKey: @([self defaultLogEntryLimit]),
         NFPrefOnlyConfiguredAppsKey: @NO,
         NFPrefShowSystemAppsKey: @YES,
@@ -251,6 +257,58 @@ static NSString *NFPreparePrimaryPreferencesFilePath(void) {
                                          NULL,
                                          NULL,
                                          YES);
+}
+
++ (BOOL)loggingEnabledForPreferences:(NSDictionary *)preferences {
+    NSDictionary *normalizedPreferences = [self normalizedPreferencesFromDictionary:preferences];
+    return [normalizedPreferences[NFLoggingEnabledKey] boolValue];
+}
+
++ (BOOL)isLoggingDisabledForBundleIdentifier:(NSString *)bundleIdentifier
+                                preferences:(NSDictionary *)preferences {
+    if (bundleIdentifier.length == 0) {
+        return NO;
+    }
+
+    NSDictionary *normalizedPreferences = [self normalizedPreferencesFromDictionary:preferences];
+    NSArray *disabledList = normalizedPreferences[NFLoggingDisabledBundleIdentifiersKey];
+    return [disabledList isKindOfClass:[NSArray class]] && [disabledList containsObject:bundleIdentifier];
+}
+
++ (BOOL)loggingEnabledForBundleIdentifier:(NSString *)bundleIdentifier
+                             preferences:(NSDictionary *)preferences {
+    return [self loggingEnabledForPreferences:preferences] &&
+           ![self isLoggingDisabledForBundleIdentifier:bundleIdentifier preferences:preferences];
+}
+
++ (void)setLoggingDisabled:(BOOL)disabled
+        forBundleIdentifier:(NSString *)bundleIdentifier {
+    if (bundleIdentifier.length == 0) {
+        return;
+    }
+
+    NSMutableDictionary *preferences = [self loadMutablePreferences];
+    NSMutableArray<NSString *> *disabledList = [preferences[NFLoggingDisabledBundleIdentifiersKey] mutableCopy];
+    if (![disabledList isKindOfClass:[NSMutableArray class]]) {
+        disabledList = [NSMutableArray array];
+    }
+
+    if (disabled) {
+        if (![disabledList containsObject:bundleIdentifier]) {
+            [disabledList addObject:bundleIdentifier];
+        }
+    } else {
+        [disabledList removeObject:bundleIdentifier];
+    }
+
+    preferences[NFLoggingDisabledBundleIdentifiersKey] = disabledList;
+
+    NSError *error = nil;
+    if (![self savePreferences:preferences error:&error]) {
+        return;
+    }
+
+    [self postPreferencesChangedNotification];
 }
 
 + (NSInteger)defaultLogEntryLimit {
@@ -538,6 +596,27 @@ static NSString *NFPreparePrimaryPreferencesFilePath(void) {
     if ([rawPreferences[NFDeleteFilteredNotificationsKey] respondsToSelector:@selector(boolValue)]) {
         normalizedPreferences[NFDeleteFilteredNotificationsKey] = @([rawPreferences[NFDeleteFilteredNotificationsKey] boolValue]);
     }
+    if ([rawPreferences[NFLoggingEnabledKey] isKindOfClass:[NSNumber class]]) {
+        normalizedPreferences[NFLoggingEnabledKey] = @([rawPreferences[NFLoggingEnabledKey] boolValue]);
+    }
+
+    NSMutableArray<NSString *> *normalizedDisabledList = [NSMutableArray array];
+    NSMutableSet<NSString *> *seenDisabledList = [NSMutableSet set];
+    NSArray *rawDisabledList = rawPreferences[NFLoggingDisabledBundleIdentifiersKey];
+    if ([rawDisabledList isKindOfClass:[NSArray class]]) {
+        for (id rawValue in rawDisabledList) {
+            if (![rawValue isKindOfClass:[NSString class]]) {
+                continue;
+            }
+            NSString *bundleIdentifier = [rawValue stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+            if (bundleIdentifier.length == 0 || [seenDisabledList containsObject:bundleIdentifier]) {
+                continue;
+            }
+            [seenDisabledList addObject:bundleIdentifier];
+            [normalizedDisabledList addObject:bundleIdentifier];
+        }
+    }
+    normalizedPreferences[NFLoggingDisabledBundleIdentifiersKey] = normalizedDisabledList;
     normalizedPreferences[NFLogEntryLimitKey] = @([self normalizedLogEntryLimit:rawPreferences[NFLogEntryLimitKey]]);
     if ([rawPreferences[NFPrefOnlyConfiguredAppsKey] respondsToSelector:@selector(boolValue)]) {
         normalizedPreferences[NFPrefOnlyConfiguredAppsKey] = @([rawPreferences[NFPrefOnlyConfiguredAppsKey] boolValue]);
