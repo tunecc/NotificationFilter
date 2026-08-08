@@ -110,6 +110,9 @@
 "LOGS_LIMIT_SAVE_FAILED" = "Failed to save the log limit.";
 "LOGS_CLEAR_TITLE" = "Clear Logs";
 "LOGS_CLEAR_MESSAGE" = "This only removes filtered records and does not affect your rules.";
+"LOGS_APP_LOG_ENABLED" = "Log This App";
+"LOGS_APP_LOG_ENABLED_FOOTER" = "When off, blocked notifications from this app are no longer logged.";
+"LOGS_APP_LOG_GLOBAL_OFF_FOOTER" = "Global logging is off.";
 
 "LOG_DETAIL_TITLE" = "Notification Details";
 "LOG_DETAIL_APP_FORMAT" = "App: %@";

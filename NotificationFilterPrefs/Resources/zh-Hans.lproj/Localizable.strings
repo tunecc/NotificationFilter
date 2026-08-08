@@ -111,6 +111,9 @@
 "LOGS_CLEAR_TITLE" = "清空日志";
 "LOGS_CLEAR_MESSAGE" = "该操作只会删除过滤记录，不会影响规则。";
 "LOGS_CLEAR_APP_MESSAGE" = "该操作只会删除当前应用的过滤记录，不会影响其他应用或规则。";
+"LOGS_APP_LOG_ENABLED" = "记录该应用日志";
+"LOGS_APP_LOG_ENABLED_FOOTER" = "关闭后，该应用被拦截的通知不再写入日志。";
+"LOGS_APP_LOG_GLOBAL_OFF_FOOTER" = "全局日志已关闭。";
 
 "LOG_DETAIL_TITLE" = "通知详情";
 "LOG_DETAIL_APP_FORMAT" = "应用：%@";

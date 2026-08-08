@@ -231,7 +231,14 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
     return label;
 }
 
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return [self isShowingAppEntries] ? 2 : 1;
+}
+
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    if ([self isShowingAppEntries] && section == 0) {
+        return 1;
+    }
     return [self currentRowCount];
 }
 
@@ -243,6 +250,24 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    if ([self isShowingAppEntries] && indexPath.section == 0) {
+        UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"log-toggle"];
+        if (!cell) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"log-toggle"];
+            UISwitch *toggle = [[UISwitch alloc] init];
+            [toggle addTarget:self action:@selector(logToggleChanged:) forControlEvents:UIControlEventValueChanged];
+            cell.accessoryView = toggle;
+            cell.selectionStyle = UITableViewCellSelectionStyleNone;
+        }
+
+        cell.textLabel.text = NFPLocalizedString(@"LOGS_APP_LOG_ENABLED");
+        NSDictionary *preferences = [NFPreferences loadPreferences];
+        BOOL disabled = [NFPreferences isLoggingDisabledForBundleIdentifier:self.bundleIdentifierFilter
+                                                                preferences:preferences];
+        ((UISwitch *)cell.accessoryView).on = !disabled;
+        return cell;
+    }
+
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"log"];
     if (!cell) {
         cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleSubtitle reuseIdentifier:@"log"];
@@ -284,6 +309,10 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 
+    if ([self isShowingAppEntries] && indexPath.section == 0) {
+        return;
+    }
+
     if ([self isShowingAppEntries] || [self isShowingGlobalSearchResults]) {
         NSDictionary *entry = self.filteredEntries[indexPath.row];
         NSString *bundleIdentifier = entry[NFLogBundleIdentifierKey];
@@ -300,11 +329,26 @@ static NSString *NFPLogPreviewText(NSDictionary *entry) {
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
+    if ([self isShowingAppEntries] && section == 0) {
+        NSDictionary *preferences = [NFPreferences loadPreferences];
+        if (![NFPreferences loggingEnabledForPreferences:preferences]) {
+            return [NSString stringWithFormat:@"%@\n%@",
+                            NFPLocalizedString(@"LOGS_APP_LOG_ENABLED_FOOTER"),
+                            NFPLocalizedString(@"LOGS_APP_LOG_GLOBAL_OFF_FOOTER")];
+        }
+        return NFPLocalizedString(@"LOGS_APP_LOG_ENABLED_FOOTER");
+    }
     if ([self isShowingAppEntries] || [self isShowingGlobalSearchResults]) {
         return nil;
     }
     return [NSString stringWithFormat:NFPLocalizedString(@"LOGS_FOOTER_FORMAT"),
                                       (long)[self currentLogEntryLimit]];
+}
+
+- (void)logToggleChanged:(UISwitch *)sender {
+    [NFPreferences setLoggingDisabled:!sender.on
+                    forBundleIdentifier:self.bundleIdentifierFilter ?: @""];
+    [self reloadEntries];
 }
 
 - (void)clearTapped {
