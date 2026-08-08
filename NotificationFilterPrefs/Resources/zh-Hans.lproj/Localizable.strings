@@ -3,6 +3,8 @@
 "ROOT_ENABLE_FILTER" = "启用过滤";
 "ROOT_DELETE_FILTERED" = "从通知中心删除过滤通知";
 "ROOT_DELETE_FOOTER" = "开启后，已过滤通知会从通知中心移除；未开启时，禁用插件后，历史过滤通知会在通知中心恢复显示。";
+"ROOT_LOG_ENABLED" = "记录拦截日志";
+"ROOT_LOG_ENABLED_FOOTER" = "关闭后，被拦截的通知不再写入日志。";
 "ROOT_RULES_FOOTER" = "规则匹配顺序：全局规则 → 单应用规则。命中排除规则直接放行。\n\nGitHub";
 "ROOT_PROJECT_LINK_TEXT" = "GitHub";
 "ROOT_GLOBAL_RULES" = "全局规则";

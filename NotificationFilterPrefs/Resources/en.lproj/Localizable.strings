@@ -3,6 +3,8 @@
 "ROOT_ENABLE_FILTER" = "Enable Filtering";
 "ROOT_DELETE_FILTERED" = "Remove Filtered Notifications from Notification Center";
 "ROOT_DELETE_FOOTER" = "When enabled, filtered notifications are removed from Notification Center. If disabled, previously filtered notifications will reappear in Notification Center after the tweak is turned off.";
+"ROOT_LOG_ENABLED" = "Log Blocked Notifications";
+"ROOT_LOG_ENABLED_FOOTER" = "When off, blocked notifications are no longer logged.";
 "ROOT_RULES_FOOTER" = "Rule order: Global Rules → App Rules. Exclude rules allow the notification through immediately.\n\nGitHub";
 "ROOT_PROJECT_LINK_TEXT" = "GitHub";
 "ROOT_GLOBAL_RULES" = "Global Rules";

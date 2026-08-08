@@ -57,6 +57,21 @@ static NSString * const NFPProjectPageURLString = @"https://github.com/tunecc/No
     [deleteSpecifier setProperty:@NO forKey:PSDefaultValueKey];
     [specifiers addObject:deleteSpecifier];
 
+    PSSpecifier *logGroup = [PSSpecifier emptyGroupSpecifier];
+    [logGroup setProperty:NFPLocalizedString(@"ROOT_LOG_ENABLED_FOOTER") forKey:PSFooterTextGroupKey];
+    [specifiers addObject:logGroup];
+
+    PSSpecifier *logEnabledSpecifier = [PSSpecifier preferenceSpecifierNamed:NFPLocalizedString(@"ROOT_LOG_ENABLED")
+                                                                      target:self
+                                                                         set:@selector(setPreferenceValue:specifier:)
+                                                                         get:@selector(readPreferenceValue:)
+                                                                      detail:nil
+                                                                        cell:PSSwitchCell
+                                                                        edit:nil];
+    [logEnabledSpecifier setProperty:NFLoggingEnabledKey forKey:PSKeyNameKey];
+    [logEnabledSpecifier setProperty:@YES forKey:PSDefaultValueKey];
+    [specifiers addObject:logEnabledSpecifier];
+
     PSSpecifier *pagesGroup = [PSSpecifier groupSpecifierWithID:NFPRulesGroupSpecifierID];
     [pagesGroup setProperty:NFPLocalizedString(@"ROOT_RULES_FOOTER") forKey:PSFooterTextGroupKey];
     [specifiers addObject:pagesGroup];
