@@ -211,29 +211,6 @@ run_make_clean_with_retry() {
     fail "clean failed for $flavor after retries"
 }
 
-native_build_workaround_vars() {
-    local scheme="$1"
-    local sdk_root="/Applications/Xcode-14.2.0.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS16.2.sdk"
-
-    if [ -d "$sdk_root" ]; then
-        printf '%s\n' "SYSROOT=$sdk_root"
-        printf '%s\n' "ISYSROOT=$sdk_root"
-        printf '%s\n' "MODULESFLAGS="
-        printf '%s\n' "NotificationFilter_USE_MODULES=0"
-        printf '%s\n' "NotificationFilterPrefs_USE_MODULES=0"
-        printf '%s\n' "NotificationFilter_CFLAGS=-fobjc-arc"
-        printf '%s\n' "NotificationFilterPrefs_CFLAGS=-fobjc-arc -Wno-error=deprecated-declarations"
-    fi
-
-    if [ "$scheme" = "roothide" ]; then
-        printf '%s\n' "NotificationFilter_LIBRARIES=roothide"
-        printf '%s\n' "NotificationFilterPrefs_LIBRARIES=roothide"
-    else
-        printf '%s\n' "NotificationFilter_LIBRARIES="
-        printf '%s\n' "NotificationFilterPrefs_LIBRARIES="
-    fi
-}
-
 build_native_deb() {
     local flavor="$1"
     local scheme
@@ -243,15 +220,9 @@ build_native_deb() {
         "FINALPACKAGE=1"
         "THEOS_PACKAGE_DIR=$package_dir"
     )
-    local workaround_var
 
     scheme="$(scheme_for_flavor "$flavor")"
     make_vars+=("THEOS_PACKAGE_SCHEME=$scheme")
-
-    while IFS= read -r workaround_var; do
-        [ -n "$workaround_var" ] || continue
-        make_vars+=("$workaround_var")
-    done < <(native_build_workaround_vars "$scheme")
 
     remove_path_with_retry "$package_dir"
     mkdir -p "$package_dir"
