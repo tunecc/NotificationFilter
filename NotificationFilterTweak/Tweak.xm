@@ -85,8 +85,21 @@ static NSMutableDictionary *NFBuildBlockedLogEntry(NFNotificationRecord *record,
     return logEntry;
 }
 
+static BOOL NFShouldLogBlockedRecord(NFNotificationRecord *record) {
+    NSDictionary *preferences = NFCopyPreferencesSnapshot();
+    if (![NFPreferences loggingEnabledForPreferences:preferences]) {
+        return NO;
+    }
+    return ![NFPreferences isLoggingDisabledForBundleIdentifier:record.bundleIdentifier
+                                                   preferences:preferences];
+}
+
 static void NFAppendBlockedLog(NFNotificationRecord *record, NFMatchResult *result) {
     if (!result.shouldBlock) {
+        return;
+    }
+
+    if (!NFShouldLogBlockedRecord(record)) {
         return;
     }
 
@@ -1033,6 +1046,9 @@ static void NFAttemptDeleteFilteredBulletin(id server,
     if (!server) {
         baseLogEntry[NFLogDeleteStatusKey] = @"skipped";
         baseLogEntry[NFLogDeleteMethodKey] = @"invalid-input";
+        if (!NFShouldLogBlockedRecord(record)) {
+            return;
+        }
         [NFLogStore appendBlockedEntry:baseLogEntry];
         return;
     }
@@ -1084,6 +1100,9 @@ static void NFAttemptDeleteFilteredBulletin(id server,
         NSMutableDictionary *completedLogEntry = [baseLogEntry mutableCopy];
         completedLogEntry[NFLogDeleteStatusKey] = clearedExistingEntries ? @"success" : @"failed";
         completedLogEntry[NFLogDeleteMethodKey] = methods.count > 0 ? [methods componentsJoinedByString:@","] : @"none";
+        if (!NFShouldLogBlockedRecord(record)) {
+            return;
+        }
         [NFLogStore appendBlockedEntry:completedLogEntry];
     });
 }
