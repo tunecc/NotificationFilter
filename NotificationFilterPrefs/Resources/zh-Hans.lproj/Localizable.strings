@@ -149,6 +149,7 @@
 "PER_APP_RULES_ENABLED_FOOTER" = "关闭后，该应用规则不会参与匹配。";
 "PER_APP_RULES_LIST_FOOTER" = "只有该应用的通知会使用这里的规则，并与全局规则一起参与判断。";
 "PER_APP_RULES_ENABLE" = "启用该应用规则";
+"PER_APP_RULES_LOG_ENABLED" = "记录该应用日志";
 "PER_APP_RULES_DELETE" = "删除该应用规则";
 "PER_APP_RULES_DELETE_TITLE" = "删除规则";
 "PER_APP_RULES_DELETE_MESSAGE" = "会移除该应用的所有过滤设置。";

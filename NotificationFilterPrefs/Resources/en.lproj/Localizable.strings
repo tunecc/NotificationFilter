@@ -149,6 +149,7 @@
 "PER_APP_RULES_ENABLED_FOOTER" = "When off, rules for this app will not participate in matching.";
 "PER_APP_RULES_LIST_FOOTER" = "Only notifications from this app use these rules, and they are evaluated together with global rules.";
 "PER_APP_RULES_ENABLE" = "Enable Rules for This App";
+"PER_APP_RULES_LOG_ENABLED" = "Log This App";
 "PER_APP_RULES_DELETE" = "Delete This App's Rules";
 "PER_APP_RULES_DELETE_TITLE" = "Delete Rules";
 "PER_APP_RULES_DELETE_MESSAGE" = "All filter settings for this app will be removed.";
