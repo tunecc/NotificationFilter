@@ -12,6 +12,7 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
 
 typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
     NFPPerAppRulesConfigRowEnabled = 0,
+    NFPPerAppRulesConfigRowLogging,
     NFPPerAppRulesConfigRowMode
 };
 
@@ -72,7 +73,7 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
     if (section == 0) {
-        return 2;
+        return 3;
     }
     if (section == 1) {
         return 3;
@@ -83,7 +84,13 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     if (section == 0) {
         NSString *mode = [self currentRuleMode];
-        return [mode isEqualToString:NFRulesModeWhitelist] ? NFPLocalizedString(@"PER_APP_RULES_ENABLED_FOOTER_WHITELIST") : NFPLocalizedString(@"PER_APP_RULES_ENABLED_FOOTER_BLACKLIST");
+        NSString *footer = [mode isEqualToString:NFRulesModeWhitelist] ? NFPLocalizedString(@"PER_APP_RULES_ENABLED_FOOTER_WHITELIST") : NFPLocalizedString(@"PER_APP_RULES_ENABLED_FOOTER_BLACKLIST");
+        if (![NFPreferences loggingEnabledForPreferences:[NFPreferences loadPreferences]]) {
+            footer = [NSString stringWithFormat:@"%@\n%@",
+                                            footer,
+                                            NFPLocalizedString(@"LOGS_APP_LOG_GLOBAL_OFF_FOOTER")];
+        }
+        return footer;
     }
     if (section == 1) {
         return NFPLocalizedString(@"PER_APP_RULES_LIST_FOOTER");
@@ -93,6 +100,23 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     if (indexPath.section == 0) {
+        if (indexPath.row == NFPPerAppRulesConfigRowLogging) {
+            UITableViewCell *loggingCell = [tableView dequeueReusableCellWithIdentifier:@"logging-toggle"];
+            if (!loggingCell) {
+                loggingCell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"logging-toggle"];
+                UISwitch *loggingSwitch = [[UISwitch alloc] init];
+                [loggingSwitch addTarget:self action:@selector(loggingToggleChanged:) forControlEvents:UIControlEventValueChanged];
+                loggingCell.accessoryView = loggingSwitch;
+                loggingCell.selectionStyle = UITableViewCellSelectionStyleNone;
+            }
+
+            loggingCell.textLabel.text = NFPLocalizedString(@"PER_APP_RULES_LOG_ENABLED");
+            NSDictionary *preferences = [NFPreferences loadPreferences];
+            BOOL disabled = [NFPreferences isLoggingDisabledForBundleIdentifier:self.bundleIdentifier
+                                                                    preferences:preferences];
+            ((UISwitch *)loggingCell.accessoryView).on = !disabled;
+            return loggingCell;
+        }
         if (indexPath.row == NFPPerAppRulesConfigRowMode) {
             UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"mode"];
             if (!cell) {
@@ -161,6 +185,10 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
+
+    if (indexPath.section == 0 && indexPath.row == NFPPerAppRulesConfigRowLogging) {
+        return;
+    }
 
     if (indexPath.section == 0 && indexPath.row == NFPPerAppRulesConfigRowMode) {
         [self presentRuleModePickerFromIndexPath:indexPath];
@@ -266,6 +294,12 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
     NSMutableDictionary *mutableRules = [self.rules mutableCopy];
     mutableRules[NFRulesEnabledKey] = @(sender.on);
     [self persistRules:mutableRules];
+}
+
+- (void)loggingToggleChanged:(UISwitch *)sender {
+    [NFPreferences setLoggingDisabled:!sender.on
+                    forBundleIdentifier:self.bundleIdentifier];
+    [self.tableView reloadData];
 }
 
 - (void)scanButtonTapped:(UIBarButtonItem *)sender {
