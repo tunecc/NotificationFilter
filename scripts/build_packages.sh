@@ -255,6 +255,14 @@ sanitize_deb_payload() {
     rm -rf "$unpack_dir"
     dpkg-deb -R "$deb_path" "$unpack_dir" >/dev/null
     clean_host_metadata "$unpack_dir"
+    # Normalize permissions so mobile-user processes (Preferences, SpringBoard)
+    # can read the payload. theos preserves the host checkout's file modes,
+    # which can be 0600 and unreadable by mobile -> Preferences crashes when
+    # other tweaks scan the PreferenceLoader plists. Files -> 0644, dirs -> 0755,
+    # executables stay 0755. (find -type f/d skips symlinks.)
+    find "$unpack_dir" -type d -exec chmod 755 {} +
+    find "$unpack_dir" -type f ! -perm -0100 -exec chmod 644 {} +
+    find "$unpack_dir" -type f -perm -0100 -exec chmod 755 {} +
     dpkg-deb -b --root-owner-group "$unpack_dir" "$sanitized_path" >/dev/null
     mv -f "$sanitized_path" "$deb_path"
     rm -rf "$unpack_dir"
@@ -335,6 +343,18 @@ assert_clean_unpack_dir() {
     fi
 }
 
+# mobile-user processes (Preferences, SpringBoard) must be able to read every
+# regular file in the payload; theos otherwise preserves the host checkout's
+# 0600 modes and Settings crashes when tweaks scan PreferenceLoader plists.
+assert_mobile_readable_payload() {
+    local unpack_dir="$1"
+    local unreadable
+    unreadable="$(find "$unpack_dir" -type f ! -perm -o+r -print -quit 2>/dev/null)"
+    if [ -n "$unreadable" ]; then
+        fail "$(basename "$unpack_dir") contains files not readable by mobile: $unreadable"
+    fi
+}
+
 verify_rootful_deb() {
     local deb_path="$1"
     local unpack_dir
@@ -350,6 +370,7 @@ verify_rootful_deb() {
     assert_exists "$prefs_binary"
     assert_absent "$unpack_dir/var/jb"
     assert_clean_unpack_dir "$unpack_dir"
+    assert_mobile_readable_payload "$unpack_dir"
 }
 
 verify_rootless_deb() {
@@ -367,6 +388,7 @@ verify_rootless_deb() {
     assert_exists "$prefs_binary"
     assert_absent "$unpack_dir/Library/MobileSubstrate/DynamicLibraries/NotificationFilter.dylib"
     assert_clean_unpack_dir "$unpack_dir"
+    assert_mobile_readable_payload "$unpack_dir"
 }
 
 verify_roothide_deb() {
@@ -386,6 +408,7 @@ verify_roothide_deb() {
     assert_otool_contains "$tweak_binary" ".jbroot"
     assert_otool_contains "$tweak_binary" "libroothide"
     assert_clean_unpack_dir "$unpack_dir"
+    assert_mobile_readable_payload "$unpack_dir"
 }
 
 verify_out_header() {
