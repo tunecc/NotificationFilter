@@ -157,6 +157,17 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesExportRow) {
     }
 
     if (indexPath.section == 2) {
+        UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"export"];
+        if (!cell) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"export"];
+            cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+        }
+
+        cell.textLabel.text = NFPLocalizedString(@"PER_APP_RULES_EXPORT");
+        return cell;
+    }
+
+    if (indexPath.section == 3) {
         UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"delete"];
         if (!cell) {
             cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"delete"];
@@ -165,18 +176,6 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesExportRow) {
         }
 
         cell.textLabel.text = NFPLocalizedString(@"PER_APP_RULES_DELETE");
-        return cell;
-    }
-
-    if (indexPath.section == 3) {
-        UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"export"];
-        if (!cell) {
-            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"export"];
-            cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
-            cell.imageView.image = [UIImage systemImageNamed:@"square.and.arrow.up"];
-        }
-
-        cell.textLabel.text = NFPLocalizedString(@"PER_APP_RULES_EXPORT");
         return cell;
     }
 
@@ -273,6 +272,11 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesExportRow) {
     }
 
     if (indexPath.section == 2) {
+        [self presentExportActions];
+        return;
+    }
+
+    if (indexPath.section == 3) {
         UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"PER_APP_RULES_DELETE_TITLE")
                                                                        message:NFPLocalizedString(@"PER_APP_RULES_DELETE_MESSAGE")
                                                                 preferredStyle:UIAlertControllerStyleAlert];
@@ -283,11 +287,6 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesExportRow) {
             [self deleteCurrentRules];
         }]];
         [self presentViewController:alert animated:YES completion:nil];
-        return;
-    }
-
-    if (indexPath.section == 3) {
-        [self presentExportActions];
         return;
     }
 }
@@ -420,7 +419,7 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesExportRow) {
                                               style:UIAlertActionStyleCancel
                                             handler:nil]];
 
-    UITableViewCell *cell = [self.tableView cellForRowAtIndexPath:[NSIndexPath indexPathForRow:NFPPerAppRulesExportRowExport inSection:3]];
+    UITableViewCell *cell = [self.tableView cellForRowAtIndexPath:[NSIndexPath indexPathForRow:NFPPerAppRulesExportRowExport inSection:2]];
     alert.popoverPresentationController.sourceView = cell ?: self.tableView;
     alert.popoverPresentationController.sourceRect = cell ? cell.bounds : self.tableView.bounds;
     [self presentViewController:alert animated:YES completion:nil];
