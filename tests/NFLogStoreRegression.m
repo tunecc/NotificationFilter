@@ -45,6 +45,7 @@ NSString * const NFLogMatchedPatternKey = @"matchedPattern";
 @interface NFLogStore (Testing)
 
 + (dispatch_queue_t)_logQueue;
++ (void)_flushLockedForTesting;
 
 @end
 
@@ -62,8 +63,9 @@ static NSDictionary *NFMakeEntry(NSString *identifierSuffix) {
 }
 
 static void NFFlushLogQueue(void) {
-    dispatch_sync([NFLogStore _logQueue], ^{
-    });
+    // 排空 _logQueue 上的 async 任务并强制把内存缓存落盘，
+    // 否则写合并后 loadEntries 读磁盘可能拿不到最新条目。
+    [NFLogStore _flushLockedForTesting];
 }
 
 static void NFCleanupLogFiles(void) {
