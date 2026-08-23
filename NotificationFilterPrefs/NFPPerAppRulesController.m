@@ -3,6 +3,8 @@
 #import "NFPLocalization.h"
 #import "NFPNotificationRuleScannerController.h"
 #import "NFPRulesListEditorController.h"
+#import "NFPImportExportPayload.h"
+#import "NFPAppInfoProvider.h"
 
 typedef NS_ENUM(NSInteger, NFPPerAppRulesRow) {
     NFPPerAppRulesRowContains = 0,
@@ -14,6 +16,10 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
     NFPPerAppRulesConfigRowEnabled = 0,
     NFPPerAppRulesConfigRowLogging,
     NFPPerAppRulesConfigRowMode
+};
+
+typedef NS_ENUM(NSInteger, NFPPerAppRulesExportRow) {
+    NFPPerAppRulesExportRowExport = 0
 };
 
 @interface NFPPerAppRulesController ()
@@ -68,7 +74,7 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
-    return 3;
+    return 4;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
@@ -77,6 +83,9 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
     }
     if (section == 1) {
         return 3;
+    }
+    if (section == 2) {
+        return 1;
     }
     return 1;
 }
@@ -94,6 +103,9 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
     }
     if (section == 1) {
         return NFPLocalizedString(@"PER_APP_RULES_LIST_FOOTER");
+    }
+    if (section == 2) {
+        return NFPLocalizedString(@"PER_APP_RULES_EXPORT_FOOTER");
     }
     return nil;
 }
@@ -153,6 +165,18 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
         }
 
         cell.textLabel.text = NFPLocalizedString(@"PER_APP_RULES_DELETE");
+        return cell;
+    }
+
+    if (indexPath.section == 3) {
+        UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"export"];
+        if (!cell) {
+            cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"export"];
+            cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+            cell.imageView.image = [UIImage systemImageNamed:@"square.and.arrow.up"];
+        }
+
+        cell.textLabel.text = NFPLocalizedString(@"PER_APP_RULES_EXPORT");
         return cell;
     }
 
@@ -259,11 +283,16 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
             [self deleteCurrentRules];
         }]];
         [self presentViewController:alert animated:YES completion:nil];
+        return;
+    }
+
+    if (indexPath.section == 3) {
+        [self presentExportActions];
+        return;
     }
 }
 
-- (void)presentRuleModePickerFromIndexPath:(NSIndexPath *)indexPath {
-    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"PER_APP_RULES_MODE")
+- (void)presentRuleModePickerFromIndexPath:(NSIndexPath *)indexPath {    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"PER_APP_RULES_MODE")
                                                                    message:NFPLocalizedString(@"PER_APP_RULES_MODE_MESSAGE")
                                                             preferredStyle:UIAlertControllerStyleActionSheet];
     [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"PER_APP_RULES_MODE_BLACKLIST")
@@ -367,6 +396,62 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesConfigRow) {
     self.rules = [NFPreferences rulesForBundleIdentifier:self.bundleIdentifier
                                          fromPreferences:[NFPreferences loadPreferences]];
     [self.tableView reloadData];
+}
+
+- (void)presentExportActions {
+    NSDictionary *payload = [NFPImportExportPayload appRulesPayloadForBundleIdentifier:self.bundleIdentifier
+                                                                                  rules:self.rules];
+
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"PER_APP_RULES_EXPORT")
+                                                                   message:NFPLocalizedString(@"PER_APP_RULES_EXPORT_MESSAGE")
+                                                            preferredStyle:UIAlertControllerStyleActionSheet];
+    __weak typeof(self) weakSelf = self;
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"IMPORT_EXPORT_COPY_TO_PASTEBOARD")
+                                              style:UIAlertActionStyleDefault
+                                            handler:^(UIAlertAction *action) {
+        [weakSelf copyAppRulesPayloadToPasteboard:payload];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"IMPORT_EXPORT_SHARE")
+                                              style:UIAlertActionStyleDefault
+                                            handler:^(UIAlertAction *action) {
+        [weakSelf shareAppRulesPayload:payload];
+    }]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_CANCEL")
+                                              style:UIAlertActionStyleCancel
+                                            handler:nil]];
+
+    UITableViewCell *cell = [self.tableView cellForRowAtIndexPath:[NSIndexPath indexPathForRow:NFPPerAppRulesExportRowExport inSection:3]];
+    alert.popoverPresentationController.sourceView = cell ?: self.tableView;
+    alert.popoverPresentationController.sourceRect = cell ? cell.bounds : self.tableView.bounds;
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)copyAppRulesPayloadToPasteboard:(NSDictionary *)payload {
+    NSError *error = nil;
+    NSString *jsonString = [NFPImportExportPayload jsonStringFromPayload:payload error:&error];
+    if (!jsonString) {
+        [self presentAlertWithTitle:NFPLocalizedString(@"IMPORT_EXPORT_COPY_FAILED")
+                            message:error.localizedDescription ?: NFPLocalizedString(@"JSON_GENERATE_FAILED_MESSAGE")];
+        return;
+    }
+
+    [UIPasteboard generalPasteboard].string = jsonString;
+    [self presentAlertWithTitle:NFPLocalizedString(@"IMPORT_EXPORT_COPIED")
+                        message:[NSString stringWithFormat:NFPLocalizedString(@"PER_APP_RULES_COPIED_MESSAGE"), self.displayName ?: self.bundleIdentifier]];
+}
+
+- (void)shareAppRulesPayload:(NSDictionary *)payload {
+    NSError *error = nil;
+    NSString *jsonString = [NFPImportExportPayload jsonStringFromPayload:payload error:&error];
+    if (!jsonString) {
+        [self presentAlertWithTitle:NFPLocalizedString(@"COMMON_EXPORT_FAILED")
+                            message:error.localizedDescription ?: NFPLocalizedString(@"JSON_GENERATE_FAILED_MESSAGE")];
+        return;
+    }
+
+    UIActivityViewController *activityController = [[UIActivityViewController alloc] initWithActivityItems:@[jsonString ?: @""]
+                                                                                     applicationActivities:nil];
+    [self presentViewController:activityController animated:YES completion:nil];
 }
 
 - (BOOL)appendScannedRuleEntries:(NSArray<NSDictionary *> *)entries

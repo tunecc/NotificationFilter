@@ -58,6 +58,17 @@
 "IMPORT_EXPORT_EMPTY_PASTEBOARD_MESSAGE" = "There is no usable content in the clipboard.";
 "IMPORT_EXPORT_SAVE_FAILED_MESSAGE" = "Failed to save imported rules.";
 "IMPORT_EXPORT_IMPORT_SUCCEEDED_MESSAGE" = "The imported rule configuration has been applied.";
+"IMPORT_EXPORT_EXPORT_APP_RULES" = "Export App Rules";
+"IMPORT_EXPORT_EXPORT_APP_RULES_DETAIL" = "Choose one or more apps and export their rules.";
+"IMPORT_EXPORT_EXPORT_APP_RULES_NONE_MESSAGE" = "No apps selected. Choose at least one app to export.";
+"IMPORT_EXPORT_EXPORT_APP_RULES_ACTIONS_MESSAGE" = "Copy the selected app rules to the clipboard or share them.";
+"IMPORT_EXPORT_COPY_TO_PASTEBOARD" = "Copy to Clipboard";
+"IMPORT_EXPORT_SHARE" = "Share";
+"IMPORT_EXPORT_IMPORT_APP_RULES_SUCCEEDED_MESSAGE" = "Imported rules for %@.";
+"IMPORT_EXPORT_IMPORT_APP_RULES_BUNDLE_SUCCEEDED_MESSAGE" = "Imported rules for %ld app(s).";
+"APP_RULES_EXPORT_PICKER_TITLE" = "Export App Rules";
+"APP_RULES_EXPORT_PICKER_FOOTER" = "Only apps with configured rules are listed. Select one or more to export.";
+"APP_RULES_EXPORT_DONE_COUNT_FORMAT" = "Done (%lu)";
 "JSON_PARSE_FAILED_MESSAGE" = "Failed to parse JSON.";
 "JSON_GENERATE_FAILED_MESSAGE" = "Failed to generate JSON.";
 
@@ -155,6 +166,10 @@
 "PER_APP_RULES_DELETE_MESSAGE" = "All filter settings for this app will be removed.";
 "PER_APP_RULES_DELETE_FAILED_MESSAGE" = "Failed to delete rules for this app.";
 "PER_APP_RULES_SAVE_FAILED_MESSAGE" = "Failed to save rules for this app.";
+"PER_APP_RULES_EXPORT" = "Export This App's Rules";
+"PER_APP_RULES_EXPORT_FOOTER" = "Export this app's rules as JSON to the clipboard or via the share sheet, then import them on another device.";
+"PER_APP_RULES_EXPORT_MESSAGE" = "Copy this app's rules to the clipboard or share them.";
+"PER_APP_RULES_COPIED_MESSAGE" = "Rules for %@ have been copied to the clipboard.";
 
 "RULE_CARD_VALID" = "Valid";
 "RULE_CARD_INVALID" = "Invalid";

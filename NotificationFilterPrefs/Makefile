@@ -21,6 +21,8 @@ NotificationFilterPrefs_FILES = \
 	NFPNotificationHistoryClient.m \
 	NFPJSONImportController.m \
 	NFPImportExportController.m \
+	NFPImportExportPayload.m \
+	NFPAppRulesExportPickerController.m \
 	NFPLogsListController.m \
 	NFPLogDetailController.m \
 	../Shared/NFPreferences.m \
