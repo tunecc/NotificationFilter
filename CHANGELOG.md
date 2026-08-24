@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.3.7 - 2026-08-24
+
+### 问题修复
+
+- 修复 roothide 下三个通知历史文件（history / history-request / history-status）持续出现在可见的 `/var/mobile/Library/Preferences/` 的问题：通知历史桥接层的 `jbroot()` 在 roothide 构建中被编译期展开为原样返回，路径从未翻译到隐藏的 `.jbroot` 目录；现对齐 include 顺序，`jbroot` 恢复为对 libroothide 真函数的调用，三个文件改写入隐藏路径，不再暴露于可见目录（rootful / rootless 构建不受影响）
+
+### 改进优化
+
+- 通知历史文件路径解析时自动清理历史残留：当隐藏路径（scoped）文件已存在且可见路径（legacy）残留旧文件时，删除 legacy 残留；升级后无需手动清理旧版本留在可见目录的文件
+
 ## v1.3.6 - 2026-08-23
 
 ### 改进优化

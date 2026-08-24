@@ -1,12 +1,18 @@
 #import "NFNotificationHistoryBridge.h"
 
 #ifdef __has_include
-  #if __has_include(<roothide.h>)
+  #if __has_include(<rootless.h>)
+    #import <rootless.h>
+  #elif __has_include(<roothide.h>)
     #include <roothide.h>
   #endif
 #endif
 #ifndef jbroot
-  #define jbroot(path) path
+  #ifdef ROOT_PATH_NS
+    #define jbroot(path) ROOT_PATH_NS(path)
+  #else
+    #define jbroot(path) path
+  #endif
 #endif
 
 NSString * const NFNotificationHistoryRefreshRequestNotification = @"com.tune.notificationfilter.history/refresh-request";
@@ -34,8 +40,10 @@ static NSString *NFPreferencesScopedFilePath(NSString *filename) {
     }
 
     NSFileManager *fileManager = [NSFileManager defaultManager];
-    if (![fileManager fileExistsAtPath:scopedPath] &&
-        [fileManager fileExistsAtPath:legacyPath]) {
+    BOOL scopedExists = [fileManager fileExistsAtPath:scopedPath];
+    BOOL legacyExists = [fileManager fileExistsAtPath:legacyPath];
+
+    if (!scopedExists && legacyExists) {
         NSString *parentPath = [scopedPath stringByDeletingLastPathComponent];
         [fileManager createDirectoryAtPath:parentPath
                withIntermediateDirectories:YES
@@ -46,6 +54,10 @@ static NSString *NFPreferencesScopedFilePath(NSString *filename) {
         if (![fileManager moveItemAtPath:legacyPath toPath:scopedPath error:&moveError]) {
             [fileManager copyItemAtPath:legacyPath toPath:scopedPath error:nil];
         }
+    } else if (scopedExists && legacyExists) {
+        // scoped is in place; remove any legacy residue left by an older build whose
+        // jbroot() resolved to identity, or by the move/copy fallback above.
+        [fileManager removeItemAtPath:legacyPath error:nil];
     }
 
     return scopedPath;
