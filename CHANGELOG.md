@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.3.8 - 2026-08-25
+
+### 问题修复
+
+- 修复 1.3.7 在 Dopamine2-roothide + iOS 15 上导致 SpringBoard 安全模式循环（卡注销圈圈、无法进入桌面）的问题：1.3.7 在路径解析时把旧版本留在可见 `/var/mobile/Library/Preferences/` 的通知历史文件跨容器 move 进随机化的 `.jbroot` 容器并删除可见残留，这一搬运正是崩溃根源；现历史文件路径改为与 NFPreferences / NFLogStore 相同的模式——直接写入 `jbroot()` 解析后的隐藏路径（`.jbroot`（roothide）/ jb 根（rootless）/ 原样（rootful）），不做任何迁移与删除
+- 隐藏效果保留 1.3.7 的目标：新的通知历史文件（history / history-request / history-status）不再写入可见的 `/var/mobile/Library/Preferences/`；旧版本留下的可见历史文件保留在磁盘上但不再读取，需要时可手动恢复
+
 ## v1.3.7 - 2026-08-24
 
 ### 问题修复

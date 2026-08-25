@@ -31,36 +31,13 @@ static NSString *NFLegacyPreferencesFilePath(NSString *filename) {
     return [@"/var/mobile/Library/Preferences" stringByAppendingPathComponent:filename];
 }
 
+// 与 NFPreferences / NFLogStore 保持同一模式：直接返回 jbroot() 解析后的路径，
+// 历史文件写入隐藏的 .jbroot（roothide）/ jb 根（rootless）/ 原样（rootful）。
+// 不做跨容器迁移，也不删除可见路径的旧文件——1.3.7 的迁移/删除正是
+// roothide iOS 15 上触发 SpringBoard 安全模式的根因；旧版本留在可见路径的
+// 历史文件保留在磁盘上不再读取，需要时可手动恢复。
 static NSString *NFPreferencesScopedFilePath(NSString *filename) {
-    NSString *legacyPath = NFLegacyPreferencesFilePath(filename);
-    NSString *scopedPath = jbroot(legacyPath);
-
-    if ([scopedPath isEqualToString:legacyPath]) {
-        return scopedPath;
-    }
-
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    BOOL scopedExists = [fileManager fileExistsAtPath:scopedPath];
-    BOOL legacyExists = [fileManager fileExistsAtPath:legacyPath];
-
-    if (!scopedExists && legacyExists) {
-        NSString *parentPath = [scopedPath stringByDeletingLastPathComponent];
-        [fileManager createDirectoryAtPath:parentPath
-               withIntermediateDirectories:YES
-                                attributes:nil
-                                     error:nil];
-
-        NSError *moveError = nil;
-        if (![fileManager moveItemAtPath:legacyPath toPath:scopedPath error:&moveError]) {
-            [fileManager copyItemAtPath:legacyPath toPath:scopedPath error:nil];
-        }
-    } else if (scopedExists && legacyExists) {
-        // scoped is in place; remove any legacy residue left by an older build whose
-        // jbroot() resolved to identity, or by the move/copy fallback above.
-        [fileManager removeItemAtPath:legacyPath error:nil];
-    }
-
-    return scopedPath;
+    return jbroot(NFLegacyPreferencesFilePath(filename));
 }
 
 NSString *NFNotificationHistorySnapshotFilePath(void) {
