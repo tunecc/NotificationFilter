@@ -205,6 +205,12 @@
 "RULE_SCAN_FOOTER_MIRROR" = "实时刷新不可用，当前显示的是 Notification Filter 记录的最近通知历史镜像。";
 "RULE_SCAN_SOURCE_FAILED" = "无法请求刷新通知历史。";
 "RULE_SCAN_PICKER_TITLE" = "生成规则";
+
+"GLOBAL_SCAN_TITLE" = "扫描全部通知";
+"GLOBAL_SCAN_EMPTY" = "通知中心当前没有可扫描的通知。请先让设备收到通知，再重新扫描。";
+"GLOBAL_SCAN_FOOTER" = "进入本页面时会从 SpringBoard 刷新全部应用的通知历史。";
+"GLOBAL_SCAN_FOOTER_MIRROR" = "实时刷新不可用，当前显示的是 Notification Filter 记录的最近通知历史镜像。";
+"GLOBAL_SCAN_FOOTER_LIVE" = "已从通知中心实时读取全部应用的通知历史。";
 "RULE_SCAN_NOTIFICATION_LABEL" = "通知内容";
 "RULE_SCAN_RULE_TYPE_LABEL" = "规则类型";
 "RULE_SCAN_TOKENS_LABEL" = "按区域选择词语";

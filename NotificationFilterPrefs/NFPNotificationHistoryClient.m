@@ -142,4 +142,32 @@
     return @[];
 }
 
++ (NSArray<NSDictionary *> *)fetchAllAppsEntriesWithError:(NSError **)error
+                                                   source:(NSString **)source {
+    NSArray *entries = [NSArray arrayWithContentsOfFile:NFNotificationHistorySnapshotFilePath()];
+    if (![entries isKindOfClass:[NSArray class]]) {
+        if (source) {
+            *source = nil;
+        }
+        return @[];
+    }
+
+    NSMutableArray<NSDictionary *> *filteredEntries = [NSMutableArray array];
+    for (id entry in entries) {
+        if (![entry isKindOfClass:[NSDictionary class]]) {
+            continue;
+        }
+        NSString *entryBundleIdentifier = [entry[NFLogBundleIdentifierKey] isKindOfClass:[NSString class]] ? entry[NFLogBundleIdentifierKey] : nil;
+        if (entryBundleIdentifier.length == 0) {
+            continue;
+        }
+        [filteredEntries addObject:entry];
+    }
+
+    if (source) {
+        *source = NFNotificationHistorySourceMirror;
+    }
+    return filteredEntries;
+}
+
 @end

@@ -26,6 +26,7 @@ NSString * const NFNotificationHistoryUpdatedAtKey = @"updatedAt";
 
 NSString * const NFNotificationHistorySourceLive = @"live";
 NSString * const NFNotificationHistorySourceMirror = @"mirror";
+NSString * const NFNotificationHistoryAllAppsIdentifier = @"all-apps";
 
 static NSString *NFLegacyPreferencesFilePath(NSString *filename) {
     return [@"/var/mobile/Library/Preferences" stringByAppendingPathComponent:filename];
@@ -37,6 +38,12 @@ static NSString *NFLegacyPreferencesFilePath(NSString *filename) {
 // roothide iOS 15 上触发 SpringBoard 安全模式的根因；旧版本留在可见路径的
 // 历史文件保留在磁盘上不再读取，需要时可手动恢复。
 static NSString *NFPreferencesScopedFilePath(NSString *filename) {
+    // 测试钩子：允许主机端单测覆盖快照/请求/状态文件位置，生产环境不设置该变量。
+    char *override = getenv("NF_NOTIFICATION_HISTORY_DIRECTORY_OVERRIDE");
+    if (override != NULL && strlen(override) > 0) {
+        NSString *overrideDirectory = [NSString stringWithUTF8String:override];
+        return [overrideDirectory stringByAppendingPathComponent:filename];
+    }
     return jbroot(NFLegacyPreferencesFilePath(filename));
 }
 

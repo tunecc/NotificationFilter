@@ -14,6 +14,10 @@ extern NSString * const NFNotificationHistoryUpdatedAtKey;
 extern NSString * const NFNotificationHistorySourceLive;
 extern NSString * const NFNotificationHistorySourceMirror;
 
+// 全局扫描请求专用标识：写入 request 的 bundleIdentifier 时表示「请求全部应用」。
+// 与单应用请求（非空 bundleIdentifier）互斥；空字符串仍视为非法请求。
+extern NSString * const NFNotificationHistoryAllAppsIdentifier;
+
 FOUNDATION_EXPORT NSString *NFNotificationHistorySnapshotFilePath(void);
 FOUNDATION_EXPORT NSString *NFNotificationHistoryRefreshRequestFilePath(void);
 FOUNDATION_EXPORT NSString *NFNotificationHistoryRefreshStatusFilePath(void);

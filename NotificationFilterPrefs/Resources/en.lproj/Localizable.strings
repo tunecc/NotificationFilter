@@ -205,6 +205,12 @@
 "RULE_SCAN_FOOTER_MIRROR" = "Showing the recent history mirror captured by Notification Filter because a live refresh was unavailable.";
 "RULE_SCAN_SOURCE_FAILED" = "Failed to request a notification history refresh.";
 "RULE_SCAN_PICKER_TITLE" = "Create Rule";
+
+"GLOBAL_SCAN_TITLE" = "Scan All Notifications";
+"GLOBAL_SCAN_EMPTY" = "There are no notifications to scan yet. Receive a notification first, then scan again.";
+"GLOBAL_SCAN_FOOTER" = "Notification history for all apps is refreshed from SpringBoard when you open this page.";
+"GLOBAL_SCAN_FOOTER_MIRROR" = "Live refresh is unavailable; showing the recent notification history mirror recorded by Notification Filter.";
+"GLOBAL_SCAN_FOOTER_LIVE" = "Notification history for all apps was read live from Notification Center.";
 "RULE_SCAN_NOTIFICATION_LABEL" = "Notification";
 "RULE_SCAN_RULE_TYPE_LABEL" = "Rule Type";
 "RULE_SCAN_TOKENS_LABEL" = "Pick Tokens by Area";

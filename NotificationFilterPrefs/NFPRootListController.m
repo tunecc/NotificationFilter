@@ -6,6 +6,7 @@
 #import "NFPAppRulesListController.h"
 #import "NFPImportExportController.h"
 #import "NFPLogsListController.h"
+#import "NFPGlobalNotificationScanController.h"
 
 @interface NFPRootListController () <UITextViewDelegate>
 @end
@@ -18,6 +19,16 @@ static NSString * const NFPProjectPageURLString = @"https://github.com/tunecc/No
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.title = NFPLocalizedString(@"ROOT_TITLE");
+
+    self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:NFPLocalizedString(@"COMMON_SCAN")
+                                                                              style:UIBarButtonItemStylePlain
+                                                                             target:self
+                                                                             action:@selector(scanButtonTapped:)];
+}
+
+- (void)scanButtonTapped:(UIBarButtonItem *)sender {
+    NFPGlobalNotificationScanController *controller = [[NFPGlobalNotificationScanController alloc] init];
+    [self.navigationController pushViewController:controller animated:YES];
 }
 
 - (NSArray *)specifiers {

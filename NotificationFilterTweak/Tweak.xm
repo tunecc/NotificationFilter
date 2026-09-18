@@ -319,6 +319,39 @@ static NSString *NFNotificationHistoryRecordKeyFromRecord(NFNotificationRecord *
     return [NSString stringWithFormat:@"%@|content|%@|%@", bundleIdentifier, title ?: @"", message ?: @""];
 }
 
+// 与 NFReplaceNotificationHistoryMirrorEntriesForBundleIdentifier 一致的字段提取，
+// 供不需要重建 NFNotificationRecord 的批量合并路径使用。
+static NSString *NFNotificationHistoryRecordKeyFromDictionaryEntry(NSDictionary *entry) {
+    if (![entry isKindOfClass:[NSDictionary class]]) {
+        return nil;
+    }
+
+    NSString *bundleIdentifier = NFNormalizedStringValue(entry[NFLogBundleIdentifierKey]);
+    NSString *bulletinID = NFNormalizedStringValue(entry[NFLogBulletinIDKey]);
+    NSString *recordID = NFNormalizedStringValue(entry[NFLogRecordIDKey]);
+    NSString *publisherBulletinID = NFNormalizedStringValue(entry[NFLogPublisherBulletinIDKey]);
+    NSString *title = NFNormalizedStringValue(entry[NFLogTitleKey]);
+    NSString *message = NFNormalizedStringValue(entry[NFLogMessageKey]) ?: NFNormalizedStringValue(entry[NFLogBodyKey]);
+    NSString *joinedText = NFNormalizedStringValue(entry[NFLogJoinedTextKey]);
+    if (message.length == 0) {
+        message = joinedText;
+    }
+
+    if (bulletinID.length > 0) {
+        return [NSString stringWithFormat:@"%@|bulletin|%@", bundleIdentifier ?: @"", bulletinID];
+    }
+    if (recordID.length > 0) {
+        return [NSString stringWithFormat:@"%@|record|%@", bundleIdentifier ?: @"", recordID];
+    }
+    if (publisherBulletinID.length > 0) {
+        return [NSString stringWithFormat:@"%@|publisher|%@", bundleIdentifier ?: @"", publisherBulletinID];
+    }
+    if (bundleIdentifier.length == 0 || (title.length == 0 && message.length == 0)) {
+        return nil;
+    }
+    return [NSString stringWithFormat:@"%@|content|%@|%@", bundleIdentifier, title ?: @"", message ?: @""];
+}
+
 static NSDictionary *NFNotificationHistoryDictionaryFromRecord(NFNotificationRecord *record) {
     if (!record) {
         return nil;
@@ -602,6 +635,59 @@ static void NFPostNotificationHistoryRefreshStatus(NSString *requestIdentifier,
                                          YES);
 }
 
+// 全局扫描：遍历已注册的全部 dataProvider，逐个 section 取实时条目，
+// 合并后整体写回快照镜像。任一 section 失败时跳过该 section，其余继续。
+static void NFProcessNotificationHistoryRefreshRequestForAllApps(NSString *requestIdentifier, NSUInteger limit) {
+    __block NSArray<NSString *> *bundleIdentifiers = nil;
+    dispatch_sync(NFNotificationHistoryQueue, ^{
+        bundleIdentifiers = [NFNotificationHistoryDataProviders allKeys];
+    });
+
+    NSMutableArray<NSDictionary *> *allEntries = [NSMutableArray array];
+    __block BOOL anyLive = NO;
+
+    for (NSString *sectionIdentifier in bundleIdentifiers) {
+        @try {
+            NSArray<NSDictionary *> *sectionEntries = NFNotificationHistoryLiveEntriesForBundleIdentifier(sectionIdentifier, limit);
+            if (sectionEntries.count > 0) {
+                [allEntries addObjectsFromArray:sectionEntries];
+                anyLive = YES;
+            }
+        } @catch (NSException *exception) {
+            // 单个 section 失败不影响其余应用的历史刷新。
+        }
+    }
+
+    NSString *source = anyLive ? NFNotificationHistorySourceLive : NFNotificationHistorySourceMirror;
+    if (allEntries.count > 0) {
+        dispatch_sync(NFNotificationHistoryQueue, ^{
+            NSMutableArray<NSString *> *keysToRemove = [NSMutableArray array];
+            [NFNotificationHistoryEntriesByKey enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSDictionary *entry, BOOL *stop) {
+                NSString *entryBundleIdentifier = [entry[NFLogBundleIdentifierKey] isKindOfClass:[NSString class]] ? entry[NFLogBundleIdentifierKey] : @"";
+                if ([bundleIdentifiers containsObject:entryBundleIdentifier]) {
+                    [keysToRemove addObject:key];
+                }
+            }];
+            if (keysToRemove.count > 0) {
+                [NFNotificationHistoryEntriesByKey removeObjectsForKeys:keysToRemove];
+            }
+
+            for (NSDictionary *entry in allEntries) {
+                if (![entry isKindOfClass:[NSDictionary class]]) {
+                    continue;
+                }
+                NSString *recordKey = NFNotificationHistoryRecordKeyFromDictionaryEntry(entry);
+                if (recordKey.length > 0) {
+                    NFNotificationHistoryEntriesByKey[recordKey] = entry;
+                }
+            }
+            NFPersistNotificationHistoryMirrorEntriesLocked();
+        });
+    }
+
+    NFPostNotificationHistoryRefreshStatus(requestIdentifier, NFNotificationHistoryAllAppsIdentifier, source, nil);
+}
+
 static void NFProcessNotificationHistoryRefreshRequest(void) {
     NSDictionary *request = [NSDictionary dictionaryWithContentsOfFile:NFNotificationHistoryRefreshRequestFilePath()];
     if (![request isKindOfClass:[NSDictionary class]]) {
@@ -614,6 +700,11 @@ static void NFProcessNotificationHistoryRefreshRequest(void) {
         [request[NFNotificationHistoryLimitKey] unsignedIntegerValue] :
         200;
     if (requestIdentifier.length == 0 || bundleIdentifier.length == 0) {
+        return;
+    }
+
+    if ([bundleIdentifier isEqualToString:NFNotificationHistoryAllAppsIdentifier]) {
+        NFProcessNotificationHistoryRefreshRequestForAllApps(requestIdentifier, limit);
         return;
     }
 
