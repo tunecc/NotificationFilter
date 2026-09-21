@@ -17,9 +17,25 @@ typedef NS_ENUM(NSInteger, NFPGlobalRulesRow) {
 
 @implementation NFPGlobalRulesController
 
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView estimatedHeightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    return [[UIView alloc] initWithFrame:CGRectZero];
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.title = NFPLocalizedString(@"GLOBAL_RULES_TITLE");
+    if (@available(iOS 15.0, *)) {
+        self.tableView.sectionHeaderTopPadding = 0;
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated {

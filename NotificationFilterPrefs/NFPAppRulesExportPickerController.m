@@ -20,6 +20,18 @@ static NSString * const NFPExportPickerDisplayNameKey = @"displayName";
 
 @implementation NFPAppRulesExportPickerController
 
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView estimatedHeightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    return [[UIView alloc] initWithFrame:CGRectZero];
+}
 - (instancetype)initWithSelectedBundleIdentifiers:(NSArray<NSString *> *)selectedBundleIdentifiers
                                  selectionHandler:(void (^)(NSArray<NSString *> *))selectionHandler {
     self = [super initWithStyle:UITableViewStyleInsetGrouped];
@@ -38,6 +50,9 @@ static NSString * const NFPExportPickerDisplayNameKey = @"displayName";
     self.tableView.allowsMultipleSelectionDuringEditing = YES;
     self.tableView.allowsMultipleSelection = YES;
     [self.tableView setEditing:YES animated:NO];
+    if (@available(iOS 15.0, *)) {
+        self.tableView.sectionHeaderTopPadding = 0;
+    }
 
     UISearchController *searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
     searchController.obscuresBackgroundDuringPresentation = NO;

@@ -97,6 +97,7 @@ static BOOL NFPGlobalScanAppendRuleEntries(NSString *bundleIdentifier,
 @property (nonatomic, strong, nullable) NSTimer *refreshTimeoutTimer;
 @property (nonatomic, assign) BOOL waitingForRefresh;
 @property (nonatomic, assign) BOOL hasLoadedOnce;
+@property (nonatomic, copy, nullable) NSString *pendingEnablePromptBundleIdentifier;
 
 @end
 
@@ -127,6 +128,9 @@ static void NFPGlobalScanRefreshCompletedCallback(CFNotificationCenterRef center
     self.tableView.rowHeight = UITableViewAutomaticDimension;
     self.tableView.estimatedRowHeight = 76.0;
     self.tableView.backgroundColor = [UIColor systemGroupedBackgroundColor];
+    if (@available(iOS 15.0, *)) {
+        self.tableView.sectionHeaderTopPadding = 0;
+    }
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                     (__bridge const void *)(self),
                                     NFPGlobalScanRefreshCompletedCallback,
@@ -137,6 +141,12 @@ static void NFPGlobalScanRefreshCompletedCallback(CFNotificationCenterRef center
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
+    NSString *pendingBundleIdentifier = self.pendingEnablePromptBundleIdentifier;
+    if (pendingBundleIdentifier.length > 0) {
+        self.pendingEnablePromptBundleIdentifier = nil;
+        [self presentEnableRulesPromptForBundleIdentifier:pendingBundleIdentifier];
+    }
+
     // 从 token picker 返回时只重新读取快照（规则可能已变化），不再发起跨进程刷新请求。
     if (self.hasLoadedOnce) {
         [self reloadEntries];
@@ -405,6 +415,33 @@ static void NFPGlobalScanRefreshCompletedCallback(CFNotificationCenterRef center
     return [NSString stringWithFormat:@"%@  (%lu)", displayName, (unsigned long)count];
 }
 
+// 与 NFPImportExportController 一致：默认表头文字上方有近 18pt 空白，改用紧凑自定义表头。
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return 26.0;
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    NSString *title = [self tableView:tableView titleForHeaderInSection:section];
+    if (title.length == 0) {
+        return nil;
+    }
+
+    UIView *container = [[UIView alloc] initWithFrame:CGRectZero];
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];
+    label.text = title;
+    label.font = [UIFont systemFontOfSize:13.0 weight:UIFontWeightSemibold];
+    label.textColor = [UIColor labelColor];
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+    [container addSubview:label];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [label.leadingAnchor constraintEqualToAnchor:container.leadingAnchor constant:20.0],
+        [label.trailingAnchor constraintLessThanOrEqualToAnchor:container.trailingAnchor constant:-20.0],
+        [label.bottomAnchor constraintEqualToAnchor:container.bottomAnchor constant:-2.0]
+    ]];
+    return container;
+}
+
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     if (section != 0) {
         return nil;
@@ -438,6 +475,39 @@ static void NFPGlobalScanRefreshCompletedCallback(CFNotificationCenterRef center
     return cell;
 }
 
+// 规则已保存但该应用开关是关的：直接过滤不会生效。给用户一个补启用的入口，
+// 选「暂不启用」也不影响已保存的规则。
+- (void)presentEnableRulesPromptForBundleIdentifier:(NSString *)bundleIdentifier {
+    if (bundleIdentifier.length == 0) {
+        return;
+    }
+
+    NSString *displayName = [[NFPAppInfoProvider sharedProvider] displayNameForBundleIdentifier:bundleIdentifier] ?: bundleIdentifier;
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"GLOBAL_SCAN_RULES_SAVED_TITLE")
+                                                                   message:[NSString stringWithFormat:NFPLocalizedString(@"GLOBAL_SCAN_RULES_DISABLED_MESSAGE"), displayName]
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_CANCEL")
+                                              style:UIAlertActionStyleCancel
+                                            handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"GLOBAL_SCAN_ENABLE_RULES_ACTION")
+                                              style:UIAlertActionStyleDefault
+                                            handler:^(UIAlertAction *action) {
+        NSError *error = nil;
+        if (![NFPreferences setRulesEnabled:YES forBundleIdentifier:bundleIdentifier error:&error]) {
+            [self presentError:error];
+        }
+    }]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
+- (void)presentError:(NSError *)error {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:NFPLocalizedString(@"COMMON_SAVE_FAILED")
+                                                                   message:error.localizedDescription ?: NFPLocalizedString(@"PER_APP_RULES_SAVE_FAILED_MESSAGE")
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    [alert addAction:[UIAlertAction actionWithTitle:NFPLocalizedString(@"COMMON_OK") style:UIAlertActionStyleDefault handler:nil]];
+    [self presentViewController:alert animated:YES completion:nil];
+}
+
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
     NSArray<NSDictionary *> *entries = [self entriesForSection:indexPath.section];
@@ -466,6 +536,13 @@ static void NFPGlobalScanRefreshCompletedCallback(CFNotificationCenterRef center
                                                                                                                          commitHandler:^BOOL(NFPRuleEditorKind targetKind, NSArray<NSDictionary *> *ruleEntries, NSError **error) {
         BOOL result = NFPGlobalScanAppendRuleEntries(bundleIdentifier, targetKind, ruleEntries, error);
         if (result) {
+            // 扫描页没有「启用该应用规则」开关，规则写进去了但开关关着时用户看不出问题。
+            // 先记下，等 pop 回本页后再问是否启用。
+            NSDictionary *savedRules = [NFPreferences rulesForBundleIdentifier:bundleIdentifier
+                                                             fromPreferences:[NFPreferences loadPreferences]];
+            if (![savedRules[NFRulesEnabledKey] boolValue]) {
+                weakSelf.pendingEnablePromptBundleIdentifier = bundleIdentifier;
+            }
             dispatch_async(dispatch_get_main_queue(), ^{
                 [weakSelf reloadEntries];
             });

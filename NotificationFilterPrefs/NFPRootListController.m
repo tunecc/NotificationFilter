@@ -1,6 +1,7 @@
 #import "NFPRootListController.h"
 #import <Preferences/PSSpecifier.h>
 #import "../Shared/NFPreferences.h"
+#import "../Shared/NFLogStore.h"
 #import "NFPLocalization.h"
 #import "NFPGlobalRulesController.h"
 #import "NFPAppRulesListController.h"
@@ -14,6 +15,10 @@
 @implementation NFPRootListController
 
 static NSString * const NFPRulesGroupSpecifierID = @"ROOT_RULES_GROUP";
+static NSString * const NFPGlobalRulesSpecifierID = @"ROOT_GLOBAL_RULES";
+static NSString * const NFPAppRulesSpecifierID = @"ROOT_APP_RULES";
+static NSString * const NFPImportExportSpecifierID = @"ROOT_IMPORT_EXPORT";
+static NSString * const NFPFilteredLogsSpecifierID = @"ROOT_FILTERED_LOGS";
 static NSString * const NFPProjectPageURLString = @"https://github.com/tunecc/NotificationFilter";
 
 - (void)viewDidLoad {
@@ -26,9 +31,34 @@ static NSString * const NFPProjectPageURLString = @"https://github.com/tunecc/No
                                                                              action:@selector(scanButtonTapped:)];
 }
 
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    [self reloadSpecifiers];
+}
+
 - (void)scanButtonTapped:(UIBarButtonItem *)sender {
     NFPGlobalNotificationScanController *controller = [[NFPGlobalNotificationScanController alloc] init];
     [self.navigationController pushViewController:controller animated:YES];
+}
+
+- (NSString *)globalRulesSummary {
+    NSDictionary *preferences = [NFPreferences loadPreferences];
+    if (![preferences[NFGlobalRulesEnabledKey] boolValue]) {
+        return NFPLocalizedString(@"ROOT_SUMMARY_OFF");
+    }
+    return [NSString stringWithFormat:NFPLocalizedString(@"ROOT_SUMMARY_RULE_COUNT_FORMAT"),
+                                      (unsigned long)[NFPreferences globalRuleEntryCountFromPreferences:preferences]];
+}
+
+- (NSString *)appRulesSummary {
+    NSDictionary *preferences = [NFPreferences loadPreferences];
+    return [NSString stringWithFormat:NFPLocalizedString(@"ROOT_SUMMARY_ENABLED_APPS_FORMAT"),
+                                      (unsigned long)[NFPreferences enabledAppRulesCountFromPreferences:preferences]];
+}
+
+- (NSString *)filteredLogsSummary {
+    return [NSString stringWithFormat:NFPLocalizedString(@"ROOT_SUMMARY_LOG_COUNT_FORMAT"),
+                                      (unsigned long)[NFLogStore loadEntries].count];
 }
 
 - (NSArray *)specifiers {
@@ -87,26 +117,65 @@ static NSString * const NFPProjectPageURLString = @"https://github.com/tunecc/No
     [pagesGroup setProperty:NFPLocalizedString(@"ROOT_RULES_FOOTER") forKey:PSFooterTextGroupKey];
     [specifiers addObject:pagesGroup];
 
-    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_GLOBAL_RULES") action:@selector(openGlobalRules:)]];
-    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_APP_RULES") action:@selector(openAppRules:)]];
-    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_IMPORT_EXPORT") action:@selector(openImportExport:)]];
-    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_FILTERED_LOGS") action:@selector(openLogs:)]];
+    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_GLOBAL_RULES")
+                                               action:@selector(openGlobalRules:)
+                                           identifier:NFPGlobalRulesSpecifierID]];
+    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_APP_RULES")
+                                               action:@selector(openAppRules:)
+                                           identifier:NFPAppRulesSpecifierID]];
+    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_IMPORT_EXPORT")
+                                               action:@selector(openImportExport:)
+                                           identifier:NFPImportExportSpecifierID]];
+    [specifiers addObject:[self linkSpecifierWithName:NFPLocalizedString(@"ROOT_FILTERED_LOGS")
+                                               action:@selector(openLogs:)
+                                           identifier:NFPFilteredLogsSpecifierID]];
 
     _specifiers = [specifiers copy];
     return _specifiers;
 }
 
-- (PSSpecifier *)linkSpecifierWithName:(NSString *)name action:(SEL)action {
+- (PSSpecifier *)linkSpecifierWithName:(NSString *)name
+                                action:(SEL)action
+                            identifier:(NSString *)identifier {
     PSSpecifier *specifier = [PSSpecifier preferenceSpecifierNamed:name
                                                             target:self
                                                                set:nil
-                                                               get:nil
+                                                               get:@selector(readLinkSummary:)
                                                             detail:nil
                                                               cell:PSLinkCell
                                                               edit:nil];
     specifier->action = action;
     [specifier setProperty:NSStringFromSelector(action) forKey:PSActionKey];
+    [specifier setProperty:identifier forKey:PSIDKey];
     return specifier;
+}
+
+// PSSpecifier has no `value` property; PSTableCell resolves the right-hand text
+// through performGetter, so a link row must supply a get selector. Returning nil
+// leaves the row without a summary (import/export).
+- (id)readLinkSummary:(PSSpecifier *)specifier {
+    NSString *identifier = [specifier propertyForKey:PSIDKey];
+    if ([identifier isEqualToString:NFPGlobalRulesSpecifierID]) {
+        return [self globalRulesSummary];
+    }
+    if ([identifier isEqualToString:NFPAppRulesSpecifierID]) {
+        return [self appRulesSummary];
+    }
+    if ([identifier isEqualToString:NFPFilteredLogsSpecifierID]) {
+        return [self filteredLogsSummary];
+    }
+    return nil;
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [super tableView:tableView cellForRowAtIndexPath:indexPath];
+    // Belt and braces: some PSTableCell styles ignore the getter, so write the
+    // summary straight onto the cell's value label when one exists.
+    NSString *summary = [self readLinkSummary:[self specifierAtIndexPath:indexPath]];
+    if (summary.length > 0 && cell.detailTextLabel != nil) {
+        cell.detailTextLabel.text = summary;
+    }
+    return cell;
 }
 
 - (id)readPreferenceValue:(PSSpecifier *)specifier {

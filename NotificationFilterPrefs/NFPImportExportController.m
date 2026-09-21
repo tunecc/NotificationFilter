@@ -16,6 +16,9 @@ typedef NS_ENUM(NSInteger, NFPImportExportSection) {
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.title = NFPLocalizedString(@"IMPORT_EXPORT_TITLE");
+    if (@available(iOS 15.0, *)) {
+        self.tableView.sectionHeaderTopPadding = 0;
+    }
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
@@ -28,6 +31,34 @@ typedef NS_ENUM(NSInteger, NFPImportExportSection) {
 
 - (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
     return section == NFPImportExportSectionExport ? NFPLocalizedString(@"IMPORT_EXPORT_SECTION_EXPORT") : NFPLocalizedString(@"IMPORT_EXPORT_SECTION_IMPORT");
+}
+
+// InsetGrouped 的默认表头在文字上方留了近 18pt，视觉上就是导航栏下一段空白。
+// 这里用紧凑自定义表头：保留文字，高度压到 26pt 并让文字贴底。
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return 26.0;
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    NSString *title = [self tableView:tableView titleForHeaderInSection:section];
+    if (title.length == 0) {
+        return nil;
+    }
+
+    UIView *container = [[UIView alloc] initWithFrame:CGRectZero];
+    UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];
+    label.text = title;
+    label.font = [UIFont systemFontOfSize:13.0];
+    label.textColor = [UIColor secondaryLabelColor];
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+    [container addSubview:label];
+
+    [NSLayoutConstraint activateConstraints:@[
+        [label.leadingAnchor constraintEqualToAnchor:container.leadingAnchor constant:20.0],
+        [label.trailingAnchor constraintLessThanOrEqualToAnchor:container.trailingAnchor constant:-20.0],
+        [label.bottomAnchor constraintEqualToAnchor:container.bottomAnchor constant:-2.0]
+    ]];
+    return container;
 }
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {

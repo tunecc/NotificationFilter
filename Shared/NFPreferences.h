@@ -89,6 +89,11 @@ extern NSString * const NFMatchModeWhitelistDefault;
                                                exclude:(NSArray * _Nullable)exclude
                                                  regex:(NSArray * _Nullable)regex;
 + (BOOL)rulesDictionaryHasConfiguredValues:(NSDictionary * _Nullable)rules;
++ (BOOL)setRulesEnabled:(BOOL)enabled
+     forBundleIdentifier:(NSString *)bundleIdentifier
+                 error:(NSError * _Nullable * _Nullable)error;
++ (NSUInteger)globalRuleEntryCountFromPreferences:(NSDictionary *)preferences;
++ (NSUInteger)enabledAppRulesCountFromPreferences:(NSDictionary *)preferences;
 
 + (NSArray<NSDictionary *> *)normalizedRuleEntriesFromArray:(NSArray * _Nullable)rawRules;
 + (NSArray<NSDictionary *> *)normalizedRuleEntriesFromArray:(NSArray * _Nullable)rawRules

@@ -25,6 +25,18 @@
 
 @implementation NFPNotificationRuleScannerController
 
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView estimatedHeightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    return [[UIView alloc] initWithFrame:CGRectZero];
+}
 static NSTimeInterval const NFPNotificationRuleScannerRefreshTimeout = 1.5;
 
 static void NFPNotificationHistoryRefreshCompletedCallback(CFNotificationCenterRef center,
@@ -107,6 +119,9 @@ static NSString *NFPScannerPreviewText(NSDictionary *entry) {
     self.tableView.rowHeight = UITableViewAutomaticDimension;
     self.tableView.estimatedRowHeight = 76.0;
     self.tableView.backgroundColor = [UIColor systemGroupedBackgroundColor];
+    if (@available(iOS 15.0, *)) {
+        self.tableView.sectionHeaderTopPadding = 0;
+    }
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(),
                                     (__bridge const void *)(self),
                                     NFPNotificationHistoryRefreshCompletedCallback,

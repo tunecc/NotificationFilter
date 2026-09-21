@@ -11,6 +11,10 @@
 "ROOT_APP_RULES" = "应用规则";
 "ROOT_IMPORT_EXPORT" = "规则导入导出";
 "ROOT_FILTERED_LOGS" = "已过滤通知";
+"ROOT_SUMMARY_OFF" = "已关闭";
+"ROOT_SUMMARY_RULE_COUNT_FORMAT" = "%lu 条";
+"ROOT_SUMMARY_ENABLED_APPS_FORMAT" = "已开启 %lu 个";
+"ROOT_SUMMARY_LOG_COUNT_FORMAT" = "%lu 条";
 "ROOT_SAVE_FAILED_MESSAGE" = "无法写入配置。";
 
 "COMMON_SAVE_FAILED" = "保存失败";
@@ -125,6 +129,8 @@
 "LOGS_APP_LOG_ENABLED" = "记录该应用日志";
 "LOGS_APP_LOG_ENABLED_FOOTER" = "关闭后，该应用被拦截的通知不再写入日志。";
 "LOGS_APP_LOG_GLOBAL_OFF_FOOTER" = "全局日志已关闭。";
+"LOGS_STOP_APP_LOG" = "不再记录该应用日志";
+"LOGS_RESUME_APP_LOG" = "恢复记录该应用日志";
 
 "LOG_DETAIL_TITLE" = "通知详情";
 "LOG_DETAIL_APP_FORMAT" = "应用：%@";
@@ -208,8 +214,11 @@
 
 "GLOBAL_SCAN_TITLE" = "扫描全部通知";
 "GLOBAL_SCAN_EMPTY" = "通知中心当前没有可扫描的通知。请先让设备收到通知，再重新扫描。";
+"GLOBAL_SCAN_ENABLE_RULES_ACTION" = "启用该应用规则";
 "GLOBAL_SCAN_FOOTER" = "进入本页面时会从 SpringBoard 刷新全部应用的通知历史。";
+"GLOBAL_SCAN_RULES_DISABLED_MESSAGE" = "%@ 的规则已保存，但该应用规则尚未启用，暂时不会过滤通知。是否现在启用？";
 "GLOBAL_SCAN_FOOTER_MIRROR" = "实时刷新不可用，当前显示的是 Notification Filter 记录的最近通知历史镜像。";
+"GLOBAL_SCAN_RULES_SAVED_TITLE" = "规则已保存成功";
 "GLOBAL_SCAN_FOOTER_LIVE" = "已从通知中心实时读取全部应用的通知历史。";
 "RULE_SCAN_NOTIFICATION_LABEL" = "通知内容";
 "RULE_SCAN_RULE_TYPE_LABEL" = "规则类型";

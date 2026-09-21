@@ -416,6 +416,59 @@ static NSString *NFPreparePrimaryPreferencesFilePath(void) {
            [rules[NFRulesRegexKey] count] > 0;
 }
 
+// 只翻 enabled 开关，规则条目原样保留；用于扫描保存后补一次「启用该应用规则」。
++ (BOOL)setRulesEnabled:(BOOL)enabled
+     forBundleIdentifier:(NSString *)bundleIdentifier
+                 error:(NSError * _Nullable * _Nullable)error {
+    if (bundleIdentifier.length == 0) {
+        return NO;
+    }
+
+    NSMutableDictionary *preferences = [self loadMutablePreferences];
+    NSMutableDictionary *appRules = [preferences[NFAppRulesKey] mutableCopy];
+    if (![appRules isKindOfClass:[NSMutableDictionary class]]) {
+        appRules = [NSMutableDictionary dictionary];
+    }
+
+    NSMutableDictionary *mutableRules = [[self normalizedRulesDictionaryFromRawDictionary:appRules[bundleIdentifier]] mutableCopy];
+    mutableRules[NFRulesEnabledKey] = @(enabled);
+    appRules[bundleIdentifier] = mutableRules;
+    preferences[NFAppRulesKey] = appRules;
+
+    if (![self savePreferences:preferences error:error]) {
+        return NO;
+    }
+
+    [self postPreferencesChangedNotification];
+    return YES;
+}
+
++ (NSUInteger)globalRuleEntryCountFromPreferences:(NSDictionary *)preferences {
+    NSDictionary *rules = [self globalRulesFromPreferences:preferences];
+    return [rules[NFRulesContainsKey] count] +
+           [rules[NFRulesExcludeKey] count] +
+           [rules[NFRulesRegexKey] count];
+}
+
++ (NSUInteger)enabledAppRulesCountFromPreferences:(NSDictionary *)preferences {
+    NSDictionary *normalizedPreferences = [self normalizedPreferencesFromDictionary:preferences];
+    NSDictionary *appRules = normalizedPreferences[NFAppRulesKey];
+    if (![appRules isKindOfClass:[NSDictionary class]]) {
+        return 0;
+    }
+
+    __block NSUInteger count = 0;
+    [appRules enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL *stop) {
+        if (![obj isKindOfClass:[NSDictionary class]]) {
+            return;
+        }
+        if ([obj[NFRulesEnabledKey] boolValue]) {
+            count += 1;
+        }
+    }];
+    return count;
+}
+
 + (NSArray<NSDictionary *> *)normalizedRuleEntriesFromArray:(NSArray *)rawRules {
     return [self normalizedRuleEntriesFromArray:rawRules defaultScope:NFRuleScopeAll];
 }

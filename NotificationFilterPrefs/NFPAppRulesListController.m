@@ -25,6 +25,18 @@ static NSString * const NFPAppRulesDisplayNameKey = @"displayName";
 
 @implementation NFPAppRulesListController
 
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView estimatedHeightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    return [[UIView alloc] initWithFrame:CGRectZero];
+}
 static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
     if (![rules isKindOfClass:[NSDictionary class]]) {
         return 0;
@@ -51,6 +63,9 @@ static NSUInteger NFPRuleCountForRulesDictionary(NSDictionary *rules) {
     self.navigationItem.searchController = searchController;
     self.navigationItem.hidesSearchBarWhenScrolling = NO;
     self.searchController = searchController;
+    if (@available(iOS 15.0, *)) {
+        self.tableView.sectionHeaderTopPadding = 0;
+    }
 
     UIRefreshControl *refreshControl = [[UIRefreshControl alloc] init];
     [refreshControl addTarget:self action:@selector(refreshTriggered) forControlEvents:UIControlEventValueChanged];

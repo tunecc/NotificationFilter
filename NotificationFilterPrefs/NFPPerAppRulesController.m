@@ -32,6 +32,18 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesExportRow) {
 
 @implementation NFPPerAppRulesController
 
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView estimatedHeightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    return [[UIView alloc] initWithFrame:CGRectZero];
+}
 - (NSArray<NSDictionary *> *)rulesForEditorKind:(NFPRuleEditorKind)editorKind fromRules:(NSDictionary *)rules {
     switch (editorKind) {
         case NFPRuleEditorKindContains:
@@ -64,6 +76,9 @@ typedef NS_ENUM(NSInteger, NFPPerAppRulesExportRow) {
                                                                               style:UIBarButtonItemStylePlain
                                                                              target:self
                                                                              action:@selector(scanButtonTapped:)];
+    if (@available(iOS 15.0, *)) {
+        self.tableView.sectionHeaderTopPadding = 0;
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated {

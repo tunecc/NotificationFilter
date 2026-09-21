@@ -11,6 +11,10 @@
 "ROOT_APP_RULES" = "App Rules";
 "ROOT_IMPORT_EXPORT" = "Import & Export";
 "ROOT_FILTERED_LOGS" = "Filtered Notifications";
+"ROOT_SUMMARY_OFF" = "Off";
+"ROOT_SUMMARY_RULE_COUNT_FORMAT" = "%lu rules";
+"ROOT_SUMMARY_ENABLED_APPS_FORMAT" = "%lu enabled";
+"ROOT_SUMMARY_LOG_COUNT_FORMAT" = "%lu";
 "ROOT_SAVE_FAILED_MESSAGE" = "Failed to write preferences.";
 
 "COMMON_SAVE_FAILED" = "Save Failed";
@@ -125,6 +129,8 @@
 "LOGS_APP_LOG_ENABLED" = "Log This App";
 "LOGS_APP_LOG_ENABLED_FOOTER" = "When off, blocked notifications from this app are no longer logged.";
 "LOGS_APP_LOG_GLOBAL_OFF_FOOTER" = "Global logging is off.";
+"LOGS_STOP_APP_LOG" = "Stop Logging This App";
+"LOGS_RESUME_APP_LOG" = "Resume Logging This App";
 
 "LOG_DETAIL_TITLE" = "Notification Details";
 "LOG_DETAIL_APP_FORMAT" = "App: %@";
@@ -208,8 +214,11 @@
 
 "GLOBAL_SCAN_TITLE" = "Scan All Notifications";
 "GLOBAL_SCAN_EMPTY" = "There are no notifications to scan yet. Receive a notification first, then scan again.";
+"GLOBAL_SCAN_ENABLE_RULES_ACTION" = "Enable Rules for This App";
 "GLOBAL_SCAN_FOOTER" = "Notification history for all apps is refreshed from SpringBoard when you open this page.";
+"GLOBAL_SCAN_RULES_DISABLED_MESSAGE" = "Rules for %@ were saved, but that app's rules are still disabled, so nothing is filtered yet. Enable them now?";
 "GLOBAL_SCAN_FOOTER_MIRROR" = "Live refresh is unavailable; showing the recent notification history mirror recorded by Notification Filter.";
+"GLOBAL_SCAN_RULES_SAVED_TITLE" = "Rules Saved";
 "GLOBAL_SCAN_FOOTER_LIVE" = "Notification history for all apps was read live from Notification Center.";
 "RULE_SCAN_NOTIFICATION_LABEL" = "Notification";
 "RULE_SCAN_RULE_TYPE_LABEL" = "Rule Type";

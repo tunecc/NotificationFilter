@@ -27,6 +27,18 @@
 
 @implementation NFPRulesListEditorController
 
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (CGFloat)tableView:(UITableView *)tableView estimatedHeightForHeaderInSection:(NSInteger)section {
+    return CGFLOAT_MIN;
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+    return [[UIView alloc] initWithFrame:CGRectZero];
+}
 static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) {
     return editorKind == NFPRuleEditorKindContains ? NFRuleScopeMessage : NFRuleScopeAll;
 }
@@ -80,6 +92,9 @@ static NSString *NFPRuleDefaultScopeForEditorKind(NFPRuleEditorKind editorKind) 
     self.tableView.estimatedRowHeight = 88.0;
     self.tableView.rowHeight = UITableViewAutomaticDimension;
     self.navigationItem.leftItemsSupplementBackButton = YES;
+    if (@available(iOS 15.0, *)) {
+        self.tableView.sectionHeaderTopPadding = 0;
+    }
 
     self.editRulesButton = [[UIBarButtonItem alloc] initWithTitle:NFPLocalizedString(@"COMMON_EDIT")
                                                             style:UIBarButtonItemStylePlain
